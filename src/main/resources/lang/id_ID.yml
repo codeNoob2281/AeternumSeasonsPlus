@@ -1,0 +1,975 @@
+season:
+  SPRING: Musim Semi
+  SUMMER: Musim Panas
+  AUTUMN: Musim Gugur
+  WINTER: Musim Dingin
+hud:
+  title: "Hari {day}, Tahun {year} — {season}"
+  title_dim: "Hari {day}, Tahun {year} — {season} — {realm}"
+
+realm:
+  frost_overworld: "Alam Bersalju"
+  heat_overworld: "Alam Berbara"
+
+  frost_title: "&b{name}"
+  frost_subtitle: "&7Hanya bioma dingin"
+
+  heat_title: "&c{name}"
+  heat_subtitle: "&7Bertahan hidup di tanah yang membakar"
+
+  overworld_title: "&aDunia Utama"
+  returned_from: "&7Anda telah meninggalkan &f{name}"
+
+log:
+  frost_world_loaded: "&a[World] Dunia salju '{name}' sudah dimuat."
+  frost_world_created: "&a[World] Dunia salju '{name}' berhasil dibuat dan dimuat."
+  frost_world_failed: "&c[World] Gagal membuat dunia salju '{name}'."
+
+  heat_world_creating: "&6[World] Membuat dunia panas '{name}'..."
+  heat_world_loaded: "&a[World] Dunia panas '{name}' sudah dimuat."
+  heat_world_created: "&a[World] Dunia panas '{name}' berhasil dibuat dan dimuat."
+  heat_world_failed: "&c[World] Gagal membuat dunia panas '{name}'."
+
+cmd:
+  event:
+    no_permission: "&cAnda tidak memiliki izin untuk menggunakan perintah ini."
+    usage: "&ePenggunaan: {cmd} <list|info|start|stop> [id] [days]"
+    list:
+      header: "&6Acara Terdaftar:"
+      item: "&7- &e{id}&7 (&f{name}&7)"
+    started: "&aAcara &e{id}&a dipaksa untuk dimulai."
+    stopped: "&cAcara aktif dihentikan."
+    no_such_event: "&cTidak ada acara ditemukan dengan id &e{id}&c."
+    no_active: "&7Saat ini tidak ada acara aktif."
+    info: "&6Acara aktif: &e{id}&7 (&f{name}&7), &e{days}&7 hari tersisa."
+
+  season:
+    no_permission: "&cAnda tidak memiliki izin untuk menggunakan perintah ini."
+
+    info:
+      line: "&bMusim: {season}&7 | Hari {day}/{max}&3 | Tahun {year}"
+
+    set:
+      usage: "&ePenggunaan: /{label} set <SPRING|SUMMER|AUTUMN|WINTER>"
+      invalid: "&cMusim tidak valid."
+      success: "&6Musim diatur ke {season}."
+
+    skipday:
+      done: "&6Anda telah melompati 1 hari."
+
+    day:
+      usage: "&ePenggunaan: /{label} day <1..{max}>"
+      invalid_number: "&cNomor tidak valid."
+      success: "&6Hari diatur ke {day} (musim saat ini)."
+
+    year:
+      usage: "&ePenggunaan: /{label} year <angka>"
+      invalid_number: "&cNomor tahun tidak valid."
+      success: "&aTahun kalender diatur ke &f{year}&a."
+
+    reload:
+      done: "&aKonfigurasi dimuat ulang."
+
+    hud:
+      player_only: "&cPerintah ini hanya dapat digunakan oleh pemain."
+      usage: "&ePenggunaan: /{label} hud <fixed|variable|off>"
+      current: "&7Mode saat ini: &b{mode}"
+      invalid: "&cMode tidak valid. Gunakan: &efixed&c, &evariable&c atau &eoff&c."
+      mode:
+        fixed: "tetap"
+        variable: "variabel"
+        off: "mati"
+      set:
+        fixed: "&aTampilan HUD statis diaktifkan."
+        variable: "&aMode HUD variabel diaktifkan."
+        "off": "&cHUD dinonaktifkan."
+
+    help: "&ePenggunaan: /{label} <info|set|skipday|day|reload|hud>"
+
+event:
+  blood_moon:
+    title: "§4☾ Bulan Darah ☾"
+    subtitle: "§cMakhluk menjadi lebih kuat dan Anda tidak bisa tidur..."
+    end: "&6Bulan Darah telah memudar..."
+    no_sleep: "&4Anda tidak bisa tidur selama Bulan Darah..."
+    mob_name: "Keturunan Malam"
+
+  heat_wave:
+    title: "§6☀ Gelombang Panas ☀"
+    subtitle: "&eMatahari membakar lebih keras, cari tempat teduh atau perlindungan."
+    end: "&aGelombang panas telah berakhir, cuaca terasa lebih lembut."
+
+  winter_freeze:
+    title: "§b❄ Pembekuan Musim Dingin ❄"
+    subtitle: "§fMusim dingin menjadi mematikan jika Anda tidak terlindungi."
+    end: "&bPembekuan telah berlalu, udara terasa kurang menusuk."
+    freezing: "&3Anda menggigil... &banda membutuhkan kehangatan atau perlengkapan yang lebih baik."
+    cold_but_safe: "&7Anda merasakan dingin, tetapi perlindungan Anda membuat Anda aman."
+
+  magic_storm:
+    title: "§5⚡ Badai Sihir ⚡"
+    subtitle: "&dLangi retak dan sihir jatuh bersama hujan."
+    end: "&5Badai sihir memudar, meninggalkan keheningan yang menyeramkan."
+    mob_name: "&bMakhluk Tersentuh Badai"
+
+  festival:
+    end: "&6Festival berakhir, tetapi kenangan tetap ada."
+    actionbar: "&6Pasar Festival&7 • &e{season}&8 • &7Stok berubah setiap hari"
+    trader_name: "&ePedagang Festival"
+    item:
+      spring: "&aPot Bunga Musim Semi"
+      summer: "&eCamilan Madu Musim Panas"
+      autumn: "&6Pai Labu Musim Gugur"
+      winter: "&bPoli Salju Meriah"
+      generic: "&fSouvenir Festival"
+    spring:
+      title: "§a✿ Festival Musim Semi ✿"
+      subtitle: "&fBunga, musik, dan benih harapan baru. Cari desa"
+    summer:
+      title: "§e☀ Festival Musim Panas ☀"
+      subtitle: "&fMakanan, tawa, dan malam hangat. Cari desa"
+    autumn:
+      title: "§6🍂 Festival Musim Gugur 🍂"
+      subtitle: "&fPanen, api unggun, dan cerita di dekat api. Cari desa "
+    winter:
+      title: "§b❄ Festival Musim Dingin ❄"
+      subtitle: "&fCahaya, salju, dan kehangatan rumah. Cari desa"
+
+  fishing:
+    title: "§b🎣 Festival Memancing 🎣"
+    subtitle: "&fSungai dan lautan menyembunyikan harta tambahan hari ini."
+    end: "&bFestival memancing telah berakhir."
+
+  mining:
+    title: "§6⛏ Berkat Penambangan ⛏"
+    subtitle: "&fUrat bijih terasa lebih dermawan..."
+    end: "&6Berkat penambangan memudar."
+
+  tornado:
+    title: "§7🌪 Tornado 🌪"
+    subtitle: "&fAngin menderu, cari tempat berlindung."
+    end: "&7Tornado perlahan menghilang."
+
+  restful_sleep:
+    title: "§d😴 Tidur Nyenyak 😴"
+    subtitle: "&fTidur nyenyak akan memberi Anda kekuatan ekstra."
+    end: "&dTidur Anda kembali normal."
+    sleeping: "&dAnda bersiap untuk tidur nyenyak yang memulihkan..."
+    buffed: "&dAnda bangun dengan segar, merasakan vitalitas ekstra."
+    lost: "&cKerusakan telah melemahkan Anda dan Anda kehilangan efek pemulihan."
+
+  halloween:
+    title: "&6&lMalam &e&lLabu"
+    subtitle: "&7Monster menjadi lebih kuat dan haus akan jiwa..."
+
+  christmas:
+    title: "&b&lNatal di Aeternum"
+    subtitle: "&7Udara terasa lebih hangat dan hadiah menanti..."
+    gift_found: "&aAnda merasa karung hadiah telah muncul di inventaris Anda..."
+
+    gift_bundle_name: "&bKantong Hadiah Natal"
+    gift_bundle_lore_1: "&7Sebuah kantong misterius berisi &fhadian Natal yang meriah&7."
+    gift_bundle_lore_2: "&7Simpan sebagai kenang-kenangan... atau buka dan nikmati hadiahnya."
+
+  holiday:
+    end: "&7Perayaan liburan telah berakhir."
+
+  new_year:
+    name: "§eTahun Baru"
+    title: "§e✨ Tahun Baru di Aeternum ✨"
+    subtitle: "&7Kalender menandai awal yang baru."
+    gift_found: "&aAnda telah menerima roket untuk merayakan Tahun Baru!"
+    end: "&7Tahun Baru berakhir, namun petualangan berlanjut."
+
+  nether_fishing_derby:
+    title: "§cDerbi Memancing Nether"
+    subtitle: "§7Memancing di §clava§7 untuk jarahan spesial."
+    end: "§7§cDerbi Memancing Nether§7 telah berakhir."
+    bite_actionbar: "§6✦ §cPukulan Nether! §7(§fKlik kanan§7)"
+    no_bite_actionbar: "§7Tidak ada yang menggigit… §8coba lagi."
+    no_loot_actionbar: "§7Kamu tidak memancing apa pun… §8(nasib buruk)"
+  piglin_market:
+    title: "§6Pasar Piglin"
+    subtitle: "§7Tukaran ditingkatkan untuk sementara."
+    end: "§7§6Pasar Piglin§7 telah ditutup."
+  quartz_rush:
+    title: "§fDemam Kuarsa"
+    subtitle: "§7Lebih banyak §fkuarsa§7 saat menambang."
+    end: "§7§fDemam Kuarsa§7 telah berakhir."
+  fungus_bloom:
+    title: "§dMekarnya Jamur"
+    subtitle: "§7Crimson/Warped memberikan drop lebih banyak."
+    end: "§7§dMekarnya Jamur§7 telah berakhir."
+  blaze_surge:
+    title: "§6Gelombang Blaze"
+    subtitle: "§7Lebih banyak rod dan blaze lebih aktif."
+    end: "§7§6Gelombang Blaze§7 telah berakhir."
+  magma_tides:
+    title: "§cPasang Magma"
+    subtitle: "§7Lebih banyak magma cream… hati-hati."
+    end: "§7§cPasang Magma§7 telah surut."
+  ghast_alert:
+    title: "§fPeringatan Ghast"
+    subtitle: "§7Lebih banyak ghast dan hadiah ekstra."
+    end: "§7§fPeringatan Ghast§7 telah berakhir."
+    ghast_name: "§fGhast Pengintai"
+  wither_loose:
+    title: "§4PERINGATAN TINGGI!"
+    subtitle: "§7§lWITHER BEBAS§7 di Nether."
+    survive: "§cBERTAHAN HIDUP!!"
+    end: "§7Peringatan §4Wither§7 telah berakhir."
+    wither_name: "§4§lWITHER BEBAS"
+    countdown_60: "§cWither akan muncul dalam §f{seconds}§c detik…"
+    countdown_40: "§cSisa §f{seconds}§c detik…"
+    countdown_20: "§cSisa §f{seconds}§c detik…"
+    countdown_generic: "§cSisa §f{seconds}§c detik…"
+    idle_killed: "§7§4Wither§7 menghilang karena tidak aktif…"
+  wither_skeleton_swarm:
+    title: "§8Gerombolan"
+    subtitle: "§7Wither Skeleton lebih kuat dan jarahan lebih baik."
+    end: "§7§8Gerombolan§7 telah berakhir."
+    mob_name: "§8Penjaga Wither"
+
+guide:
+  # Título general (se usa tanto en chat como en el libro)
+  title: "Panduan Musim Aeternum"
+
+  # Título y autor del libro escrito
+  book_title: "Panduan Musim Aeternum"
+  book_author: "Aeternum"
+  book_given: "Panduan musim telah diberikan padamu."
+
+  # Línea con la estación actual
+  current: "Musim Saat Ini: {season}"
+
+  # Primer párrafo del libro
+  intro: "Panduan ini merangkum cuaca, event, tanaman, dan migrasi hewan untuk setiap musim."
+
+  section:
+    events: "§0Event Musiman"
+    crops: "§0Tanaman per Musim"
+    migration: "§0Migrasi Hewan"
+    stables: "Kandang dan Lumbung"
+    weather: "§0Cuaca Khas"
+    crafting: "Crafting Khusus"
+    dimensions: "Dimensi"
+
+  crafting: # <- Y AQUÍ DENTRO tus recetas
+    advanced_composter: |
+      §6Pengompos Lanjutan§7
+      §7Resep:
+      §2[L] [H] [L]
+      §2[P] [C] [P]
+      §2[L] [H] [L]
+      §1L = daun apa saja
+      §1H = hopper
+      §1P = labu
+      §1C = pengompos
+
+    harvest_hoe: |
+      §6Cangkul Panen§7
+      §7Resep:
+      §2[W] [W] [W]
+      §2[E] [H] [E]
+      §2[E] [E] [E]
+      §1W = gandum
+      §1E = zamrud
+      §1H = cangkul apa saja
+
+    farmer_boots: |
+      §6Sepatu Bot Petani§7
+      §7Resep:
+      §2[W] [B] [W]
+      §2[W] [S] [W]
+      §2[W] [W] [W]
+      §1W = gandum
+      §1B = sepatu bot
+      §1S = sekop (batu/berlian)
+
+    lunar_lantern: |
+      §6Lentera Bulan§7
+      §7Resep:
+      §2[R] [L] [R]
+      §2[R] [E] [R]
+      §2[R] [L] [R]
+      §1R = redstone
+      §1L = lentera
+      §1E = mutiara Ender
+
+    solar_torch: |
+      §6Obor Surya§7
+      §7Resep:
+      §2[B] [B] [B]
+      §2[ ] [T] [ ]
+      §2[ ] [F] [ ]
+      §1B = bubuk blaze
+      §1T = obor biasa
+      §1F = Bunga Matahari
+
+    spring_bell: |
+      §dBel Musim Semi§7
+      §7Resep:
+      §2[A] [P] [A]
+      §2[P] [B] [P]
+      §2[A] [P] [A]
+      §1A = pecahan amethyst
+      §1P = kelopak / bunga merah muda
+      §1B = bel
+
+    spring_boots: |
+      §dSepatu Langkah Musim Semi§7
+      §7Resep:
+      §2[P] [P] [P]
+      §2[P] [B] [P]
+      §2[P] [P] [P]
+      §1P = kelopak / bunga merah muda
+      §1B = sepatu bot
+
+    snow_boots: |
+      §6Sepatu Bot Anti-Salju§7
+      §7Resep:
+      §2[ ] [B] [ ]
+      §2[ ] [S] [ ]
+      §2[ ] [S] [ ]
+      §1B = sepatu bot
+      §1S = ember Salju Bubuk
+
+    woodcutter_axe: |
+      §6Kapak Penebang Alami§7
+      §7Resep:
+      §2[L] [A] [L]
+      §2[O] [ ] [O]
+      §2[L] [ ] [L]
+      §1L = daun apa saja
+      §1O = batang kayu apa saja
+      §1A = kapak apa saja
+
+    frost_core: |
+      §6Inti Musim Dingin§7
+      §7Resep:
+      §2[S] [I] [S]
+      §2[I] [B] [I]
+      §2[S] [I] [S]
+      §1S = Blok salju
+      §1I = Es padat
+      §1B = Hati Laut
+      §7Klik kanan pada Golem Salju untuk meningkatkannya.
+
+    guardian_core: |
+      §6Inti Penjaga§7
+      §7Resep:
+      §2[I] [B] [I]
+      §2[B] [G] [B]
+      §2[I] [B] [I]
+      §1I = Blok besi
+      §1B = Batang besi
+      §1G = Pecahan amethyst
+      §7Klik kanan pada Golem Besi.
+
+    fish_trap: |
+      §6Perangkap Ikan§7
+      §7Resep:
+      §2[S] [ ] [S]
+      §2[S] [B] [S]
+      §2[S] [ ] [S]
+      §1S = tali
+      §1B = tong
+
+    creature_generator: |
+      §6Perangkap Makhluk§7
+      §7Resep:
+      §2[S] [I] [S]
+      §2[I] [T] [I]
+      §2[S] [I] [S]
+      §1S = tali
+      §1I = batang besi
+      §1T = tongkat
+
+    Clock: |
+      §6Jam Musiman§7
+      §7Resep:
+      §2[ ] [B] [ ]
+      §2[ ] [R] [ ]
+      §2[ ] [ ] [ ]
+      §1B = Kompas
+      §1R = Jam
+
+
+  dimensions:
+    snowbound:
+      title: "Dunia Beku"
+      build: "Konstruksi Portal:"
+      block: "Batu Bersinar (Glowstone)"
+      activate: "Aktifkan dengan melempar bola salju ke portal."
+
+      warning_title: "Peringatan: Cuaca Ekstrem"
+      warning_1: "Selama badai salju, penglihatanmu hampir sepenuhnya berkurang."
+      warning_2: "Hanya dengan sumber cahaya atau berlindung di dalam gua kamu bisa melihat."
+      warning_3: "Dingin semakin intens, lindungi dirimu dengan baik."
+
+    emberbound:
+      title: "Portal ke Dunia Infernal"
+      build_glitched: "Konstruk..."
+      block: "Blok SDFSD"
+      glitch_warning: "Sepertinya informasi untuk dunia ini rusak..."
+
+  events:
+    blood_moon: "§cBulan Darah§7: massa lebih kuat, kamu tidak bisa tidur."
+    heat_wave: "§6Gelombang Panas§7: matahari melelahkan jika kamu tidak di tempat teduh."
+    winter_freeze: "§9Pembekuan Musim Dingin§7: tanpa pakaian yang tepat kamu cepat membeku."
+    magic_storm: "§9Badai Sihir§7: cuaca aneh dan *loot* magis."
+    festival: "§6Festival§7: penduduk desa, perdagangan, dan dekorasi."
+    fishing: "§9Festival Memancing§7: *loot* ekstra saat memancing."
+    mining: "§6Berkat Penambangan§7: lebih banyak mineral dan *drop* yang lebih baik."
+    tornado: "§7Tornado§7: angin yang menyeret dan merusak tanaman."
+    restful_sleep: "§9Tidur Nyenyak§7: tidur memberikan tambahan kesehatan sementara."
+
+  crops:
+    SPRING: "Gandum, wortel, kentang, bit, dan labu berkembang; musim tanam umum yang sangat baik."
+    SUMMER: "Semangka, tebu, kaktus, dan tanaman tahan panas tumbuh paling baik."
+    AUTUMN: "Labu, jamur, dan akar; ideal untuk panen besar dan penyimpanan."
+    WINTER: "Hampir tidak ada yang tumbuh di luar; rumah kaca memungkinkan budidaya berlanjut."
+
+  migration:
+    SPRING: "Lebih banyak domba, lebah, dan kelinci di padang rumput dan hutan berbunga."
+    SUMMER: "Lebih banyak ikan tropis, lumba-lumba, kura-kura, dan axolotl di laut hangat."
+    AUTUMN: "Rubah, serigala, dan kambing berkumpul di taiga dan daerah pegunungan."
+    WINTER: "Serigala dan beruang kutub mendominasi bioma dingin; banyak hewan iklim hangat menghilang."
+
+  stables:
+    winter: "Hewan yang tidak tahan dingin bisa mati jika tidak memiliki kandang atau tempat berlindung."
+    breeding: "Pembiakan kurang efektif (atau tidak ada) jika mereka tidak berada di kandang."
+    bonus_drops: "Hewan yang dibesarkan atau dilindungi di kandang akan menjatuhkan *loot* lebih banyak (daging, bulu, wol, kulit)."
+
+  weather:
+    SPRING: "Hujan ringan, cuaca sedang, dan hari yang lebih panjang yang mendukung tanaman."
+    SUMMER: "Matahari intens, panas kuat, dan beberapa badai dahsyat."
+    AUTUMN: "Angin sejuk, langit mendung, dan perubahan suhu mendadak."
+    WINTER: "Salju sering, dingin ekstrem, dan risiko pembekuan jika kamu tidak melindungi diri."
+
+  footer: " gunakan /seasonguide."
+
+item:
+  snow_step_boots:
+    name: "&bSepatu Bot Langkah Salju"
+    lore1: "&7Memungkinkan Anda berjalan di atas &fSalju Bubuk"
+    lore2: "&7tanpa tenggelam atau terjebak."
+
+  labrador_boots:
+    name: "&aSepatu Bot Labrador"
+    lore1: "&7Anda tidak menginjak &6tanah yang diolah&7 saat melompat."
+    lore2: "&7Anda bergerak lebih cepat di &6lahan pertanian&7."
+    lore3: "&7Kadang-kadang memberikan &abenih ekstra&7 saat memanen."
+
+  spring_stride_boots:
+    name: "&dLangkah Musim Semi"
+    lore1: "&7Lompatan yang lebih ringan, &dmekar&7."
+    lore2: "&7Saat mendarat, langkah Anda membuat &fbunga&7 mekar."
+    lore3: "&7Sempurna untuk menjelajahi padang rumput musim semi."
+
+  solar_torch:
+    name: "&eObor Surya"
+    lore1: "&7Obor yang diberkati oleh &6matahari&7."
+    lore2: "&7Di musim panas, mempercepat pertumbuhan tanaman."
+    lore3: "&7Di malam hari, melemahkan mob di dekatnya."
+
+  advanced_composter:
+    name: "&6Pengompos Tingkat Lanjut"
+    lore1: "&7Memproses kompos &edua kali lebih cepat&7."
+    lore2: "&7Memiliki peluang untuk menghasilkan &fextra tepung tulang&7."
+    lore3: "&7Bekerja lebih baik di &6musim gugur&7."
+
+  spring_bell:
+    name: "&dLonceng Musim Semi"
+    lore1: "&7Ketika dibunyikan, itu membuat tanaman di dekatnya mekar."
+    lore2: "&7Menenangkan dan memberkati &elebah&7 di dekatnya."
+    lore3: "&7Sihirnya lebih kuat di &amusim semi&7."
+
+  lunar_lantern:
+    name: "&9Lentera Bulan"
+    lore1: "&7Bersinar dengan cahaya &9kebiruan&7 di malam hari."
+    lore2: "&7Meningkatkan pertumbuhan &3jamur&7 dan tanaman gelap."
+    lore3: "&7Menambahkan &bkejernihan nokturnal&7 yang lembut bagi para pelancong."
+
+  harvest_hoe:
+    name: "&6Cangkul Panen"
+    lore1: "&7Memanen tanaman &edi area&7, hanya saat matang."
+    lore2: "&7Menanam kembali secara otomatis menggunakan &fbenih&7 di inventaris."
+    lore3: "&7Mengonsumsi daya tahan per tanaman yang dipanen."
+
+  natural_tree_axe:
+    name: "&2Kapak Pohon Alami"
+    lore1: "&7Menumbangkan & seluruh pohon&7 dengan satu ayunan."
+    lore2: "&7Hanya mempengaruhi balok kayu yang terhubung, menjaga hutan."
+    lore3: "&7Mengonsumsi daya tahan per balok kayu yang dipotong."
+
+  frost_core:
+    name: "&bInti Musim Dingin"
+    lore1: "&7Memberdayakan Snow Golem."
+    lore2: "&7Kekuatannya meningkat lebih banyak di musim dingin."
+    lore3: "&eKlik kanan Snow Golem."
+    lore4: "&aMusim Dingin:&7 lebih banyak kesehatan dan bola salju yang lebih kuat."
+    lore5: "&7Tidak meninggalkan salju di tanah dan tidak mati karena cuaca."
+
+  guardian_core:
+    name: "&6Inti Penjaga"
+    lore1: "&7Menanamkan Iron Golem"
+    lore2: "&7dengan kekuatan yang terikat pada musim."
+    lore3: "&eKlik kanan Iron Golem."
+    lore4: "&aMusim Dingin:&7 lebih banyak kesehatan dan kerusakan."
+    lore5: "&eMusim Panas:&7 kebal terhadap api dan membakar musuh."
+
+  everfrost_shard:
+    name: "&bPecahan Embun Beku Abadi"
+    lore_line1: "&7Fragmen kekuatan &bGlacialis&7."
+    lore_line2: "&7Digunakan untuk menempa baju besi yang menahan panas neraka."
+
+  glacialis_core:
+    name: "&3Inti Glacialis"
+    lore_line1: "&7Berdenyut dengan dingin yang tidak wajar."
+    lore_line2: "&7Kunci untuk menempa baju besi melawan panas."
+
+  heat_armor:
+    helmet:
+      name: "&bHelm Embun Beku Abadi"
+      lore_line1: "&7Ditempa dengan kekuatan &bGlacialis&7."
+      lore_line2: "&7Membantu menahan panas neraka."
+    chest:
+      name: "&bPelat Dada Embun Beku Abadi"
+      lore_line1: "&7Embun beku abadi menjaga hati Anda."
+      lore_line2: "&7Membantu menahan panas neraka."
+    legs:
+      name: "&bPelindung Kaki Embun Beku Abadi"
+      lore_line1: "&7Membiarkan Anda melangkah melintasi bara api."
+      lore_line2: "&7Membantu menahan panas neraka."
+    boots:
+      name: "&bSepatu Bot Embun Beku Abadi"
+      lore_line1: "&7Meninggalkan jejak kaki di atas lahar."
+      lore_line2: "&7Membantu menahan panas neraka."
+
+golem:
+  frostbound:
+    name: "&bGolem Terikat Musim Dingin"
+
+  guardian:
+    name: "&6Golem Penjaga"
+
+  upgrade:
+    too_many: "&cPotongan ini sudah memiliki jumlah maksimum golem yang ditingkatkan (&e{max}&c)."
+    frost_ok: "&bSnow Golem Anda sekarang adalah &fGolem Terikat Musim Dingin&b."
+    guardian_ok: "&6Iron Golem Anda sekarang adalah &fGolem Penjaga&6."
+    wrong_target: "&7Anda hanya dapat menggunakan inti ini pada golem yang sesuai."
+
+boss:
+  glacialis:
+    name: "&bGlacialis, Jantung Musim Dingin"
+    spawn: "&b[Glacialis]&7 Dingin kuno terbangun di &fDunia Beku&7..."
+    defeated: "&b[Glacialis]&7 telah dikalahkan. &7Pecahan bekunya tersebar di salju."
+
+frost_guide:
+  book_title: "Panduan Dunia Beku"
+  book_author: "Kartografer Musim Aeternum"
+
+  page1: |
+    §9Alam Embun Beku Abadi
+    §7Anda telah melewati portal glowstone dan tiba
+    di alam musim dingin tanpa akhir.
+    
+    §1Anda dapat membangun markas, menambang, dan menjelajah,
+    §4tetapi ingat musuh lebih kuat§7.
+  
+
+  page2: |
+    §9Bahaya es
+    
+    §7Di Alam Embun Beku Abadi, hampir setiap musuh memiliki
+    varian beku.
+    
+    §4Terus bergerak dan selalu bawa
+    baju besi dan makanan yang baik.
+
+  page3: |
+    §9Glacialis, Jantung Musim Dingin
+    
+    §7Bos ini adalah alasan dimensi ini
+    terperangkap dalam musim dingin abadi.
+    §4Glacialis muncul di malam hari di Alam Embun Beku Abadi,
+    setiap §628 hari§7.
+    Loot-nya istimewa untuk baju besi Embun Beku Abadi.
+
+  page4: |
+    §6Helm Embun Beku Abadi
+    §7Resep:
+    §2[S] [S] [S]
+    §2[S] [C] [S]
+    §2[ ] [H] [ ]
+    
+    §1S = Pecahan Es Abadi
+    §1C = Inti Glacialis
+    §1H = Helm Berlian
+    
+    §7Helm Embun Beku Abadi adalah bagian pertama untuk
+    menghadapi panas neraka.
+
+  page5: |
+    §6Pelat Dada Embun Beku Abadi
+    §7Resep:
+    §2[ ] [C] [ ]
+    §2[S] [A] [S]
+    §2[S] [ ] [S]
+    
+    §1S = Pecahan Es Abadi
+    §1C = Inti Glacialis
+    §1A = Pelat Dada Berlian
+    
+    §7Pelat Dada Embun Beku Abadi memperkuat tubuh Anda.
+
+  page6: |
+    §6Pelindung Kaki Embun Beku Abadi
+    §7Resep:
+    §2[S] [C] [S]
+    §2[S] [A] [S]
+    §2[S] [A] [S]
+    
+    §1S = Pecahan Es Abadi
+    §1C = Inti Glacialis
+    §1A = Celana Berlian
+    
+    §7Mereka dimaksudkan untuk medan yang membakar.
+
+  page7: |
+    §6Sepatu Bot Embun Beku Abadi
+    §7Resep:
+    §2[ ] [C] [ ]
+    §2[S] [A] [S]
+    §2[S] [ ] [S]
+    
+    §1S = Pecahan Es Abadi
+    §1C = Inti Glacialis
+    §1A = Sepatu Bot Berlian
+    
+    §7Sepatu bot sangat penting untuk
+    menahan panas.
+
+  page8: |
+    §4Dimensi berikutnya
+    §7Dunia yang terlupakan dan §Dimakan oleh Nether§7 
+    yang mengarah ke alam panas neraka.
+    
+    §7Di sana musuh bahkan lebih kuat, dengan
+    kesehatan dan kerusakan yang berlipat ganda.
+    
+    §7Dengan set Embun Beku Abadi penuh
+    Anda akan siap untuk api neraka.
+
+  page9: |
+    §4Alam Berbara
+    §7Konstruksi:
+    §2[W] [W] [W] [W]
+    §2[W] [ ] [ ]  [W]
+    §2[W] [ ] [ ]  [W]
+    §2[W] [ ] [ ]  [W]
+    §2[W] [W] [W] [W]
+    
+    §1W = Blok Nether Wart
+    §1Nyalakan dengan korek api dan baja
+
+  page10: |
+    §4Alam Berbara
+    Anda hanya bisa mencapai tempat ini dengan baju besi Embun Beku Abadi.
+    Jika Anda memutuskan untuk masuk tanpanya, Anda akan terbakar sampai mati.
+
+guide_heat:
+  book_title: "Panduan Bertahan Hidup Berbara"
+  book_author: "Arsip Aeternum"
+
+  page1: |
+    §4§lALAM BERBARA
+    §cAnda telah melintasi ke Alam Berbara.
+
+    §6Di sini udara membakar, batu mengeluarkan api
+    dan tidak ada yang ingin Anda tetap hidup.
+    §4Alam ini mungkin menjadi akhir dari perjalanan Anda…
+    §c…atau tempat Anda dilahirkan kembali dalam api.
+
+  page2: |
+    §6§lBERTAHAN HIDUP DASAR
+
+    §8• §cPanas konstan §6akan menghabiskan Anda
+    tanpa perlindungan yang tepat.
+    §8• §6Jangan pernah datang tanpa §amakanan§6, §abalok §6dan
+    §aramuan §6yang siap.
+    §8• §cJangan datang sendirian §6jika Anda belum tahu
+    rahasia alam ini.
+
+  page3: |
+    §3§lBAJU BESI TEMPA MUSIM DINGIN
+
+    §6Hanya set §1Embun Beku Abadi §6lengkap yang dapat menahan
+    iklim ekstrem.
+    §cTanpa set§6, api dan lahar
+    akan melelehkan Anda tanpa ampun.
+    §1Dengan itu§6, Anda dapat berjalan melalui api
+    seolah-olah itu adalah batu padat.
+
+  page4: |
+    §4§lMAKHLUK ALAM
+
+    §8• §6Mob di sini kira-kira
+    §c4 kali lebih kuat.
+    §8• §6Mereka memiliki §clebih banyak kesehatan§6, §clebih banyak kerusakan §6dan hampir
+    semuanya memberikan §ckerusakan api§6.
+    §8• §6Ada varian api.
+    §cjika Anda meremehkannya, Anda mati.
+
+  page5: |
+    §6§lLOOT DAN RISIKO
+
+    §8• §6Reruntuhan dan menara menyembunyikan perlengkapan dengan
+    mantra jauh di atas normal.
+    §8• §6Ini adalah loot terbaik di §5Aeternum§6
+    §aJika Anda sudah sejauh ini, Anda sudah membuktikan keberanian Anda.
+    §2Sekarang buktikan Anda mampu
+    untuk kembali hidup.
+
+items:
+  food:
+    grows_in: "Tumbuh di: {seasons}"
+
+    winter_bread:
+      name: "&bRoti Musim Dingin"
+      lore_1: "&7Roti hangat yang dipanggang untuk musim dingin yang keras."
+      lore_2: "&7Sedikit meningkatkan resistensi Anda terhadap dingin."
+
+    everfrost_ice_cream:
+      name: "&bEs Krim Embun Beku Abadi"
+      lore_1: "&7Camilan manis yang dibawa dari Alam Frost."
+      lore_2: "&7Menyembuhkan sedikit dan membantu menahan badai es."
+
+    tomato:
+      name: "&cTomat"
+      lore_1: "&7Tomat segar dan berair."
+      lore_2: "&7Bagus untuk salad dan sandwich."
+
+    onion:
+      name: "&eBawang"
+      lore_1: "&7Bawang yang berbau kuat."
+      lore_2: "&7Sempurna untuk semur dan roti."
+
+    rice:
+      name: "&fNasi"
+      lore_1: "&7Biji-bijian kecil nasi."
+      lore_2: "&7Bahan pokok untuk makanan yang mengenyangkan."
+
+    tomato_salad:
+      name: "&aSalad Tomat"
+      lore_1: "&7Salad ringan yang menyegarkan."
+      lore_2: "&7Memulihkan sedikit kesehatan dan rasa lapar."
+
+    vegetable_bread:
+      name: "&6Roti Sayuran"
+      lore_1: "&7Roti yang diisi dengan sayuran musiman."
+      lore_2: "&7Sangat mengenyangkan dan memberikan buff kecil."
+
+    meat_sandwich:
+      name: "&6Sandwich Daging"
+      lore_1: "&7Roti, daging, tomat, dan bawang."
+      lore_2: "&7Makanan padat untuk petualang."
+
+    beef_rice_stew:
+      name: "&6Semur Daging Sapi & Nasi"
+      lore_1: "&7Semur yang mengenyangkan dengan daging sapi dan nasi."
+      lore_2: "&7Sangat memulihkan rasa lapar dan memberikan buff minor."
+
+    coffee:
+      name: "&6Kopi"
+      lore_1: "&7Panas, pahit, dan memberi energi."
+      lore_2: "&7Menghangatkan Anda dan mempertajam indra Anda."
+
+    herbal_tea:
+      name: "&aTeh Herbal"
+      lore_1: "&7Infusi menenangkan dari rempah-rempah hutan."
+      lore_2: "&7Dengan lembut memulihkan kesehatan dan meredakan dingin."
+
+    energy_drink:
+      name: "&dMinuman Energi"
+      lore_1: "&7Manis, bersoda, dan penuh gula."
+      lore_2: "&7Memberikan dorongan cepat kecepatan dan fokus."
+
+    hot_chocolate:
+      name: "&cCokelat Panas"
+      lore_1: "&7Cangkir hangat cokelat dan susu."
+      lore_2: "&7Sempurna untuk menahan malam musim dingin yang dingin."
+
+    season_clock:
+      name: "&6Jam Musim"
+      lore_1: "&7Klik kanan untuk melihat kalender"
+      lore_2: "&7acara dan cuaca mendatang"
+
+clock:
+  use:
+    header: "&6[Jam Musim]"
+    date: "&7Hari &e{day}&7/&e{max} &7— &a{season} &7(Tahun {year})"
+
+    active_event: "&7Acara aktif: &d{event} &7({days} hari tersisa)"
+    no_active_event: "&7Acara aktif: &fTidak Ada"
+
+    next_events:
+      blocked_by_active: "&7Kemungkinan besok: &8(acara sudah aktif)"
+      none: "&7Kemungkinan besok: &fTidak Ada"
+      single: "&7Besok: &b{event}"
+
+    weather_line: "&7Cuaca: {state} &7— berubah dalam ~{minutes}m"
+
+  weather:
+    raining: "&9Hujan"
+    clear: "&fCerah"
+
+
+guide_food:
+  title: "&6Buku Masak Aeternum"
+  author: "&aKoki Pengembara"
+
+  page1: |
+    &0&lBuku Masak Aeternum
+
+    &0Buku kecil ini mengumpulkan
+    &0beberapa resep favorit
+    &0dari petani
+    &0dan pelancong.
+
+    &0Tanaman musiman baru:
+
+    &cTomat&0 – berair dan
+    &0segar, enak dalam salad
+    &0dan sandwich.
+
+    &6Bawang&0 – bau kuat
+    &0tetapi sempurna untuk semur
+    &0dan roti.
+
+    &6Nasi&0 – ditanam di air.
+    &0Tanam benih di
+    &0kolam dangkal untuk mendapatkan
+    &0batang nasi.
+
+  page2: |
+    &0&lHidangan Dasar
+
+    &6Salad Tomat&0
+    &7Mangkuk + 2x Tomat
+    &0Salad ringan yang
+    &0memulihkan sedikit rasa lapar
+    &0dan memberikan sedikit
+    &0regenerasi.
+
+    &6Roti Sayuran&0
+    &7Roti + Tomat + Bawang
+    &0Roti yang mengenyangkan diisi
+    &0dengan sayuran musiman.
+    &0Memberikan perisai kecil
+    &0hati penyerapan.
+
+    &6Sandwich Daging&0
+    &7Roti + daging matang +
+    &7Tomat + Bawang
+    &0Sandwich mengenyangkan yang
+    &0memberikan resistensi dan
+    &0kekuatan ekstra.
+
+  page3: |
+    &0&lNasi dan Semur
+
+    &6Menanam Nasi&0
+    &0Benih nasi dapat ditanam
+    &0di air yang diam. Mereka tumbuh
+    &0sebagai batang tinggi, seperti rumput laut.
+
+    &0Memecah batang menghasilkan
+    &0lebih banyak benih nasi untuk ditanam
+    &0lagi.
+
+    &6Semur Daging Sapi Nasi&0
+    &7Mangkuk + daging matang +
+    &7Nasi
+    &0Semur hangat yang mengisi
+    &0banyak rasa lapar, memulihkan
+    &0kesehatan seiring waktu dan
+    &0secara singkat meningkatkan saturasi.
+
+  page4: |
+    &0&lMinuman
+
+    &6Kopi&0
+    &7Botol + Kakao + Gula
+    &0Panas dan pahit. Menghilangkan
+    &0pembekuan, memberikan kecepatan
+    &0dan penglihatan malam untuk
+    &0sementara.
+
+    &6Teh Herbal&0
+    &7Botol + bunga hutan
+    &0Infusi menenangkan yang
+    &0dengan lembut menyembuhkan, membantu
+    &0melawan dingin dan
+    &0memberikan dorongan kesehatan kecil.
+
+    &6Minuman Energi&0
+    &7Botol + Gula + Redstone
+    &7+ Debu Glowstone
+    &0Sangat manis dan bersoda.
+    &0Memberikan kecepatan dan
+    &0tergesa-gesa yang kuat untuk waktu yang singkat.
+
+    &6Cokelat Panas&0
+    &7Botol + Kakao + Susu
+    &0Sempurna untuk malam
+    &0musim dingin. Menghangatkan Anda,
+    &0memblokir pembekuan dan memberikan
+    &0resistensi dan penyerapan.
+
+  page5: |
+    &6Tanah Subur&0
+    Resep pupuk kaya:
+
+      §2[T] [R] [R]
+      §2[W] [W] [B]
+      §2[B] [B] [B]
+
+    T = Tanah
+    R = Daging busuk
+    W = Gandum
+    B = Tepung tulang
+
+    &7Konon, seorang juru masak keliling menemukan cara membuat tanamannya tumbuh jauh lebih cepat berkat pupuk khusus ini.&0
+    &cIkuti resep ini untuk menyiapkan kompos mentah:&0
+    &7jika kamu membiarkannya di dalam air selama dua hari,
+    kompos itu akan berubah menjadi tanah yang sangat subur untuk bertani.&0  
+
+crop:
+  lore:
+    grows_in: "Tumbuh di: {seasons}"
+    any_season: "&7Tumbuh di musim apa pun"
+    greenhouse_light: "&8Rumah kaca bawah tanah: cahaya {light}+"
+
+farming:
+  compost:
+    raw_name: "&aKompos Mentah"
+    raw_lore_1: "&7Campuran lembap tanah dan sisa-sisa organik."
+    raw_lore_2: "&7Biarkan di dekat air selama 2 hari."
+    ready_name: "&2Tanah Subur Kaya"
+    ready_lore_1: "&7Tanaman di sini tumbuh &ax2 &7lebih cepat."
+    ready_lore_2: "&7Menginjaknya tidak akan merusak lahan tanam."
+    ready_message: "&aKomposmu telah berubah menjadi tanah subur yang kaya."
+
+villager:
+  lazy_tag: "&7[&6Pemalas&7]"
+
+greenhouse_debug_protected: Tanaman ini dilindungi oleh rumah kaca (%season%).
+greenhouse_debug_not_protected: Tanaman ini TIDAK dilindungi oleh rumah kaca (%season%).
+greenhouse_debug_unclaimed: Tidak ada yang mengklaim blok ini.
+
+temperature:
+  actionbar:
+    celsius: "&e[ {temp} °C ]"
+    fahrenheit: "&e[ {temp} °F ]"

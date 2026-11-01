@@ -1,0 +1,146 @@
+temperature:
+  enabled: false
+  check_period_ticks: 20
+  disabled_worlds: []
+
+  display:
+    unit: "C" # C | F
+    actionbar:
+      enabled: true
+      show_ticks: 60
+      step_per_update: 1
+
+  stable_range:
+    celsius:
+      min: 10
+      max: 32
+
+  season_offsets_celsius:
+    SPRING: 0
+    SUMMER: 8
+    AUTUMN: -6
+    WINTER: -14
+
+  zones:
+    normal:
+      base_celsius: 21
+      min_celsius: 10
+      max_celsius: 32
+
+    hot:
+      base_celsius: 36
+      min_celsius: 33
+      max_celsius: 45
+      biomes:
+        - DESERT
+        - BADLANDS
+        - ERODED_BADLANDS
+        - WOODED_BADLANDS
+
+    snowy:
+      base_celsius: -8
+      min_celsius: -19
+      max_celsius: 8
+      biomes:
+        - SNOWY_PLAINS
+        - SNOWY_TAIGA
+        - GROVE
+        - ICE_SPIKES
+        - JAGGED_PEAKS
+        - FROZEN_RIVER
+
+    frozen:
+      base_celsius: -18
+      min_celsius: -30
+      max_celsius: -2
+      biomes:
+        - FROZEN_OCEAN
+        - DEEP_FROZEN_OCEAN
+        - FROZEN_PEAKS
+
+  shelter:
+    roof_scan_height: 8
+    heat_source_radius: 6
+    heat_sources:
+      - TORCH
+      - WALL_TORCH
+      - SOUL_TORCH
+      - SOUL_WALL_TORCH
+      - LANTERN
+      - SOUL_LANTERN
+      - CAMPFIRE
+      - SOUL_CAMPFIRE
+      - FIRE
+      - SOUL_FIRE
+      - LAVA
+      - MAGMA_BLOCK
+      - FURNACE
+      - BLAST_FURNACE
+      - SMOKER
+    lit_only_heat_sources:
+      - CAMPFIRE
+      - SOUL_CAMPFIRE
+      - FURNACE
+      - BLAST_FURNACE
+      - SMOKER
+    warm_hand_items:
+      - TORCH
+      - SOUL_TORCH
+      - LANTERN
+      - SOUL_LANTERN
+
+  heat:
+    enabled: true
+
+    desert:
+      min_chainmail_pieces: 2
+      max_safe_armor_pieces: 2
+      non_leather_helmet_is_safe: true
+      disallowed_helmet_items:
+        - LEATHER_HELMET
+
+      shade_temp_celsius: 29
+      water_temp_celsius: 24
+      helmet_temp_celsius: 28
+
+      drink_water_relief_seconds: 120
+      splash_water_relief_seconds: 180
+      enter_water_relief_seconds: 180
+
+      damage_after_seconds: 300
+      damage_every_ticks: 40
+      damage_amount: 1.0
+
+      hunger_every_ticks: 80
+      hunger_drain: 1
+
+      hallucination_after_seconds: 120
+
+      slowness_level: 1
+      hunger_effect_level: 1
+      nausea_level: 1
+
+    sandstorm:
+      enabled: true
+      blindness_level: 1
+      blindness_duration_ticks: 60
+
+  cold:
+    enabled: true
+    full_armor_safe: true
+    shelter_temp_celsius: 12
+
+    snowy:
+      min_armor_pieces: 2
+      damage_every_ticks: 60
+      damage_amount: 0.5
+
+    frozen:
+      min_armor_pieces: 4
+      damage_every_ticks: 40
+      damage_amount: 1.0
+
+    effects:
+      slowness_level: 1
+      freeze_ticks_per_cycle: 180
+      thaw_ticks_per_cycle: 60

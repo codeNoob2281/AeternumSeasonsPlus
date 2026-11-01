@@ -1,0 +1,354 @@
+mode: "protocol"                    # Modo: protocol | particles_only
+debounce_ms: 3000                   # Tiempo de espera / Debounce time
+particles:                          # Partículas por estación / Seasonal particles
+  winter:  { enabled: false, density: 0.09, radius: 12 }
+  autumn:  { enabled: false, density: 0.06, radius: 12 }
+  spring:  { enabled: false, density: 0.04, radius: 10 }
+  summer:  { enabled: false, density: 0.03, radius: 10 }
+
+seasonal_weather:
+  enabled: true                     # Clima estacional / Seasonal weather
+  worlds: ["world"]                 # Mundos activos / Active worlds
+  rainy_days_per_season: 9          # Días lluvia base / Base rainy days
+  rainy_days:                       # Días lluvia/estación / Rain per season
+    SPRING: 12
+    SUMMER: 5
+    AUTUMN: 4
+    WINTER: 8
+  thunder_chance: 0.20              # Prob. tormenta / Thunder chance
+  storm_duration_ticks:
+    min: 6000
+    max: 18000
+  clear_duration_ticks:
+    min: 6000
+    max: 24000
+  reseed_each_season: true          # Re-calcular cada estación / Reseed season
+  respect_manual_commands: true     # Respetar comandos / Respect commands
+  villager_work_window:
+    enabled: true                   # Garantiza clima despejado durante el horario laboral
+    start_tick: 2000
+    end_tick: 9000                  # La lluvia programada se reanuda después
+
+real_snow:
+  enabled: true                     # Nieve real / Real snow
+  worldguard_respect_regions: true  # Respetar WG / Respect WorldGuard
+  tick_period_ticks: 10             # Periodo de ticks / Tick period
+  max_columns_per_tick: 8           # Columnas por tick / Columns per tick
+  radius_blocks: 14                 # Radio de nieve / Snow radius
+  place_chance: 0.45
+  add_layer_chance: 0.50            # Añade capas a la nieve | Add layers to the snow
+  freeze_water: true                # Congelar agua / Freeze water
+  startup_melt:
+    enabled: true                   # Derretir al inicio / Startup melt
+    chunks_per_tick: 2              # Chunks por tick / Chunks per tick
+  storm_boost:
+    enabled: true                    # Mejora en tormenta / Storm boost
+    budget_multiplier: 1.10          # Mult. presupuesto / Budget multiplier
+    place_multiplier: 1.05           # Mult. colocación / Place multiplier
+    layer_multiplier: 1.05           # Mult. capas / Layer multiplier
+    radius_bonus_blocks: 1           # Radio extra / Radius bonus
+  melt:
+    enabled: true                   # Derretir nieve / Snow melt
+    tick_period_ticks: 0            # Periodo derretido / Melt tick period
+    budget_blocks_per_tick: 200     # Bloques por tick / Blocks per tick
+    also_ice: true                  # Derretir hielo / Also melt ice
+    respect_naturally_snowy_biomes: true # true = respeta biomas fríos/nevados, false = derrite todo
+                                        ## true = respects cold/snowy biomes, false = melts everything
+  canopy:
+    enabled: true                   # Nieve en hojas / Canopy snow
+    attempts_per_tick: 10           # Intentos por tick / Attempts per tick
+    radius_blocks: 14               # Radio / Radius
+    max_leaf_scan_height: 6         # Altura escaneo / Scan height
+    only_in_cold_biomes: true       # Solo biomas fríos / Cold biomes only
+
+biome_spoof:
+  enabled: true
+  mode: "GLOBAL_RING"
+  protect_snow_golems_from_biome_heat: true
+  radius_chunks: 12
+  budget_chunks_per_tick: 10
+  restore_budget_chunks_per_tick: 6
+  revert_on_non_winter: true
+
+  # Actualiza únicamente los biomas mediante el paquete vanilla ligero.
+  # El fallback de chunks completos conserva compatibilidad si el paquete no está disponible.
+  client_refresh:
+    use_biome_packets: true           # No reenvía bloques, luz ni entidades del chunk
+    interval_ticks: 1                 # Una tanda visual cada tick
+    chunks_per_interval: 12           # Biomas por tanda; permite ver el horizonte rápidamente
+    full_chunk_fallback_chunks_per_interval: 2 # Solo se usa si falla el paquete ligero
+    extra_nudge: false               # Compatibilidad antigua; puede causar trabajo visual adicional
+
+  disk_backup:
+    enabled: true
+    storage: "PACKED"                 # PACKED = un .asb por mundo; LEGACY_FILES = un .bin por chunk
+    migrate_legacy_files: true        # Convierte los .bin existentes de forma segura en segundo plano
+
+  spawn_guard:
+    enabled: true
+    only_spoofed_chunks: true
+    near_water_radius: 2
+
+  seasons:
+    SPRING: "JUNGLE"
+    SUMMER: "PLAINS"
+    # AUTO: SAVANNA_PLATEAU en 1.21/26.2, DAPPLED_FOREST en 26.3+
+    # También acepta un bioma manual, por ejemplo "SAVANNA_PLATEAU".
+    AUTUMN: "AUTO"
+    WINTER: "SNOWY_PLAINS"
+
+  oceans:
+    enabled: true
+    seasons:
+      SPRING: LUKEWARM_OCEAN
+      SUMMER: WARM_OCEAN
+      AUTUMN: COLD_OCEAN
+      WINTER: FROZEN_OCEAN
+    affect_shores: true
+    keep_deep_variants: true
+    winter_force_snow: false
+    winter_force_snow_biome: FROZEN_OCEAN
+    protect_water_color_biomes: true
+
+  pre_transition:
+    enabled: true
+    affect_oceans: false
+
+  excluded_biomes:
+    - MUSHROOM_FIELDS
+    - DESERT
+    - JUNGLE
+    - BAMBOO_JUNGLE
+    - SPARSE_JUNGLE
+    - BADLANDS
+    - ERODED_BADLANDS
+    - WOODED_BADLANDS
+    - SWAMP
+    - MANGROVE_SWAMP
+    - dappled_forest
+    - DAPPLED_FOREST
+    - PALE_GARDEN
+#    - SAVANNA
+#    - SAVANNA_PLATEDU
+
+  # Estos biomas conservan su bioma real en el servidor para no romper
+  # fauna exclusiva, variantes ni zonas naturalmente seguras.
+  protected_ecology:
+    enabled: true
+    biomes:
+      - MUSHROOM_FIELDS
+      - JUNGLE
+      - BAMBOO_JUNGLE
+      - SPARSE_JUNGLE
+      - SWAMP
+      - MANGROVE_SWAMP
+      - LUSH_CAVES
+      - DEEP_DARK
+      - DESERT
+      - BADLANDS
+      - ERODED_BADLANDS
+      - WOODED_BADLANDS
+      - SNOWY_PLAINS
+      - ICE_SPIKES
+      - SNOWY_SLOPES
+      - JAGGED_PEAKS
+      - FROZEN_PEAKS
+      - BEACH
+      - SNOWY_BEACH
+      - WARM_OCEAN
+      - LUKEWARM_OCEAN
+      - DEEP_LUKEWARM_OCEAN
+      - FROZEN_OCEAN
+      - DEEP_FROZEN_OCEAN
+
+autumn_soil:
+  # Hojas de abedul/abeto: copas completas cerca de jugadores, transición días 1-3.
+  # 1.21-26.2: acacia; 26.3 con Dappled: rojo/naranja/amarillo por copa.
+  # El bioma/terreno lo gestiona biome_spoof, no este pintor de hojas.
+  enabled: true                     # Follaje otoñal / Autumn foliage
+  attempts_per_tick: 4              # Intentos por tick / Attempts per tick
+  chance_per_column: 1.0            # Prob. por columna / Column chance
+  radius_chunks: 4                  # Radio chunks / Radius chunks
+  dappled_radius_chunks: 6          # Radio 26.3; mismo presupuesto por ciclo
+  leaf_chance_per_block: 1.0        # Prob. en hojas / Leaf chance
+
+migration:
+  enabled: true                     # Migración animal / Animal migration
+  tick_period: 200                  # Periodo (10s) / Tick period
+  animals_per_tick: 40              # Animales por tick / Animals per tick
+  search_radius_blocks: 160         # Radio búsqueda / Search radius
+  particles: true                   # Partículas / Particles
+  spawn:                            # Mejora de spawn / Spawn boost
+    spring_boost_chance: 0.25
+    summer_boost_chance: 0.25
+    autumn_boost_chance: 0.20
+    winter_boost_chance: 0.18
+  soft_despawn:
+    warm_in_winter_chance: 0.25     # Despawn cálidos invierno / Warm in winter
+  winter_cleanup:
+    enabled: false                   # Limpieza invierno / Winter cleanup
+    days: 3                         # Días de limpieza / Cleanup days
+    base_radius_blocks: 64          # Radio base / Base radius
+    radius_step_blocks: 64          # Paso de radio / Radius step
+    max_per_tick: 40                # Máx por tick / Max per tick
+  compensation:
+    radius_blocks: 48
+    min_fauna: 8
+    max_spawns_per_cycle: 6
+    max_spawns_per_player: 2
+    zone_cooldown_cycles: 3
+    out_of_season_multiplier: 0.16
+
+seasonal_flora:
+  enabled: true
+  allow_in_view: true
+  surface_scan_depth: 8
+  tick_period_ticks: 20
+  inner_radius_chunks: 0
+  outer_radius_chunks: 7
+  budget_blocks_per_tick: 70
+  max_chunks_per_tick: 8             # Round-robin coverage of loaded chunks
+  protect_player_placed: true
+
+  rules:
+    berries:
+      enabled: true
+      purge_when_disabled: true
+      blocks: [SWEET_BERRY_BUSH]
+      spread_seasons: [SPRING, SUMMER]
+      remove_seasons: [AUTUMN, WINTER]
+      purge_natural: true
+      replace_with: AIR
+      restore_seasons: [SPRING, SUMMER]
+      restore_chance: 0.01
+      restore_tries_per_chunk: 2
+      min_distance_blocks: 5   # ✅ NUEVO / NEW
+      max_per_chunk: 2         # ✅ NUEVO / NEW
+      biomes: [JUNGLE, PLAINS, WINDSWEPT_SAVANNA]
+      min_light: 0
+      max_light: 15
+      require_solid_ground: true
+      ground_blocks: [GRASS_BLOCK, DIRT, PODZOL, COARSE_DIRT]
+
+    mushrooms:
+      strict_biomes: false            # Include ordinary natural biomes without biome painting
+      enabled: true
+      purge_when_disabled: true
+      blocks: [RED_MUSHROOM, BROWN_MUSHROOM]
+      spread_seasons: [AUTUMN]
+      remove_seasons: [WINTER, SPRING, SUMMER]
+      purge_natural: true
+      replace_with: AIR
+      restore_seasons: [AUTUMN]
+      restore_chance: 0.05
+      restore_tries_per_chunk: 2
+      min_distance_blocks: 4   # ✅ NUEVO / NEW
+      max_per_chunk: 3         # ✅ NUEVO / NEW
+      biomes: [WINDSWEPT_SAVANNA, SNOWY_PLAINS]
+      max_light: 12
+      require_solid_ground: true
+      ground_blocks: [GRASS_BLOCK, PODZOL, MYCELIUM, MOSS_BLOCK]
+
+    small_flowers:
+      strict_biomes: false
+      enabled: true
+      purge_when_disabled: true
+      blocks: [DANDELION, POPPY, BLUE_ORCHID, ALLIUM, AZURE_BLUET, RED_TULIP, ORANGE_TULIP, WHITE_TULIP, PINK_TULIP, OXEYE_DAISY, CORNFLOWER, LILY_OF_THE_VALLEY]
+      spread_seasons: [SPRING, SUMMER]
+      remove_seasons: [AUTUMN, WINTER]
+      purge_natural: true
+      replace_with: AIR
+      restore_seasons: [SPRING, SUMMER]
+      restore_chance: 0.06
+      restore_tries_per_chunk: 2
+      min_distance_blocks: 5   # ✅ NUEVO / NEW
+      max_per_chunk: 6         # ✅ NUEVO / NEW
+      biomes: [JUNGLE, PLAINS]
+      min_light: 0
+      max_light: 15
+      require_solid_ground: true
+      ground_blocks: [GRASS_BLOCK, DIRT, PODZOL]
+      forbid_canopy: false
+
+    tall_flowers:
+      strict_biomes: false
+      enabled: true
+      purge_when_disabled: true
+      blocks: [SUNFLOWER, ROSE_BUSH, LILAC, PEONY]
+      double_plant: true
+      spread_seasons: [SPRING, SUMMER]
+      remove_seasons: [AUTUMN, WINTER]
+      purge_natural: true
+      replace_with: AIR
+      restore_seasons: [SPRING]
+      restore_chance: 0.06
+      restore_tries_per_chunk: 2
+      min_distance_blocks: 6   # ✅ NUEVO / NEW
+      max_per_chunk: 3         # ✅ NUEVO / NEW
+      biomes: [PLAINS, JUNGLE]
+      min_light: 0
+      max_light: 15
+      require_solid_ground: true
+      ground_blocks: [GRASS_BLOCK, DIRT]
+      forbid_canopy: true
+      canopy_check_height: 3
+
+    cocoa:
+      enabled: true
+      purge_when_disabled: true
+      blocks: [COCOA]
+      spread_seasons: [SUMMER, AUTUMN]
+      remove_seasons: [WINTER]
+      purge_natural: true
+      replace_with: AIR
+      restore_seasons: [SUMMER]
+      restore_chance: 0.01
+      restore_tries_per_chunk: 2
+      min_distance_blocks: 6   # ✅ NUEVO / NEW
+      max_per_chunk: 2         # ✅ NUEVO / NEW
+      biomes: [JUNGLE]
+      min_light: 0
+      max_light: 15
+      requires_attachment: true
+      attach_blocks: [JUNGLE_LOG, JUNGLE_WOOD]
+
+    bamboo:
+      enabled: false
+      purge_when_disabled: false
+      blocks: [BAMBOO, BAMBOO_SAPLING]
+      spread_seasons: [SPRING, SUMMER]
+      remove_seasons: [AUTUMN, WINTER]
+      purge_natural: true
+      replace_with: AIR
+      restore_seasons: [ SPRING ]
+      restore_chance: 0.03
+      restore_tries_per_chunk: 4
+      min_distance_blocks: 4   # ✅ NUEVO / NEW
+      max_per_chunk: 4         # ✅ NUEVO / NEW
+      biomes: [ JUNGLE, PLAINS ]
+      min_light: 0
+      max_light: 15
+      require_solid_ground: true
+      forbid_canopy: true
+      canopy_check_height: 3
+      ground_blocks: [ GRASS_BLOCK, DIRT, PODZOL, MOSS_BLOCK ]
+
+villager_type_overrides:
+  enabled: true
+  worlds: ["world"]                 # Mundos / Worlds
+  allowed_types: [PLAINS, DESERT, SAVANNA, TAIGA, SNOW, SWAMP, JUNGLE]
+  appearance:
+    enabled: true                   # Sólo apariencia regional; no cambia trades ni profesión
+    override_chance: 1.0
+  profession_rotation:
+    enabled: false                  # Opt-in: puede convertir aldeanos sin trades en nitwits
+    update_period_days: 5
+    lazy_ratio: 0.25
+    max_lazy_per_area: 2
+    show_lazy_tag: true
+
+illusioner_spawning:
+  enabled: false                    # Spawn de Ilusionistas / Illusioner spawn
+  mansion_replacement_chance: 0.35  # Reemplazo mansión / Mansion replacement
+  village_spawn_chance: 0.03        # Spawn en aldea / Village spawn
+  village_check_radius: 32          # Radio aldea / Village check radius

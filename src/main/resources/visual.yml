@@ -1,0 +1,18 @@
+biome_spoof:
+  mode: "GLOBAL"           # GLOBAL | OFF
+  radius_chunks: 6
+  budget_chunks_per_tick: 64
+  seasons:                 # bioma objetivo por estación (tinte/cielo/niebla)
+    SPRING: "FLOWER_FOREST"
+    SUMMER: "PLAINS"
+    AUTUMN: "WINDSWEPT_SAVANNA"
+    WINTER: "SNOWY_PLAINS"
+
+atmosphere:
+  tick_period_ticks: 5
+  ease: 0.20
+  per_season:
+    SPRING: { rain: 0.40, thunder: 0.25, time_offset: 200,  force_storm: false }
+    SUMMER: { rain: 0.05, thunder: 0.00, time_offset: -200, force_storm: false }
+    AUTUMN: { rain: 0.25, thunder: 0.00, time_offset: 800,  force_storm: false }
+    WINTER: { rain: 1.00, thunder: 0.00, time_offset: 1200, force_storm: true }

@@ -1,0 +1,1028 @@
+season:
+  SPRING: Primavera
+  SUMMER: Verão
+  AUTUMN: Outono
+  WINTER: Inverno
+hud:
+  title: "Dia {day}, Ano {year} — {season}"
+  title_dim: "Dia {day}, Ano {year} — {season} — {realm}"
+
+realm:
+  frost_overworld: "Reino Nevado"
+  heat_overworld: "Reino Ardente"
+
+  frost_title: "&b{name}"
+  frost_subtitle: "&7Apenas biomas frios"
+
+  heat_title: "&c{name}"
+  heat_subtitle: "&7Sobreviva às terras em chamas"
+
+  overworld_title: "&aMundo Principal"
+  returned_from: "&7Você deixou &f{name}"
+
+log:
+  frost_world_loaded: "&a[Mundo] O mundo de neve '{name}' já estava carregado."
+  frost_world_created: "&a[Mundo] Mundo de neve '{name}' criado e carregado com sucesso."
+  frost_world_failed: "&c[Mundo] Falha ao criar o mundo de neve '{name}'."
+
+  heat_world_creating: "&6[Mundo] Criando mundo de calor '{name}'..."
+  heat_world_loaded: "&a[Mundo] O mundo de calor '{name}' já estava carregado."
+  heat_world_created: "&a[Mundo] Mundo de calor '{name}' criado e carregado."
+  heat_world_failed: "&c[Mundo] Não foi possível criar o mundo de calor '{name}'."
+
+cmd:
+  event:
+    no_permission: "&cVocê não tem permissão para usar este comando."
+    usage: "&eUso: {cmd} <list|info|start|stop> [id] [days]"
+    list:
+      header: "&6Eventos Registrados:"
+      item: "&7- &e{id}&7 (&f{name}&7)"
+    started: "&aO evento &e{id}&a foi forçado a iniciar."
+    stopped: "&cEvento ativo interrompido."
+    no_such_event: "&cNenhum evento encontrado com o id &e{id}&c."
+    no_active: "&7Não há evento ativo no momento."
+    info: "&6Evento ativo: &e{id}&7 (&f{name}&7), &e{days}&7 dia(s) restante(s)."
+
+  season:
+    no_permission: "&cVocê não tem permissão para usar este comando."
+
+    info:
+      line: "&bEstação: {season}&7 | Dia {day}/{max}&3 | Ano {year}"
+
+    set:
+      usage: "&eUso: /{label} set <SPRING|SUMMER|AUTUMN|WINTER>"
+      invalid: "&cEstação inválida."
+      success: "&6Estação definida para {season}."
+
+    skipday:
+      done: "&6Você pulou 1 dia."
+
+    day:
+      usage: "&eUso: /{label} day <1..{max}>"
+      invalid_number: "&cNúmero inválido."
+      success: "&6Dia definido para {day} (estação atual)."
+
+    year:
+      usage: "&eUso: /{label} year <número>"
+      invalid_number: "&cNúmero do ano inválido."
+      success: "&aAno do calendário definido para &f{year}&a."
+
+    reload:
+      done: "&aConfigurações recarregadas."
+
+    hud:
+      player_only: "&cEste comando só pode ser usado por um jogador."
+      usage: "&eUso: /{label} hud <fixed|variable|off>"
+      current: "&7Modo atual: &b{mode}"
+      invalid: "&cModo inválido. Use: &efixed&c, &evariable&c ou &eoff&c."
+      mode:
+        fixed: "fixo"
+        variable: "variável"
+        off: "desligado"
+      set:
+        fixed: "&aExibição HUD estática ativada."
+        variable: "&aModo HUD variável ativado."
+        "off": "&cHUD desativado."
+
+    help: "&eUso: /{label} <info|set|skipday|day|reload|hud>"
+
+event:
+  blood_moon:
+    title: "§4☾ Lua de Sangue ☾"
+    subtitle: "§cCriaturas ficam mais fortes e você não pode dormir..."
+    end: "&6A Lua de Sangue se desvaneceu..."
+    no_sleep: "&4Você não pode dormir durante uma Lua de Sangue..."
+    mob_name: "Cria da Noite"
+
+  heat_wave:
+    title: "§6☀ Onda de Calor ☀"
+    subtitle: "&eO sol queima mais forte, procure sombra ou proteção."
+    end: "&aA onda de calor terminou, o tempo está mais ameno."
+
+  winter_freeze:
+    title: "§b❄ Congelamento de Inverno ❄"
+    subtitle: "§fO inverno se torna mortal se você não estiver protegido."
+    end: "&bO frio intenso passou, o ar está menos cortante."
+    freezing: "&3Você treme... &bvocê precisa de calor ou de um equipamento melhor."
+    cold_but_safe: "&7Você sente o frio, mas sua proteção o mantém seguro."
+
+  magic_storm:
+    title: "§5⚡ Tempestade Mágica ⚡"
+    subtitle: "&dO céu se quebra e a magia cai com a chuva."
+    end: "&5A tempestade mágica se desvanece, deixando um silêncio estranho."
+    mob_name: "&bCriatura Tocada pela Tempestade"
+
+  festival:
+    end: "&6O festival termina, mas as memórias permanecem."
+    actionbar: "&6Mercado do Festival&7 • &e{season}&8 • &7O estoque muda diariamente"
+    trader_name: "&eComerciante do Festival"
+    item:
+      spring: "&aVaso de Flor da Primavera"
+      summer: "&eDoce de Mel de Verão"
+      autumn: "&6Torta de Abóbora de Outono"
+      winter: "&bBola de Neve Festiva"
+      generic: "&fLembrança do Festival"
+    spring:
+      title: "§a✿ Festival da Primavera ✿"
+      subtitle: "&fFlores, música e novas sementes de esperança. Encontre uma vila"
+    summer:
+      title: "§e☀ Festival de Verão ☀"
+      subtitle: "&fComida, risadas e noites quentes. Encontre uma vila"
+    autumn:
+      title: "§6🍂 Festival de Outono 🍂"
+      subtitle: "&fColheitas, fogueiras e histórias ao redor do fogo. Encontre uma vila "
+    winter:
+      title: "§b❄ Festival de Inverno ❄"
+      subtitle: "&fLuzes, neve e o calor do lar. Encontre uma vila"
+
+  fishing:
+    title: "§b🎣 Festival de Pesca 🎣"
+    subtitle: "&fRios e mares escondem tesouros extras hoje."
+    end: "&bO festival de pesca terminou."
+
+  mining:
+    title: "§6⛏ Bênção da Mineração ⛏"
+    subtitle: "&fVeios de minério parecem mais generosos..."
+    end: "&6A bênção da mineração se desvanece."
+
+  tornado:
+    title: "§7🌪 Tornado 🌪"
+    subtitle: "&fO vento uiva, procure abrigo."
+    end: "&7O tornado se dissipa lentamente."
+
+  restful_sleep:
+    title: "§d😴 Sono Restaurador 😴"
+    subtitle: "§fUm bom sono lhe dará força extra."
+    end: "&dSeu sono volta ao normal."
+    sleeping: "&dVocê se prepara para um sono profundo e restaurador..."
+    buffed: "&dVocê acorda revigorado, sentindo vitalidade extra."
+    lost: "&cDano o desgastou e você perde o efeito restaurador."
+
+  halloween:
+    title: "&6&lNoite das &e&lAbóboras"
+    subtitle: "&7Monstros ficam mais fortes e anseiam por almas..."
+
+  christmas:
+    title: "&b&lNatal em Aeternum"
+    subtitle: "&7O ar está mais quente e presentes esperam..."
+    gift_found: "&aVocê sente que um saco de presentes apareceu no seu inventário..."
+    gift_bundle_name: "&bSaco de Presentes de Natal"
+    gift_bundle_lore_1: "&7Um saco misterioso cheio de &fguloseimas festivas&7."
+    gift_bundle_lore_2: "&7Guarde como lembrança... ou abra e aproveite o saque."
+
+  holiday:
+    end: "&7As celebrações de feriado chegaram ao fim."
+
+  new_year:
+    name: "§eAno Novo"
+    title: "§e✨ Ano Novo em Aeternum ✨"
+    subtitle: "&7O calendário marca um novo começo."
+    gift_found: "&aVocê recebeu foguetes para celebrar o Ano Novo!"
+    end: "&7O Ano Novo termina, mas a aventura continua."
+
+  nether_fishing_derby:
+    title: "§cDerby de Pesca Infernal"
+    subtitle: "§7Pesca na §clava§7 por loot especial."
+    end: "§7O §cDerby de Pesca Infernal§7 terminou."
+    bite_actionbar: "§6✦ §cPescaria Infernal! §7(§fClique direito§7)"
+    no_bite_actionbar: "§7Nada mordeu… §8tente de novo."
+    no_loot_actionbar: "§7Você não pescou nada… §8(que azar)"
+  piglin_market:
+    title: "§6Mercado Piglin"
+    subtitle: "§7Trocas melhoradas por um tempo."
+    end: "§7O §6Mercado Piglin§7 fechou."
+  quartz_rush:
+    title: "§fCorrida do Quartzo"
+    subtitle: "§7Mais §fquartzo§7 ao minerar."
+    end: "§7A §fCorrida do Quartzo§7 terminou."
+  fungus_bloom:
+    title: "§dFlorescência de Fungos"
+    subtitle: "§7Crimson/Warped dão mais drops."
+    end: "§7A §dFlorescência§7 terminou."
+  blaze_surge:
+    title: "§6Onda de Blazes"
+    subtitle: "§7Mais rods e blazes mais ativos."
+    end: "§7A §6Onda de Blazes§7 terminou."
+  magma_tides:
+    title: "§cMarés de Magma"
+    subtitle: "§7Mais magma cream… cuidado."
+    end: "§7As §cMarés de Magma§7 baixaram."
+  ghast_alert:
+    title: "§fAlerta de Ghasts"
+    subtitle: "§7Mais ghasts e recompensa extra."
+    end: "§7O §fAlerta de Ghasts§7 terminou."
+    ghast_name: "§fGhast Espreitador"
+  wither_loose:
+    title: "§4ALERTA MÁXIMO!"
+    subtitle: "§7§lWITHER SOLTO§7 no Nether."
+    survive: "§cSOBREVIVA!!"
+    end: "§7O alerta do §4Wither§7 terminou."
+    wither_name: "§4§lWITHER SOLTO"
+    countdown_60: "§cO Wither pode aparecer em §f{seconds}§c segundos…"
+    countdown_40: "§cFaltam §f{seconds}§c segundos…"
+    countdown_20: "§cFaltam §f{seconds}§c segundos…"
+    countdown_generic: "§cFaltam §f{seconds}§c segundos…"
+    idle_killed: "§7O §4Wither§7 desapareceu por inatividade…"
+  wither_skeleton_swarm:
+    title: "§8Agrupamento"
+    subtitle: "§7Wither Skeletons mais fortes e melhor loot."
+    end: "§7O §8Agrupamento§7 terminou."
+    mob_name: "§8Guardião do Wither"
+
+
+guide:
+  # Título general (se usa tanto en chat como en el libro)
+  title: "Guia das Estações de Aeternum"
+
+  # Título y autor del libro escrito
+  book_title: "Guia das Estações de Aeternum"
+  book_author: "Aeternum"
+  book_given: "O guia das estações foi entregue a você."
+
+  # Línea con la estación actual
+  current: "Estação Atual: {season}"
+
+  # Primer párrafo del libro
+  intro: "Este guia resume o clima, eventos, colheitas e migração de animais para cada estação."
+
+  section:
+    events: "§0Eventos Sazonais"
+    crops: "§0Colheitas por Estação"
+    migration: "§0Migração Animal"
+    stables: "Estábulos e Celeiros"
+    weather: "§0Clima Típico"
+    crafting: "Criação Especial"
+    dimensions: "Dimensões"
+
+  crafting: # <- Y AQUÍ DENTRO tus recetas
+    advanced_composter: |
+      §6Composteira Avançada§7
+      §7Receita:
+      §2[L] [H] [L]
+      §2[P] [C] [P]
+      §2[L] [H] [L]
+      §1L = qualquer folha
+      §1H = funil
+      §1P = abóbora
+      §1C = composteira
+
+    harvest_hoe: |
+      §6Enxada da Colheita§7
+      §7Receita:
+      §2[W] [W] [W]
+      §2[E] [H] [E]
+      §2[E] [E] [E]
+      §1W = trigo
+      §1E = esmeralda
+      §1H = qualquer enxada
+
+    farmer_boots: |
+      §6Botas do Fazendeiro§7
+      §7Receita:
+      §2[W] [B] [W]
+      §2[W] [S] [W]
+      §2[W] [W] [W]
+      §1W = trigo
+      §1B = botas
+      §1S = pá (pedra/diamante)
+
+    lunar_lantern: |
+      §6Lanterna Lunar§7
+      §7Receita:
+      §2[R] [L] [R]
+      §2[R] [E] [R]
+      §2[R] [L] [R]
+      §1R = redstone
+      §1L = lanterna
+      §1E = pérola do Ender
+
+    solar_torch: |
+      §6Tocha Solar§7
+      §7Receita:
+      §2[B] [B] [B]
+      §2[ ] [T] [ ]
+      §2[ ] [F] [ ]
+      §1B = pó de blaze
+      §1T = tocha normal
+      §1F = Girassol
+
+    spring_bell: |
+      §dSino da Primavera§7
+      §7Receita:
+      §2[A] [P] [A]
+      §2[P] [B] [P]
+      §2[A] [P] [A]
+      §1A = fragmento de ametista
+      §1P = pétala / flor rosa
+      §1B = sino
+
+    spring_boots: |
+      §dBotas do Passo Primaveril§7
+      §7Receita:
+      §2[P] [P] [P]
+      §2[P] [B] [P]
+      §2[P] [P] [P]
+      §1P = pétala / flor rosa
+      §1B = botas
+
+    snow_boots: |
+      §6Botas Anti-Neve§7
+      §7Receita:
+      §2[ ] [B] [ ]
+      §2[ ] [S] [ ]
+      §2[ ] [S] [ ]
+      §1B = botas
+      §1S = balde de Neve em Pó
+
+    woodcutter_axe: |
+      §6Machado de Corte Natural§7
+      §7Receita:
+      §2[L] [A] [L]
+      §2[O] [ ] [O]
+      §2[L] [ ] [L]
+      §1L = qualquer folha
+      §1O = qualquer tronco
+      §1A = qualquer machado
+
+    frost_core: |
+      §6Núcleo Invernal§7
+      §7Receita:
+      §2[S] [I] [S]
+      §2[I] [B] [I]
+      §2[S] [I] [S]
+      §1S = Bloco de neve
+      §1I = Gelo compactado
+      §1B = Coração do Mar
+      §7Clique com o botão direito em um Golem de Neve para atualizá-lo.
+
+    guardian_core: |
+      §6Núcleo Guardião§7
+      §7Receita:
+      §2[I] [B] [I]
+      §2[B] [G] [B]
+      §2[I] [B] [I]
+      §1I = Bloco de ferro
+      §1B = Lingote de ferro
+      §1G = Fragmento de ametista
+      §7Clique com o botão direito em um Golem de Ferro.
+
+    fish_trap: |
+      §6Armadilha de Pesca§7
+      §7Receita:
+      §2[S] [ ] [S]
+      §2[S] [B] [S]
+      §2[S] [ ] [S]
+      §1S = barbante
+      §1B = barril
+
+    creature_generator: |
+      §6Armadilha de Criaturas§7
+      §7Receita:
+      §2[S] [I] [S]
+      §2[I] [T] [I]
+      §2[S] [I] [S]
+      §1S = barbante
+      §1I = lingote de ferro
+      §1T = graveto
+
+    Clock: |
+      §6Relógio Sazonal§7
+      §7Receita:
+      §2[ ] [B] [ ]
+      §2[ ] [R] [ ]
+      §2[ ] [ ] [ ]
+      §1B = Bússola
+      §1R = Relógio
+
+
+  dimensions:
+    snowbound:
+      title: "Mundo Congelado"
+      build: "Construção do Portal:"
+      block: "Pedra Luminosa (Glowstone)"
+      activate: "Ative-o atirando uma bola de neve no portal."
+
+      warning_title: "Aviso: Clima Extremo"
+      warning_1: "Durante nevascas, sua visão é quase completamente reduzida."
+      warning_2: "Apenas com uma fonte de luz ou abrigado dentro de uma caverna você poderá ver."
+      warning_3: "O frio se intensifica, proteja-se bem."
+
+    emberbound:
+      title: "Portal para o Mundo Infernal"
+      build_glitched: "Construç..."
+      block: "Bloco SDFSD"
+      glitch_warning: "Parece que a informação para este mundo está corrompida..."
+
+  events:
+    blood_moon: "§cLua de Sangue§7: mobs mais fortes, você não pode dormir."
+    heat_wave: "§6Onda de Calor§7: o sol é exaustivo se você não estiver na sombra."
+    winter_freeze: "§9Congelamento de Inverno§7: sem roupas adequadas você congela rapidamente."
+    magic_storm: "§9Tempestade Mágica§7: clima estranho e saque mágico."
+    festival: "§6Festivais§7: aldeões, trocas e decoração."
+    fishing: "§9Festival de Pesca§7: saque extra ao pescar."
+    mining: "§6Bênção de Mineração§7: mais minérios e melhores drops."
+    tornado: "§7Tornado§7: vento que arrasta e danifica colheitas."
+    restful_sleep: "§9Sono Reparador§7: dormir dá saúde extra temporária."
+
+  crops:
+    SPRING: "Trigo, cenouras, batatas, beterrabas e abóboras prosperam; uma estação de crescimento geral muito boa."
+    SUMMER: "Melancias, cana-de-açúcar, cactos e culturas tolerantes ao calor crescem melhor."
+    AUTUMN: "Abóboras, cogumelos e raízes; ideal para grandes colheitas e armazenamento."
+    WINTER: "Quase nada cresce ao ar livre; estufas permitem o cultivo contínuo."
+
+  migration:
+    SPRING: "Mais ovelhas, abelhas e coelhos em prados floridos e florestas."
+    SUMMER: "Mais peixes tropicais, golfinhos, tartarugas e axolotes em mares quentes."
+    AUTUMN: "Raposas, lobos e cabras se concentram em taigas e áreas montanhosas."
+    WINTER: "Lobos e ursos polares dominam biomas frios; muitos animais de clima quente desaparecem."
+
+  stables:
+    winter: "Animais que não são resistentes ao frio podem morrer se não tiverem um estábulo ou abrigo."
+    breeding: "A reprodução é menos eficaz (ou nula) se eles não estiverem em um estábulo."
+    bonus_drops: "Animais criados ou protegidos em estábulos darão mais saque (carne, penas, lã, couro)."
+
+  weather:
+    SPRING: "Chuva suave, clima ameno e dias mais longos que favorecem as colheitas."
+    SUMMER: "Sol intenso, calor forte e algumas tempestades violentas."
+    AUTUMN: "Vento fresco, céus nublados e mudanças bruscas de temperatura."
+    WINTER: "Neve frequente, frio extremo e risco de congelamento se você não se proteger."
+
+  footer: " use /seasonguide."
+
+item:
+  snow_step_boots:
+    name: "&bBotas Passo de Neve"
+    lore1: "&7Permite que você caminhe sobre &fNeve em Pó"
+    lore2: "&7sem afundar ou ficar preso."
+
+  labrador_boots:
+    name: "&aBotas Labrador"
+    lore1: "&7Você não pisa na &6terra arada&7 ao pular."
+    lore2: "&7Você se move mais rápido no &6solo cultivado&7."
+    lore3: "&7Às vezes concede &asementes extras&7 ao colher."
+
+  spring_stride_boots:
+    name: "&dPasso da Primavera"
+    lore1: "&7Um salto mais leve, &florescente&7."
+    lore2: "&7Ao pousar, seu passo faz &fflores&7 desabrocharem."
+    lore3: "&7Perfeito para explorar prados primaveris."
+
+  solar_torch:
+    name: "&eTocha Solar"
+    lore1: "&7Uma tocha abençoada pelo &6sol&7."
+    lore2: "&7No verão, acelera o crescimento da colheita."
+    lore3: "&7À noite, enfraquece mobs próximos."
+
+  advanced_composter:
+    name: "&6Composteira Avançada"
+    lore1: "&7Processa composto &eduas vezes mais rápido&7."
+    lore2: "&7Tem chance de render &afarina de osso extra&7."
+    lore3: "&7Funciona ainda melhor no &6outono&7."
+
+  spring_bell:
+    name: "&dSino da Primavera"
+    lore1: "&7Quando tocado, faz as colheitas próximas florescerem."
+    lore2: "&7Acalma e abençoa &eabelhas&7 próximas."
+    lore3: "&7Sua magia é mais forte na &aprimavera&7."
+
+  lunar_lantern:
+    name: "&9Lanterna Lunar"
+    lore1: "&7Brilha com uma luz &9azulada&7 à noite."
+    lore2: "&7Aumenta o crescimento de &3cogumelos&7 e plantas escuras."
+    lore3: "&7Adiciona uma suave &bclareza noturna&7 para viajantes."
+
+  harvest_hoe:
+    name: "&6Enxada da Colheita"
+    lore1: "&7Colhe culturas &em área&7, apenas quando maduras."
+    lore2: "&7Replanta automaticamente usando &fsementes&7 no inventário."
+    lore3: "&7Consome durabilidade por cultura colhida."
+
+  natural_tree_axe:
+    name: "&2Machado de Derrubador Natural"
+    lore1: "&7Derruba & árvores inteiras&7 com um único golpe."
+    lore2: "&7Afeta apenas troncos conectados, preservando a floresta."
+    lore3: "&7Consome durabilidade por tronco cortado."
+
+  frost_core:
+    name: "&bNúcleo do Inverno"
+    lore1: "&7Empodera um Golem de Neve."
+    lore2: "&7Seu poder aumenta ainda mais no inverno."
+    lore3: "&eClique direito em um Golem de Neve."
+    lore4: "&aInverno:&7 mais saúde e bolas de neve mais fortes."
+    lore5: "&7Não deixa neve no chão e não morre com o clima."
+
+  guardian_core:
+    name: "&6Núcleo Guardião"
+    lore1: "&7Imbui um Golem de Ferro"
+    lore2: "&7com poder ligado às estações."
+    lore3: "&eClique direito em um Golem de Ferro."
+    lore4: "&aInverno:&7 muito mais saúde e dano."
+    lore5: "&eVerão:&7 imune ao fogo e queima inimigos."
+
+  everfrost_shard:
+    name: "&bFragmento de Gelofrio Eterno"
+    lore_line1: "&7Um fragmento do poder de &bGlacialis&7."
+    lore_line2: "&7Usado para forjar armadura que resiste ao calor infernal."
+
+  glacialis_core:
+    name: "&3Núcleo de Glacialis"
+    lore_line1: "&7Pulsa com um frio não natural."
+    lore_line2: "&7Chave para forjar armadura contra o calor."
+
+  heat_armor:
+    helmet:
+      name: "&bElmo de Gelofrio Eterno"
+      lore_line1: "&7Forjado com o poder de &bGlacialis&7."
+      lore_line2: "&7Ajuda a resistir ao calor infernal."
+    chest:
+      name: "&bPeitoral de Gelofrio Eterno"
+      lore_line1: "&7O gelo eterno guarda seu coração."
+      lore_line2: "&7Ajuda a resistir ao calor infernal."
+    legs:
+      name: "&bPerneiras de Gelofrio Eterno"
+      lore_line1: "&7Permitem que você caminhe sobre brasas."
+      lore_line2: "&7Ajudam a resistir ao calor infernal."
+    boots:
+      name: "&bBotas de Gelofrio Eterno"
+      lore_line1: "&7Deixam pegadas sobre lava."
+      lore_line2: "&7Ajudam a resistir ao calor infernal."
+
+golem:
+  frostbound:
+    name: "&bGolem Ligado ao Inverno"
+
+  guardian:
+    name: "&6Golem Guardião"
+
+  upgrade:
+    too_many: "&cEste chunk já tem o número máximo de golens aprimorados (&e{max}&c)."
+    frost_ok: "&bSeu Golem de Neve agora é um &fGolem Ligado ao Inverno&b."
+    guardian_ok: "&6Seu Golem de Ferro agora é um &fGolem Guardião&6."
+    wrong_target: "&7Você só pode usar este núcleo em um golem apropriado."
+
+boss:
+  glacialis:
+    name: "&bGlacialis, Coração do Inverno"
+    spawn: "&b[Glacialis]&7 Um frio antigo desperta no &fMundo Congelado&7..."
+    defeated: "&b[Glacialis]&7 foi derrotado. &7Seus fragmentos congelados estão espalhados na neve."
+
+frost_guide:
+  book_title: "Guia do Mundo Congelado"
+  book_author: "Cartógrafo das Estações de Aeternum"
+
+  page1: |
+    §9Reino Gelofrio Eterno
+    §7Você atravessou o portal de glowstone e chegou
+    em um reino de inverno sem fim.
+    
+    §1Você pode construir sua base, minerar e explorar,
+    §4mas lembre-se que os inimigos são mais fortes§7.
+  
+
+  page2: |
+    §9Perigos do gelo
+    
+    §7No Reino Gelofrio Eterno quase todo inimigo tem
+    variantes congeladas.
+    
+    §4Continue se movendo e sempre carregue
+    boa armadura e comida.
+
+  page3: |
+    §9Glacialis, Coração do Inverno
+    
+    §7Este boss é a razão pela qual esta dimensão está
+    presa em um inverno eterno.
+    §4Glacialis aparece à noite no Reino Gelofrio Eterno,
+    a cada §628 dias§7.
+    Seu saque é especial para a armadura Gelofrio Eterno.
+
+  page4: |
+    §6Elmo de Gelofrio Eterno
+    §7Receita:
+    §2[S] [S] [S]
+    §2[S] [C] [S]
+    §2[ ] [H] [ ]
+    
+    §1S = Fragmento de Gelo Eterno
+    §1C = Núcleo de Glacialis
+    §1H = Capacete de Diamante
+    
+    §7O Elmo de Gelofrio Eterno é a primeira peça para
+    enfrentar o calor infernal.
+
+  page5: |
+    §6Peitoral de Gelofrio Eterno
+    §7Receita:
+    §2[ ] [C] [ ]
+    §2[S] [A] [S]
+    §2[S] [ ] [S]
+    
+    §1S = Fragmento de Gelo Eterno
+    §1C = Núcleo de Glacialis
+    §1A = Peitoral de Diamante
+    
+    §7O Peitoral de Gelofrio Eterno reforça seu corpo.
+
+  page6: |
+    §6Perneiras de Gelofrio Eterno
+    §7Receita:
+    §2[S] [C] [S]
+    §2[S] [A] [S]
+    §2[S] [A] [S]
+    
+    §1S = Fragmento de Gelo Eterno
+    §1C = Núcleo de Glacialis
+    §1A = Calças de Diamante
+    
+    §7Elas são feitas para terrenos escaldantes.
+
+  page7: |
+    §6Botas de Gelofrio Eterno
+    §7Receita:
+    §2[ ] [C] [ ]
+    §2[S] [A] [S]
+    §2[S] [ ] [S]
+    
+    §1S = Fragmento de Gelo Eterno
+    §1C = Núcleo de Glacialis
+    §1A = Botas de Diamante
+    
+    §7As botas são essenciais para
+    suportar o calor.
+
+  page8: |
+    §4A próxima dimensão
+    §7Um mundo esquecido e §Devorado pelo Nether§7 
+    que leva a um reino de calor infernal.
+    
+    §7Lá os inimigos são ainda mais fortes, com
+    saúde e dano multiplicados.
+    
+    §7Com o conjunto Gelofrio Eterno completo
+    você estará pronto para as chamas infernais.
+
+  page9: |
+    §4Reino Ardente
+    §7Construção:
+    §2[W] [W] [W] [W]
+    §2[W] [ ] [ ]  [W]
+    §2[W] [ ] [ ]  [W]
+    §2[W] [ ] [ ]  [W]
+    §2[W] [W] [W] [W]
+    
+    §1W = Bloco de Nether Wart
+    §1Acenda-o com pederneira e aço
+
+  page10: |
+    §4O Reino Ardente
+    Você só pode alcançar este lugar com a armadura Gelofrio Eterno.
+    Se você decidir entrar sem ela, você queimará até a morte.
+
+guide_heat:
+  book_title: "Guia de Sobrevivência Ardente"
+  book_author: "Arquivos Aeternum"
+
+  page1: |
+    §4§lREINO ARDENTE
+    §cVocê cruzou para o Reino Ardente.
+
+    §6Aqui o ar queima, a pedra sangra fogo
+    e nada quer que você permaneça vivo.
+    §4Este reino pode ser o fim da sua jornada…
+    §c…ou o lugar onde você renasce em chamas.
+
+  page2: |
+    §6§lSOBREVIVÊNCIA BÁSICA
+
+    §8• §cO calor constante §6o consumirá
+    sem proteção adequada.
+    §8• §6Nunca venha sem §acomida§6, §ablocos §6e
+    §apoções §6prontas.
+    §8• §cNão venha sozinho §6se você ainda não conhece
+    os segredos deste reino.
+
+  page3: |
+    §3§lARMADURA FORJADA NO INVERNO
+
+    §6Apenas o conjunto completo §1Gelofrio Eterno §6pode resistir
+    ao clima extremo.
+    §cSem o conjunto§6, fogo e lava
+    irão derretê-lo sem piedade.
+    §1Com ele§6, você pode andar através das chamas
+    como se fossem pedra sólida.
+
+  page4: |
+    §4§lCRIATURAS DO REINO
+
+    §8• §6Mobs aqui são aproximadamente
+    §c4 vezes mais fortes.
+    §8• §6Eles têm §cmais saúde§6, §cmais dano §6e quase
+    todos causam §cdano de fogo§6.
+    §8• §6Existem variantes de fogo.
+    §cse você as subestimar, você morrerá.
+
+  page5: |
+    §6§lSAQUE E RISCO
+
+    §8• §6Ruínas e torres escondem equipamentos com
+    encantamentos muito acima do normal.
+    §8• §6É o melhor saque em §5Aeternum§6
+    §aSe você chegou até aqui, já provou sua coragem.
+    §2Agora prove que é capaz
+    de voltar vivo.
+
+items:
+  food:
+    grows_in: "Cresce em: {seasons}"
+
+    winter_bread:
+      name: "&bPão de Inverno"
+      lore_1: "&7Um pão quente assado para invernos rigorosos."
+      lore_2: "&7Melhora ligeiramente sua resistência ao frio."
+
+    everfrost_ice_cream:
+      name: "&bSorvete de Gelofrio Eterno"
+      lore_1: "&7Um doce trazido do Reino do Gelo."
+      lore_2: "&7Cura um pouco e ajuda a suportar tempestades de gelo."
+
+    tomato:
+      name: "&cTomate"
+      lore_1: "&7Um tomate fresco e suculento."
+      lore_2: "&7Ótimo para saladas e sanduíches."
+
+    onion:
+      name: "&eCebola"
+      lore_1: "&7Uma cebola de cheiro forte."
+      lore_2: "&7Perfeita para guisados e pães."
+
+    rice:
+      name: "&fArroz"
+      lore_1: "&7Pequenos grãos de arroz."
+      lore_2: "&7Um ingrediente básico para refeições fartas."
+
+    tomato_salad:
+      name: "&aSalada de Tomate"
+      lore_1: "&7Uma salada leve e refrescante."
+      lore_2: "&7Restaura um pouco de saúde e fome."
+
+    vegetable_bread:
+      name: "&6Pão de Vegetais"
+      lore_1: "&7Pão recheado com vegetais sazonais."
+      lore_2: "&7Muito saciante e dá um pequeno buff."
+
+    meat_sandwich:
+      name: "&6Sanduíche de Carne"
+      lore_1: "&7Pão, carne, tomate e cebola."
+      lore_2: "&7Uma refeição sólida para aventureiros."
+
+    beef_rice_stew:
+      name: "&6Ensopado de Carne & Arroz"
+      lore_1: "&7Um ensopado farto com carne e arroz."
+      lore_2: "&7Restaura muito a fome e concede buffs menores."
+
+    coffee:
+      name: "&6Café"
+      lore_1: "&7Quente, amargo e energizante."
+      lore_2: "&7Aquece você e aguça seus sentidos."
+
+    herbal_tea:
+      name: "&aChá de Ervas"
+      lore_1: "&7Infusão calmante de ervas da floresta."
+      lore_2: "&7Restaura suavemente a saúde e alivia o frio."
+
+    energy_drink:
+      name: "&dBebida Energética"
+      lore_1: "&7Doce, efervescente e cheio de açúcar."
+      lore_2: "&7Dá um rápido aumento de velocidade e foco."
+
+    hot_chocolate:
+      name: "&cChocolate Quente"
+      lore_1: "&7Xícara quente de cacau e leite."
+      lore_2: "&7Perfeito para suportar noites frias de inverno."
+
+    season_clock:
+      name: "&6Relógio das Estações"
+      lore_1: "&7Clique direito para ver o calendário"
+      lore_2: "&7de eventos e o clima futuro"
+
+clock:
+  use:
+    header: "&6[Relógio das Estações]"
+    date: "&7Dia &e{day}&7/&e{max} &7— &a{season} &7(Ano {year})"
+
+    active_event: "&7Evento ativo: &d{event} &7({days} dia(s) restante(s))"
+    no_active_event: "&7Evento ativo: &fNenhum"
+
+    next_events:
+      blocked_by_active: "&7Possível amanhã: &8(um evento já está ativo)"
+      none: "&7Possível amanhã: &fNenhum"
+      single: "&7Amanhã: &b{event}"
+
+    weather_line: "&7Clima: {state} &7— muda em ~{minutes}m"
+
+  weather:
+    raining: "&9Chuvoso"
+    clear: "&fLimpo"
+
+
+guide_food:
+  title: "&6Livro de Receitas Aeternum"
+  author: "&aChef Viajante"
+
+  page1: |
+    &0&lLivro de Receitas Aeternum
+
+    &0Este pequeno livro reúne
+    &0algumas das receitas
+    &0favoritas de fazendeiros
+    &0e viajantes.
+
+    &0Novas culturas sazonais:
+
+    &cTomate&0 – suculento e
+    &0fresco, ótimo em saladas
+    &0e sanduíches.
+
+    &6Cebola&0 – cheiro forte
+    &0mas perfeita para guisados
+    &0e pães.
+
+    &6Arroz&0 – cultivado na água.
+    &0Plante as sementes em
+    &0lagos rasos para obter
+    &0talos de arroz.
+
+  page2: |
+    &0&lPratos Básicos
+
+    &6Salada de Tomate&0
+    &7Tigela + 2x Tomate
+    &0Uma salada leve que
+    &0restaura um pouco da fome
+    &0e dá um pouco de
+    &0regeneração.
+
+    &6Pão de Vegetais&0
+    &7Pão + Tomate + Cebola
+    &0Um pão farto recheado
+    &0com vegetais sazonais.
+    &0Dá um pequeno escudo de
+    &0corações de absorção.
+
+    &6Sanduíche de Carne&0
+    &7Pão + carne cozida +
+    &7Tomate + Cebola
+    &0Um sanduíche substancial que
+    &0concede resistência e
+    &0força extra.
+
+  page3: |
+    &0&lArroz e Ensopados
+
+    &6Plantio de Arroz&0
+    &0Sementes de arroz podem ser plantadas
+    &0em água parada. Elas crescem
+    &0como talos altos, como algas marinhas.
+
+    &0Quebrar o talo rende
+    &0mais sementes de arroz para plantar
+    &0novamente.
+
+    &6Ensopado de Carne e Arroz&0
+    &7Tigela + carne cozida +
+    &7Arroz
+    &0Um ensopado quente que satisfaz
+    &0muita fome, restaura
+    &0a saúde ao longo do tempo e
+    &0aumenta brevemente a saturação.
+
+  page4: |
+    &0&lBebidas
+
+    &6Café&0
+    &7Garrafa + Cacau + Açúcar
+    &0Quente e amargo. Remove
+    &0o congelamento, concede velocidade
+    &0e visão noturna por
+    &0um tempo.
+
+    &6Chá de Ervas&0
+    &7Garrafa + flor da floresta
+    &0Infusão calmante que
+    &0cura suavemente, ajuda
+    &0contra o frio e
+    &0dá um pequeno impulso de saúde.
+
+    &6Bebida Energética&0
+    &7Garrafa + Açúcar + Redstone
+    &7+ Pó de Glowstone
+    &0Muito doce e efervescente.
+    &0Concede forte velocidade e
+    &0pressa por um curto período.
+
+    &6Chocolate Quente&0
+    &7Garrafa + Cacau + Leite
+    &0Perfeito para noites
+    &0de inverno. Aquece você,
+    &0bloqueia o congelamento e concede
+    &0resistência e absorção.
+
+  page5: |
+    &6Terra fértil&0
+    Receita do fertilizante rico:
+
+      §2[T] [R] [R]
+      §2[W] [W] [B]
+      §2[B] [B] [B]
+
+    T = Terra
+    R = Carne podre
+    W = Trigo
+    B = Farinha de ossos
+
+    &7Dizem que um cozinheiro errante descobriu como fazer suas plantações crescerem muito mais rápido graças a um fertilizante especial.&0
+    &cSiga esta receita para preparar o composto cru:&0
+    &7se você o deixar na água por dois dias,
+    ele se transformará em uma terra rica perfeita para o cultivo.&0  
+
+crop:
+  lore:
+    grows_in: "Cresce em: {seasons}"
+    any_season: "&7Cresce em qualquer estação"
+    greenhouse_light: "&8Estufa subterrânea: luz {light}+"
+
+farming:
+  compost:
+    raw_name: "&aComposto cru"
+    raw_lore_1: "&7Mistura úmida de terra e restos orgânicos."
+    raw_lore_2: "&7Deixe perto da água por 2 dias."
+    ready_name: "&2Terra fértil rica"
+    ready_lore_1: "&7As plantações aqui crescem &ax2 &7mais rápido."
+    ready_lore_2: "&7Pisar nela não quebra o solo arado."
+    ready_message: "&aSeu composto se transformou em uma terra fértil rica."
+
+
+villager:
+  lazy_tag: "&7[&6Preguiçoso&7]"
+
+
+greenhouse_debug_protected: Esta colheita está protegida pela estufa (%season%).
+greenhouse_debug_not_protected: Esta colheita NÃO está protegida pela estufa (%season%).
+greenhouse_debug_unclaimed: Ninguém reivindicou este bloco.
+
+farming:
+  compost:
+    raw_name: "&aComposto Cru"
+    raw_lore_1: "&7Mistura úmida de terra e restos orgânicos."
+    raw_lore_2: "&7Deixe-a perto da água por 2 dias."
+    ready_name: "&2Terra Adubada Rica"
+    ready_lore_1: "&7As colheitas aqui crescem &ax2 &7mais rápido."
+    ready_lore_2: "&7Ao pisar, a terra cultivada não se quebra."
+    ready_message: "&aSeu composto se transformou em terra adubada rica."
+
+
+fishtrap:
+  item:
+    name: "&bArmadilha de Pesca"
+    lore: "&7Coloque-a tocando a água para apanhar saque."
+  gui:
+    title: "&8Armadilha de Pesca"
+  msg:
+    placed: "&aArmadilha colocada."
+    broken: "&cArmadilha recolhida."
+    not_in_water: "&cDeve tocar a água para funcionar."
+
+generator:
+  item:
+    name: "&dArmadilha de Criaturas"
+    lore1: "&7Usos: &f{uses}"
+    lore2: "&7Criatura: &f{mob}"
+    lore3: "&8Gera ovos ao longo do tempo"
+  gui:
+    title: "&8Armadilha Caseira"
+  captured:
+    name: "&bOvo Capturado &7({mob})"
+    lore1: "&7Criatura: &f{mob}"
+    lore2: "&8Não pode ser lançado"
+  msg:
+    placed: "&aArmadilha colocada. Usos: &f{uses}"
+    not_allowed: "&cVocê não pode usar ovos vanilla nesta armadilha."
+    broken: "&cA armadilha se desgastou e quebrou."
+
+fauna:
+  barn:
+    breed_fail: "&cEles precisam estar em um &eestábulo/celeiro&c para se reproduzir bem."
+  winter:
+    died: "&bO frio do inverno matou um animal sem abrigo..."
+  horse:
+    tired: "&eSeu cavalo está cansado..."
+  horse_bag:
+    title: "&8Alforje do Cavalo"
+    no_armor: "&cEste cavalo não tem alforje (precisa de armadura)."
+    need_saddle: "&cVocê precisa selar o cavalo primeiro."
+
+temperature:
+  actionbar:
+    celsius: "&e[ {temp} °C ]"
+    fahrenheit: "&e[ {temp} °F ]"

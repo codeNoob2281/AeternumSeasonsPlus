@@ -1,0 +1,164 @@
+# ==============================================================
+# CALENDAR CHANNELS / CANALES DE CALENDARIO
+# ==============================================================
+
+calendar:
+  channels:
+
+    OVERWORLD:
+      enabled: true                                            # Activar canal / Enable channel
+      worlds:                                                  # Mundos vinculados / Linked worlds
+        - world
+        - world_nether_lobby
+      mode: SEASONS                                            # SEASONS | MONTHS
+      days_per_season: 28                                      # Días por estación / Days per season
+
+      days_per_season_by_season:                               # Duración específica / Specific duration
+        SPRING: 28
+        SUMMER: 28
+        AUTUMN: 28
+        WINTER: 28
+
+      advance:
+        follow_overworld_time: true
+        on_sleep: true
+        daylight_minutes: 10
+        night_minutes: 10
+        require_players_on_server: false
+        time_anchor_world: world
+        max_catchup_days: 2
+
+      months:
+        enabled: true                                          # Activar meses / Enable months
+
+        # IMPORTANTE: Los nombres en 'order' deben existir en 'definitions' abajo.
+        # IMPORTANT: Names in 'order' must exist in 'definitions' below.
+
+        order: [ JANUARY, FEBRUARY, MARCH, APRIL, MAY, JUNE, JULY, AUGUST,
+                 SEPTEMBER, OCTOBER, NOVEMBER, DECEMBER ]
+
+        # Para añadir un mes: Invéntate un ID (ej. JANUARY), añádelo a 'order' y crea su definición.
+        # To add a month: Create an ID (ex: JANUARY), add it to 'order' and create its definition.
+
+        definitions:
+          JANUARY:
+            display_name: '&bJANUARY'
+            season: WINTER
+            days: 31
+            daylight_minutes: 8
+            night_minutes: 16
+          FEBRUARY:
+            display_name: '&bFEBRUARY'
+            season: WINTER
+            days: 28
+            daylight_minutes: 9
+            night_minutes: 15
+          MARCH:
+            display_name: '&aMARCH'
+            season: SPRING
+            days: 31
+            daylight_minutes: 10
+            night_minutes: 14
+          APRIL:
+            display_name: '&aAPRIL'
+            season: SPRING
+            days: 30
+            daylight_minutes: 11
+            night_minutes: 13
+          MAY:
+            display_name: '&aMAY'
+            season: SPRING
+            days: 31
+            daylight_minutes: 12
+            night_minutes: 12
+          JUNE:
+            display_name: '&eJUNE'
+            season: SUMMER
+            days: 30
+            daylight_minutes: 13
+            night_minutes: 11
+          JULY:
+            display_name: '&eJULY'
+            season: SUMMER
+            days: 31
+            daylight_minutes: 14
+            night_minutes: 10
+          AUGUST:
+            display_name: '&eAUGUST'
+            season: SUMMER
+            days: 31
+            daylight_minutes: 13
+            night_minutes: 11
+          SEPTEMBER:
+            display_name: '&6SEPTEMBER'
+            season: AUTUMN
+            days: 30
+            daylight_minutes: 11
+            night_minutes: 13
+          OCTOBER:
+            display_name: '&6OCTOBER'
+            season: AUTUMN
+            days: 31
+            daylight_minutes: 10
+            night_minutes: 14
+          NOVEMBER:
+            display_name: '&6NOVEMBER'
+            season: AUTUMN
+            days: 30
+            daylight_minutes: 9
+            night_minutes: 15
+          DECEMBER:
+            display_name: '&bDECEMBER'
+            season: WINTER
+            days: 31
+            daylight_minutes: 8
+            night_minutes: 16
+
+    NETHER:
+      enabled: true                                            # Activar canal / Enable channel
+      worlds: # Mundos / Worlds
+        - aeternum_heat
+      mode: MONTHS                                             # SEASONS | MONTHS
+
+      advance:
+        follow_overworld_time: false
+        on_sleep: false
+        daylight_minutes: 10
+        night_minutes: 10
+        require_players_on_server: false
+        time_anchor_world: world_nether
+        max_catchup_days: 2
+
+      months:
+        enabled: true
+        order:
+          - EMBER
+          - ASH
+          - SLAG
+          - SULFUR
+
+        definitions:
+          EMBER:
+            display_name: '&6Ember'
+            season: SUMMER
+            days: 25
+            daylight_minutes: 9
+            night_minutes: 8
+          ASH:
+            display_name: '&7Ash'
+            season: AUTUMN
+            days: 24
+            daylight_minutes: 7
+            night_minutes: 17
+          SLAG:
+            display_name: '&8Slag'
+            season: WINTER
+            days: 22
+            daylight_minutes: 6
+            night_minutes: 18
+          SULFUR:
+            display_name: '&eSulfur'
+            season: SPRING
+            days: 26
+            daylight_minutes: 9
+            night_minutes: 15

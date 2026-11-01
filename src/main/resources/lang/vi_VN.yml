@@ -1,0 +1,975 @@
+season:
+  SPRING: Mùa Xuân
+  SUMMER: Mùa Hè
+  AUTUMN: Mùa Thu
+  WINTER: Mùa Đông
+hud:
+  title: "Ngày {day}, Năm {year} — {season}"
+  title_dim: "Ngày {day}, Năm {year} — {season} — {realm}"
+
+realm:
+  frost_overworld: "Vương Quốc Tuyết Phủ"
+  heat_overworld: "Vương Quốc Lửa Than"
+
+  frost_title: "&b{name}"
+  frost_subtitle: "&7Chỉ các quần xã lạnh"
+
+  heat_title: "&c{name}"
+  heat_subtitle: "&7Sống sót trên những vùng đất đang cháy"
+
+  overworld_title: "&aThế Giới Chính"
+  returned_from: "&7Bạn đã rời &f{name}"
+
+log:
+  frost_world_loaded: "&a[Thế Giới] Thế giới tuyết '{name}' đã được tải."
+  frost_world_created: "&a[Thế Giới] Thế giới tuyết '{name}' đã được tạo và tải thành công."
+  frost_world_failed: "&c[Thế Giới] Không thể tạo thế giới tuyết '{name}'."
+
+  heat_world_creating: "&6[Thế Giới] Đang tạo thế giới nóng '{name}'..."
+  heat_world_loaded: "&a[Thế Giới] Thế giới nóng '{name}' đã được tải."
+  heat_world_created: "&a[Thế Giới] Thế giới nóng '{name}' đã được tạo và tải."
+  heat_world_failed: "&c[Thế Giới] Không thể tạo thế giới nóng '{name}'."
+
+cmd:
+  event:
+    no_permission: "&cBạn không có quyền sử dụng lệnh này."
+    usage: "&eCách dùng: {cmd} <list|info|start|stop> [id] [days]"
+    list:
+      header: "&6Sự kiện Đã Đăng ký:"
+      item: "&7- &e{id}&7 (&f{name}&7)"
+    started: "&aSự kiện &e{id}&a bị buộc bắt đầu."
+    stopped: "&cSự kiện đang hoạt động đã dừng."
+    no_such_event: "&cKhông tìm thấy sự kiện nào có id &e{id}&c."
+    no_active: "&7Hiện tại không có sự kiện nào đang hoạt động."
+    info: "&6Sự kiện đang hoạt động: &e{id}&7 (&f{name}&7), còn &e{days}&7 ngày."
+
+  season:
+    no_permission: "&cBạn không có quyền sử dụng lệnh này."
+
+    info:
+      line: "&bMùa: {season}&7 | Ngày {day}/{max}&3 | Năm {year}"
+
+    set:
+      usage: "&eCách dùng: /{label} set <SPRING|SUMMER|AUTUMN|WINTER>"
+      invalid: "&cMùa không hợp lệ."
+      success: "&6Mùa đã được đặt thành {season}."
+
+    skipday:
+      done: "&6Bạn đã bỏ qua 1 ngày."
+
+    day:
+      usage: "&eCách dùng: /{label} day <1..{max}>"
+      invalid_number: "&cSố không hợp lệ."
+      success: "&6Ngày được đặt thành {day} (mùa hiện tại)."
+
+    year:
+      usage: "&eSử dụng: /{label} year <số>"
+      invalid_number: "&cSố năm không hợp lệ."
+      success: "&aNăm lịch đã được đặt thành &f{year}&a."
+
+    reload:
+      done: "&aCấu hình đã được tải lại."
+
+    hud:
+      player_only: "&cLệnh này chỉ có thể được sử dụng bởi người chơi."
+      usage: "&eCách dùng: /{label} hud <fixed|variable|off>"
+      current: "&7Chế độ hiện tại: &b{mode}"
+      invalid: "&cChế độ không hợp lệ. Sử dụng: &efixed&c, &evariable&c hoặc &eoff&c."
+      mode:
+        fixed: "cố định"
+        variable: "biến đổi"
+        off: "tắt"
+      set:
+        fixed: "&aHiển thị HUD tĩnh đã được bật."
+        variable: "&aChế độ HUD biến đổi đã được bật."
+        "off": "&cHUD đã bị tắt."
+
+    help: "&eCách dùng: /{label} <info|set|skipday|day|reload|hud>"
+
+event:
+  blood_moon:
+    title: "§4☾ Trăng Máu ☾"
+    subtitle: "§cQuái vật mạnh hơn và bạn không thể ngủ..."
+    end: "&6Trăng Máu đã tan..."
+    no_sleep: "&4Bạn không thể ngủ trong Trăng Máu..."
+    mob_name: "Hậu duệ của Đêm"
+
+  heat_wave:
+    title: "§6☀ Sóng Nhiệt ☀"
+    subtitle: "&eMặt trời cháy dữ dội hơn, hãy tìm bóng râm hoặc bảo vệ."
+    end: "&aSóng nhiệt đã kết thúc, thời tiết trở nên dịu hơn."
+
+  winter_freeze:
+    title: "§b❄ Giá Lạnh Mùa Đông ❄"
+    subtitle: "§fMùa đông trở nên chết chóc nếu bạn không được bảo vệ."
+    end: "&bCơn lạnh đã qua, không khí bớt buốt giá."
+    freezing: "&3Bạn run rẩy... &bbạn cần hơi ấm hoặc trang bị tốt hơn."
+    cold_but_safe: "&7Bạn cảm thấy lạnh, nhưng sự bảo vệ của bạn giữ bạn an toàn."
+
+  magic_storm:
+    title: "§5⚡ Bão Ma Thuật ⚡"
+    subtitle: "&dBầu trời nứt ra và ma thuật rơi xuống cùng cơn mưa."
+    end: "&5Bão ma thuật tan dần, để lại một sự im lặng kỳ lạ."
+    mob_name: "Sinh vật bị bão Ma Thuật chạm vào"
+
+  festival:
+    end: "&6Lễ hội kết thúc, nhưng những ký ức còn đọng lại."
+    actionbar: "&6Chợ Lễ Hội&7 • &e{season}&8 • &7Vật phẩm thay đổi hàng ngày"
+    trader_name: "&eThương nhân Lễ hội"
+    item:
+      spring: "&aChậu hoa Mùa Xuân"
+      summer: "&eKẹo mật ong Mùa Hè"
+      autumn: "&6Bánh bí ngô Mùa Thu"
+      winter: "&bBóng tuyết Lễ hội"
+      generic: "&fQuà lưu niệm Lễ hội"
+    spring:
+      title: "§a✿ Lễ hội Mùa Xuân ✿"
+      subtitle: "&fHoa, âm nhạc và những hạt giống hy vọng mới. Tìm một ngôi làng"
+    summer:
+      title: "§e☀ Lễ hội Mùa Hè ☀"
+      subtitle: "&fThức ăn, tiếng cười và những đêm ấm áp. Tìm một ngôi làng"
+    autumn:
+      title: "§6🍂 Lễ hội Mùa Thu 🍂"
+      subtitle: "&fThu hoạch, lửa trại và những câu chuyện bên lửa. Tìm một ngôi làng"
+    winter:
+      title: "§b❄ Lễ hội Mùa Đông ❄"
+      subtitle: "&fÁnh đèn, tuyết và sự ấm áp của mái nhà. Tìm một ngôi làng"
+
+  fishing:
+    title: "§b🎣 Lễ hội Câu cá 🎣"
+    subtitle: "&fSông và biển ẩn chứa nhiều kho báu hơn hôm nay."
+    end: "&bLễ hội câu cá đã kết thúc."
+
+  mining:
+    title: "§6⛏ Phước lành Khai thác ⛏"
+    subtitle: "&fCác tĩnh mạch quặng cảm thấy hào phóng hơn..."
+    end: "&6Phước lành khai thác tan dần."
+
+  tornado:
+    title: "§7🌪 Lốc xoáy 🌪"
+    subtitle: "&fGió rít gào, tìm nơi trú ẩn."
+    end: "&7Lốc xoáy tan dần."
+
+  restful_sleep:
+    title: "§d😴 Giấc ngủ Thư thái 😴"
+    subtitle: "&fNgủ ngon sẽ mang lại cho bạn thêm sức mạnh."
+    end: "&dGiấc ngủ của bạn trở lại bình thường."
+    sleeping: "&dBạn chìm vào một giấc ngủ sâu, phục hồi..."
+    buffed: "&dBạn tỉnh dậy sảng khoái, cảm thấy thêm sinh lực."
+    lost: "&cThiệt hại đã làm bạn kiệt sức và bạn mất đi hiệu ứng phục hồi."
+
+  halloween:
+    title: "&6&lĐêm của &e&lBí Ngô"
+    subtitle: "&7Quái vật mạnh hơn và khao khát linh hồn..."
+
+  christmas:
+    title: "&b&lGiáng Sinh ở Aeternum"
+    subtitle: "&7Không khí ấm áp hơn và quà tặng đang chờ đợi..."
+    gift_found: "&aBạn cảm thấy một túi quà đã xuất hiện trong hành trang của mình..."
+    gift_bundle_name: "&bTúi Quà Giáng Sinh"
+    gift_bundle_lore_1: "&7Một chiếc túi bí ẩn chứa đầy &fquà tặng lễ hội&7."
+    gift_bundle_lore_2: "&7Hãy giữ nó làm kỷ niệm... hoặc mở ra và tận hưởng chiến lợi phẩm."
+
+  holiday:
+    end: "&7Lễ kỷ niệm ngày lễ đã kết thúc."
+
+  new_year:
+    name: "§eTết Dương Lịch"
+    title: "§e✨ Tết Dương Lịch tại Aeternum ✨"
+    subtitle: "&7Lịch đánh dấu một khởi đầu mới."
+    gift_found: "&aBạn đã nhận được pháo hoa để mừng Tết Dương Lịch!"
+    end: "&7Tết Dương Lịch kết thúc, nhưng cuộc phiêu lưu vẫn tiếp diễn."
+
+  nether_fishing_derby:
+    title: "§cGiải Đua Câu Cá Nether"
+    subtitle: "§7Câu cá trong §clava§7 để nhận loot đặc biệt."
+    end: "§7§cGiải Đua Câu Cá Nether§7 đã kết thúc."
+    bite_actionbar: "§6✦ §cCú cắn Nether! §7(§fNhấp chuột phải§7)"
+    no_bite_actionbar: "§7Không có gì cắn… §8thử lại."
+    no_loot_actionbar: "§7Bạn không câu được gì… §8(quá đen đủi)"
+  piglin_market:
+    title: "§6Chợ Piglin"
+    subtitle: "§7Giao dịch được cải thiện trong chốc lát."
+    end: "§7§6Chợ Piglin§7 đã đóng cửa."
+  quartz_rush:
+    title: "§fCơn Sốt Thạch Anh"
+    subtitle: "§7Nhận được nhiều §fthạch anh§7 hơn khi khai thác."
+    end: "§7§fCơn Sốt Thạch Anh§7 đã kết thúc."
+  fungus_bloom:
+    title: "§dNấm Nở Rộ"
+    subtitle: "§7Crimson/Warped cho nhiều drop hơn."
+    end: "§7§dNấm Nở Rộ§7 đã kết thúc."
+  blaze_surge:
+    title: "§6Sóng Blaze"
+    subtitle: "§7Nhiều rod hơn và blaze hoạt động mạnh hơn."
+    end: "§7§6Sóng Blaze§7 đã kết thúc."
+  magma_tides:
+    title: "§cLàn Sóng Magma"
+    subtitle: "§7Nhiều kem magma hơn… hãy cẩn thận."
+    end: "§7§cLàn Sóng Magma§7 đã rút."
+  ghast_alert:
+    title: "§fCảnh Báo Ghast"
+    subtitle: "§7Nhiều ghast hơn và phần thưởng thêm."
+    end: "§7§fCảnh Báo Ghast§7 đã kết thúc."
+    ghast_name: "§fGhast Rình Rập"
+  wither_loose:
+    title: "§4CẢNH BÁO TỐI ĐA!"
+    subtitle: "§7§lWITHER TRỐN THOÁT§7 ở Nether."
+    survive: "§cSỐNG SÓT!!"
+    end: "§7Cảnh báo §4Wither§7 đã kết thúc."
+    wither_name: "§4§lWITHER TRỐN THOÁT"
+    countdown_60: "§cWither có thể xuất hiện trong §f{seconds}§c giây…"
+    countdown_40: "§cCòn lại §f{seconds}§c giây…"
+    countdown_20: "§cCòn lại §f{seconds}§c giây…"
+    countdown_generic: "§cCòn lại §f{seconds}§c giây…"
+    idle_killed: "§7§4Wither§7 biến mất do không hoạt động…"
+  wither_skeleton_swarm:
+    title: "§8Bầy Xương Wither"
+    subtitle: "§7Wither Skeletons mạnh hơn và loot tốt hơn."
+    end: "§7§8Bầy Xương Wither§7 đã kết thúc."
+    mob_name: "§8Người Gác Wither"
+
+guide:
+  # Título general (se usa tanto en chat como en el libro)
+  title: "Hướng Dẫn Các Mùa Aeternum"
+
+  # Título y autor del libro escrito
+  book_title: "Hướng Dẫn Các Mùa Aeternum"
+  book_author: "Aeternum"
+  book_given: "Sách hướng dẫn các mùa đã được trao cho bạn."
+
+  # Línea con la estación actual
+  current: "Mùa hiện tại: {season}"
+
+  # Primer párrafo del libro
+  intro: "Hướng dẫn này tóm tắt thời tiết, sự kiện, cây trồng, và sự di cư của động vật theo từng mùa."
+
+  section:
+    events: "§0Sự kiện Theo Mùa"
+    crops: "§0Cây trồng theo Mùa"
+    migration: "§0Di cư Động vật"
+    stables: "Chuồng trại và Kho thóc"
+    weather: "§0Thời tiết Đặc trưng"
+    crafting: "Chế tạo Đặc biệt"
+    dimensions: "Các Chiều không gian"
+
+  crafting: # <- Y AQUÍ DENTRO tus recetas
+    advanced_composter: |
+      §6Máy Ủ Phân Nâng Cao§7
+      §7Công thức:
+      §2[L] [H] [L]
+      §2[P] [C] [P]
+      §2[L] [H] [L]
+      §1L = bất kỳ lá cây nào
+      §1H = phễu
+      §1P = bí ngô
+      §1C = máy ủ phân
+
+    harvest_hoe: |
+      §6Cuốc Thu Hoạch§7
+      §7Công thức:
+      §2[W] [W] [W]
+      §2[E] [H] [E]
+      §2[E] [E] [E]
+      §1W = lúa mì
+      §1E = ngọc lục bảo
+      §1H = bất kỳ cuốc nào
+
+    farmer_boots: |
+      §6Giày của Nông Dân§7
+      §7Công thức:
+      §2[W] [B] [W]
+      §2[W] [S] [W]
+      §2[W] [W] [W]
+      §1W = lúa mì
+      §1B = giày
+      §1S = xẻng (đá/kim cương)
+
+    lunar_lantern: |
+      §6Đèn Lồng Mặt Trăng§7
+      §7Công thức:
+      §2[R] [L] [R]
+      §2[R] [E] [R]
+      §2[R] [L] [R]
+      §1R = redstone
+      §1L = đèn lồng
+      §1E = ngọc Ender
+
+    solar_torch: |
+      §6Đuốc Mặt Trời§7
+      §7Công thức:
+      §2[B] [B] [B]
+      §2[ ] [T] [ ]
+      §2[ ] [F] [ ]
+      §1B = bột blaze
+      §1T = đuốc thường
+      §1F = Hướng dương
+
+    spring_bell: |
+      §dChuông Mùa Xuân§7
+      §7Công thức:
+      §2[A] [P] [A]
+      §2[P] [B] [P]
+      §2[A] [P] [A]
+      §1A = mảnh thạch anh tím
+      §1P = cánh hoa / hoa hồng
+      §1B = chuông
+
+    spring_boots: |
+      §dGiày Bước Chân Mùa Xuân§7
+      §7Công thức:
+      §2[P] [P] [P]
+      §2[P] [B] [P]
+      §2[P] [P] [P]
+      §1P = cánh hoa / hoa hồng
+      §1B = giày
+
+    snow_boots: |
+      §6Giày Chống Tuyết§7
+      §7Công thức:
+      §2[ ] [B] [ ]
+      §2[ ] [S] [ ]
+      §2[ ] [S] [ ]
+      §1B = giày
+      §1S = xô Tuyết Bột
+
+    woodcutter_axe: |
+      §6Rìu Khai Thác Tự Nhiên§7
+      §7Công thức:
+      §2[L] [A] [L]
+      §2[O] [ ] [O]
+      §2[L] [ ] [L]
+      §1L = bất kỳ lá cây nào
+      §1O = bất kỳ khúc gỗ nào
+      §1A = bất kỳ rìu nào
+
+    frost_core: |
+      §6Lõi Mùa Đông§7
+      §7Công thức:
+      §2[S] [I] [S]
+      §2[I] [B] [I]
+      §2[S] [I] [S]
+      §1S = Khối tuyết
+      §1I = Băng nén
+      §1B = Trái tim Biển cả
+      §7Nhấp chuột phải vào Người Tuyết Golem để nâng cấp.
+
+    guardian_core: |
+      §6Lõi Người Bảo Vệ§7
+      §7Công thức:
+      §2[I] [B] [I]
+      §2[B] [G] [B]
+      §2[I] [B] [I]
+      §1I = Khối sắt
+      §1B = Thỏi sắt
+      §1G = Mảnh thạch anh tím
+      §7Nhấp chuột phải vào Người Sắt Golem.
+
+    fish_trap: |
+      §6Bẫy Cá§7
+      §7Công thức:
+      §2[S] [ ] [S]
+      §2[S] [B] [S]
+      §2[S] [ ] [S]
+      §1S = dây
+      §1B = thùng
+
+    creature_generator: |
+      §6Bẫy Sinh Vật§7
+      §7Công thức:
+      §2[S] [I] [S]
+      §2[I] [T] [I]
+      §2[S] [I] [S]
+      §1S = dây
+      §1I = thỏi sắt
+      §1T = gậy
+
+    Clock: |
+      §6Đồng Hồ Mùa Vụ§7
+      §7Công thức:
+      §2[ ] [B] [ ]
+      §2[ ] [R] [ ]
+      §2[ ] [ ] [ ]
+      §1B = La bàn
+      §1R = Đồng hồ
+
+
+  dimensions:
+    snowbound:
+      title: "Thế Giới Băng Giá"
+      build: "Xây dựng Cổng:"
+      block: "Đá Phát Sáng (Glowstone)"
+      activate: "Kích hoạt bằng cách ném một quả cầu tuyết vào cổng."
+
+      warning_title: "Cảnh báo: Thời tiết Cực đoan"
+      warning_1: "Trong bão tuyết, tầm nhìn của bạn gần như hoàn toàn bị giảm."
+      warning_2: "Chỉ với nguồn sáng hoặc ẩn náu trong hang động bạn mới có thể nhìn thấy."
+      warning_3: "Cái lạnh tăng cường, hãy tự bảo vệ mình thật tốt."
+
+    emberbound:
+      title: "Cổng đến Thế Giới Địa Ngục"
+      build_glitched: "Xây dựn..."
+      block: "Khối SDFSD"
+      glitch_warning: "Có vẻ như thông tin cho thế giới này đã bị hỏng..."
+
+  events:
+    blood_moon: "§cTrăng Máu§7: quái vật mạnh hơn, bạn không thể ngủ."
+    heat_wave: "§6Sóng Nhiệt§7: mặt trời làm kiệt sức nếu bạn không ở trong bóng râm."
+    winter_freeze: "§9Lạnh Giá Mùa Đông§7: không có quần áo phù hợp bạn sẽ đóng băng nhanh chóng."
+    magic_storm: "§9Bão Ma Thuật§7: thời tiết kỳ lạ và vật phẩm ma thuật."
+    festival: "§6Lễ Hội§7: dân làng, giao dịch và trang trí."
+    fishing: "§9Lễ Hội Câu Cá§7: thêm vật phẩm khi câu cá."
+    mining: "§6Phước Lành Khai Thác§7: nhiều khoáng sản và *drop* tốt hơn."
+    tornado: "§7Lốc Xoáy§7: gió cuốn trôi và làm hỏng cây trồng."
+    restful_sleep: "§9Giấc Ngủ Phục Hồi§7: ngủ mang lại thêm máu tạm thời."
+
+  crops:
+    SPRING: "Lúa mì, cà rốt, khoai tây, củ cải đường và bí ngô phát triển mạnh; một mùa trồng trọt chung rất tốt."
+    SUMMER: "Dưa hấu, mía, xương rồng, và cây trồng chịu nhiệt phát triển tốt nhất."
+    AUTUMN: "Bí ngô, nấm và cây lấy củ; lý tưởng cho thu hoạch lớn và lưu trữ."
+    WINTER: "Hầu như không có gì phát triển ngoài trời; nhà kính cho phép tiếp tục trồng trọt."
+
+  migration:
+    SPRING: "Nhiều cừu, ong và thỏ hơn ở đồng cỏ và rừng hoa."
+    SUMMER: "Nhiều cá nhiệt đới, cá heo, rùa và axolotl hơn ở biển ấm."
+    AUTUMN: "Cáo, sói và dê tập trung ở taiga và các khu vực miền núi."
+    WINTER: "Sói và gấu bắc cực thống trị quần xã sinh vật lạnh; nhiều động vật khí hậu ấm áp biến mất."
+
+  stables:
+    winter: "Động vật không chịu lạnh có thể chết nếu chúng không có chuồng hoặc nơi trú ẩn."
+    breeding: "Sinh sản kém hiệu quả (hoặc không có) nếu chúng không ở trong chuồng."
+    bonus_drops: "Động vật được nuôi hoặc bảo vệ trong chuồng sẽ rơi ra nhiều vật phẩm hơn (thịt, lông, len, da)."
+
+  weather:
+    SPRING: "Mưa nhẹ, thời tiết ôn hòa và ngày dài hơn có lợi cho cây trồng."
+    SUMMER: "Nắng gắt, nóng mạnh và một số cơn bão dữ dội."
+    AUTUMN: "Gió mát, trời nhiều mây và thay đổi nhiệt độ đột ngột."
+    WINTER: "Tuyết thường xuyên, lạnh cực độ và nguy cơ đóng băng nếu bạn không tự bảo vệ mình."
+
+  footer: " sử dụng /seasonguide."
+
+item:
+  snow_step_boots:
+    name: "&bGiày Bước Tuyết"
+    lore1: "&7Cho phép bạn đi trên &fTuyết Bột"
+    lore2: "&7mà không bị chìm hoặc mắc kẹt."
+
+  labrador_boots:
+    name: "&aGiày Labrador"
+    lore1: "&7Bạn không giẫm nát &6đất đã cày&7 khi nhảy."
+    lore2: "&7Bạn di chuyển nhanh hơn trên &6đất nông nghiệp&7."
+    lore3: "&7Đôi khi cấp &athêm hạt giống&7 khi thu hoạch."
+
+  spring_stride_boots:
+    name: "&dBước nhảy Mùa Xuân"
+    lore1: "&7Một bước nhảy &dnở hoa&7, nhẹ nhàng hơn."
+    lore2: "&7Khi tiếp đất, bước chân của bạn làm &fhoa&7 nở."
+    lore3: "&7Hoàn hảo để khám phá đồng cỏ mùa xuân."
+
+  solar_torch:
+    name: "&eNgọn đuốc Mặt trời"
+    lore1: "&7Một ngọn đuốc được &6mặt trời&7 ban phước."
+    lore2: "&7Vào mùa hè, nó tăng tốc độ phát triển của cây trồng."
+    lore3: "&7Vào ban đêm, nó làm suy yếu quái vật gần đó."
+
+  advanced_composter:
+    name: "&6Máy ủ Phân Nâng cao"
+    lore1: "&7Xử lý phân ủ &enhanh gấp đôi&7."
+    lore2: "&7Có cơ hội tạo ra &fthêm bột xương&7."
+    lore3: "&7Hoạt động tốt hơn nữa vào &6mùa thu&7."
+
+  spring_bell:
+    name: "&dChuông Mùa Xuân"
+    lore1: "&7Khi rung, nó làm cây trồng gần đó nở hoa."
+    lore2: "&7Làm dịu và ban phước cho &eong&7 gần đó."
+    lore3: "&7Phép thuật của nó mạnh hơn vào &amùa xuân&7."
+
+  lunar_lantern:
+    name: "&9Đèn lồng Mặt trăng"
+    lore1: "&7Phát sáng với ánh sáng &9xanh lam&7 vào ban đêm."
+    lore2: "&7Tăng cường sự phát triển của &3nấm&7 và cây tối."
+    lore3: "&7Thêm một chút &bsự rõ ràng về đêm&7 cho du khách."
+
+  harvest_hoe:
+    name: "&6Cuốc Thu hoạch"
+    lore1: "&7Thu hoạch cây trồng &etrong khu vực&7, chỉ khi trưởng thành."
+    lore2: "&7Tự động trồng lại bằng &fhạt giống&7 trong hành trang."
+    lore3: "&7Tiêu tốn độ bền cho mỗi cây trồng được thu hoạch."
+
+  natural_tree_axe:
+    name: "&2Rìu Đốn Cây Tự nhiên"
+    lore1: "&7Đốn &otoàn bộ cây&7 chỉ bằng một cú vung."
+    lore2: "&7Chỉ ảnh hưởng đến các khúc gỗ được kết nối, bảo tồn rừng."
+    lore3: "&7Tiêu tốn độ bền cho mỗi khúc gỗ được chặt."
+
+  frost_core:
+    name: "&bLõi Mùa Đông"
+    lore1: "&7Trao quyền cho một Snow Golem."
+    lore2: "&7Sức mạnh của nó tăng lên nhiều hơn vào mùa đông."
+    lore3: "&eNhấp chuột phải vào Snow Golem."
+    lore4: "&aMùa Đông:&7 nhiều máu hơn và cầu tuyết mạnh hơn."
+    lore5: "&7Không để lại tuyết trên mặt đất và không chết vì thời tiết."
+
+  guardian_core:
+    name: "&6Lõi Người bảo vệ"
+    lore1: "&7Truyền sức mạnh cho một Iron Golem"
+    lore2: "&7với sức mạnh gắn liền với các mùa."
+    lore3: "&eNhấp chuột phải vào Iron Golem."
+    lore4: "&aMùa Đông:&7 nhiều máu và sát thương hơn."
+    lore5: "&eMùa Hè:&7 miễn nhiễm với lửa và đốt cháy kẻ thù."
+
+  everfrost_shard:
+    name: "&bMảnh Băng Vĩnh Cửu"
+    lore_line1: "&7Một mảnh vỡ sức mạnh của &bGlacialis&7."
+    lore_line2: "&7Dùng để rèn áo giáp chống lại sức nóng địa ngục."
+
+  glacialis_core:
+    name: "&3Lõi Glacialis"
+    lore_line1: "&7Nó rung động với cái lạnh không tự nhiên."
+    lore_line2: "&7Chìa khóa để rèn áo giáp chống lại sức nóng."
+
+  heat_armor:
+    helmet:
+      name: "&bMũ Băng Vĩnh Cửu"
+      lore_line1: "&7Được rèn bằng sức mạnh của &bGlacialis&7."
+      lore_line2: "&7Giúp chống lại sức nóng địa ngục."
+    chest:
+      name: "&bÁo giáp Băng Vĩnh Cửu"
+      lore_line1: "&7Băng vĩnh cửu bảo vệ trái tim bạn."
+      lore_line2: "&7Giúp chống lại sức nóng địa ngục."
+    legs:
+      name: "&bGiáp chân Băng Vĩnh Cửu"
+      lore_line1: "&7Cho phép bạn sải bước qua than hồng."
+      lore_line2: "&7Giúp chống lại sức nóng địa ngục."
+    boots:
+      name: "&bGiày Băng Vĩnh Cửu"
+      lore_line1: "&7Để lại dấu chân trên dung nham."
+      lore_line2: "&7Giúp chống lại sức nóng địa ngục."
+
+golem:
+  frostbound:
+    name: "&bGolem bị Ràng buộc bởi Băng"
+
+  guardian:
+    name: "&6Golem Người bảo vệ"
+
+  upgrade:
+    too_many: "&cChunk này đã có số lượng golem được nâng cấp tối đa (&e{max}&c)."
+    frost_ok: "&bSnow Golem của bạn giờ là một &fGolem bị Ràng buộc bởi Băng&b."
+    guardian_ok: "&6Iron Golem của bạn giờ là một &fGolem Người bảo vệ&6."
+    wrong_target: "&7Bạn chỉ có thể sử dụng lõi này trên một golem thích hợp."
+
+boss:
+  glacialis:
+    name: "&bGlacialis, Trái Tim Mùa Đông"
+    spawn: "&b[Glacialis]&7 Một cái lạnh cổ xưa thức tỉnh trong &fThế Giới Băng Giá&7..."
+    defeated: "&b[Glacialis]&7 đã bị đánh bại. &7Các mảnh băng giá của hắn nằm rải rác trong tuyết."
+
+frost_guide:
+  book_title: "Hướng dẫn Thế giới Băng giá"
+  book_author: "Người vẽ bản đồ Aeternum Seasons"
+
+  page1: |
+    §9Vương Quốc Băng Vĩnh Cửu
+    §7Bạn đã băng qua cổng phát sáng và đến
+    một vương quốc của mùa đông vĩnh cửu.
+    
+    §1Bạn có thể xây dựng căn cứ, khai thác và khám phá,
+    §4nhưng hãy nhớ kẻ thù mạnh hơn§7.
+  
+
+  page2: |
+    §9Nguy hiểm của băng
+    
+    §7Trong Vương Quốc Băng Vĩnh Cửu, hầu hết mọi kẻ thù đều có
+    các biến thể bị đóng băng.
+    
+    §4Hãy tiếp tục di chuyển và luôn mang theo
+    áo giáp và thức ăn tốt.
+
+  page3: |
+    §9Glacialis, Trái Tim Mùa Đông
+    
+    §7Boss này là lý do chiều không gian này bị
+    mắc kẹt trong mùa đông vĩnh cửu.
+    §4Glacialis xuất hiện vào ban đêm trong Vương Quốc Băng Vĩnh Cửu,
+    mỗi §628 ngày§7.
+    Chiến lợi phẩm của hắn đặc biệt cho áo giáp Băng Vĩnh Cửu.
+
+  page4: |
+    §6Mũ Băng Vĩnh Cửu
+    §7Công thức:
+    §2[S] [S] [S]
+    §2[S] [C] [S]
+    §2[ ] [H] [ ]
+    
+    §1S = Mảnh Băng Vĩnh Cửu
+    §1C = Lõi Glacialis
+    §1H = Mũ Kim Cương
+    
+    §7Mũ Băng Vĩnh Cửu là mảnh đầu tiên để
+    đối mặt với sức nóng địa ngục.
+
+  page5: |
+    §6Áo giáp Băng Vĩnh Cửu
+    §7Công thức:
+    §2[ ] [C] [ ]
+    §2[S] [A] [S]
+    §2[S] [ ] [S]
+    
+    §1S = Mảnh Băng Vĩnh Cửu
+    §1C = Lõi Glacialis
+    §1A = Áo giáp Kim Cương
+    
+    §7Áo giáp Băng Vĩnh Cửu củng cố cơ thể bạn.
+
+  page6: |
+    §6Giáp chân Băng Vĩnh Cửu
+    §7Công thức:
+    §2[S] [C] [S]
+    §2[S] [A] [S]
+    §2[S] [A] [S]
+    
+    §1S = Mảnh Băng Vĩnh Cửu
+    §1C = Lõi Glacialis
+    §1A = Giáp chân Kim Cương
+    
+    §7Chúng được thiết kế cho địa hình nóng bỏng.
+
+  page7: |
+    §6Giày Băng Vĩnh Cửu
+    §7Công thức:
+    §2[ ] [C] [ ]
+    §2[S] [A] [S]
+    §2[S] [ ] [S]
+    
+    §1S = Mảnh Băng Vĩnh Cửu
+    §1C = Lõi Glacialis
+    §1A = Giày Kim Cương
+    
+    §7Đôi giày này rất cần thiết để
+    chịu đựng sức nóng.
+
+  page8: |
+    §4Chiều không gian tiếp theo
+    §7Một thế giới bị lãng quên và §4bị Nether nuốt chửng§7 
+    dẫn đến một vương quốc của sức nóng địa ngục.
+    
+    §7Ở đó, kẻ thù thậm chí còn mạnh hơn, với
+    máu và sát thương được nhân lên.
+    
+    §7Với bộ Băng Vĩnh Cửu đầy đủ
+    bạn sẽ sẵn sàng cho ngọn lửa địa ngục.
+
+  page9: |
+    §4Vương Quốc Lửa Than
+    §7Xây dựng:
+    §2[W] [W] [W] [W]
+    §2[W] [ ] [ ]  [W]
+    §2[W] [ ] [ ]  [W]
+    §2[W] [ ] [ ]  [W]
+    §2[W] [W] [W] [W]
+    
+    §1W = Khối Mụn cóc Nether
+    §1Thắp sáng nó bằng đá lửa và thép
+
+  page10: |
+    §4Vương Quốc Lửa Than
+    Bạn chỉ có thể đến nơi này với áo giáp Băng Vĩnh Cửu.
+    Nếu bạn quyết định vào mà không có nó, bạn sẽ bị thiêu chết.
+
+guide_heat:
+  book_title: "Hướng dẫn Sinh tồn Lửa Than"
+  book_author: "Kho lưu trữ Aeternum"
+
+  page1: |
+    &0&lVƯƠNG QUỐC LỬA THAN
+    §cBạn đã băng qua Vương Quốc Lửa Than.
+
+    §6Ở đây không khí bốc cháy, đá chảy máu lửa
+    và không có gì muốn bạn sống sót.
+    §4Vương quốc này có thể là sự kết thúc hành trình của bạn…
+    §c…hoặc nơi bạn được tái sinh trong ngọn lửa.
+
+  page2: |
+    §6&lSINH TỒN CƠ BẢN
+
+    §8• §cSức nóng liên tục §6sẽ tiêu diệt bạn
+    nếu không có sự bảo vệ thích hợp.
+    §8• §6Đừng bao giờ đến mà không có §athức ăn§6, §akhối xây§6 và
+    §abình thuốc§6 sẵn sàng.
+    §8• §cĐừng đi một mình §6nếu bạn vẫn chưa biết
+    những bí mật của vương quốc này.
+
+  page3: |
+    §3&lÁO GIÁP RÈN TỪ MÙA ĐÔNG
+
+    §6Chỉ bộ §1Băng Vĩnh Cửu §6đầy đủ mới có thể chịu được
+    khí hậu khắc nghiệt.
+    §cNếu không có bộ áo giáp§6, lửa và dung nham
+    sẽ làm bạn tan chảy không thương tiếc.
+    §1Với nó§6, bạn có thể đi xuyên qua ngọn lửa
+    như thể chúng là đá cứng.
+
+  page4: |
+    §4&lSINH VẬT CỦA VƯƠNG QUỐC
+
+    §8• §6Quái vật ở đây mạnh hơn xấp xỉ
+    §c4 lần.
+    §8• §6Chúng có §cnhiều máu hơn§6, §cnhiều sát thương hơn §6và hầu hết
+    tất cả đều gây §csát thương lửa§6.
+    §8• §6Có các biến thể lửa.
+    §cnếu bạn đánh giá thấp chúng, bạn sẽ chết.
+
+  page5: |
+    §6&lCHIẾN LỢI PHẨM VÀ RỦI RO
+
+    §8• §6Tàn tích và tháp ẩn chứa trang bị với
+    phù phép cao hơn mức bình thường.
+    §8• §6Đây là chiến lợi phẩm tốt nhất ở §5Aeternum§6
+    §aNếu bạn đã đi xa đến mức này, bạn đã chứng minh lòng dũng cảm của mình.
+    §2Bây giờ hãy chứng minh bạn có khả năng
+    trở về an toàn.
+
+items:
+  food:
+    grows_in: "Phát triển vào: {seasons}"
+
+    winter_bread:
+      name: "&bBánh mì Mùa Đông"
+      lore_1: "&7Một ổ bánh mì ấm áp được nướng cho mùa đông khắc nghiệt."
+      lore_2: "&7Cải thiện nhẹ khả năng chống lạnh của bạn."
+
+    everfrost_ice_cream:
+      name: "&bKem Băng Vĩnh Cửu"
+      lore_1: "&7Một món ngọt mang đến từ Vương Quốc Băng Giá."
+      lore_2: "&7Hồi phục một chút và giúp chịu đựng bão tuyết."
+
+    tomato:
+      name: "&cCà chua"
+      lore_1: "&7Một quả cà chua tươi, mọng nước."
+      lore_2: "&7Tuyệt vời cho salad và bánh sandwich."
+
+    onion:
+      name: "&eHành tây"
+      lore_1: "&7Một củ hành tây có mùi mạnh."
+      lore_2: "&7Hoàn hảo cho món hầm và bánh mì."
+
+    rice:
+      name: "&fGạo"
+      lore_1: "&7Những hạt gạo nhỏ."
+      lore_2: "&7Một nguyên liệu chính cho bữa ăn thịnh soạn."
+
+    tomato_salad:
+      name: "&aSalad Cà chua"
+      lore_1: "&7Một món salad nhẹ, sảng khoái."
+      lore_2: "&7Phục hồi một chút máu và cơn đói."
+
+    vegetable_bread:
+      name: "&6Bánh mì Rau củ"
+      lore_1: "&7Bánh mì nhồi rau theo mùa."
+      lore_2: "&7Rất no và mang lại một buff nhỏ."
+
+    meat_sandwich:
+      name: "&6Bánh sandwich Thịt"
+      lore_1: "&7Bánh mì, thịt, cà chua và hành tây."
+      lore_2: "&7Một bữa ăn chắc chắn cho các nhà thám hiểm."
+
+    beef_rice_stew:
+      name: "&6Món hầm Thịt bò & Gạo"
+      lore_1: "&7Một món hầm thịnh soạn với thịt bò và gạo."
+      lore_2: "&7Phục hồi cơn đói rất nhiều và cấp các buff nhỏ."
+
+    coffee:
+      name: "&6Cà phê"
+      lore_1: "&7Nóng, đắng và tràn đầy năng lượng."
+      lore_2: "&7Làm ấm bạn và làm sắc nét các giác quan."
+
+    herbal_tea:
+      name: "&aTrà Thảo dược"
+      lore_1: "&7Nước sắc làm dịu từ thảo mộc rừng."
+      lore_2: "&7Nhẹ nhàng hồi phục máu và giảm lạnh."
+
+    energy_drink:
+      name: "&dNước tăng lực"
+      lore_1: "&7Ngọt, sủi bọt và nhiều đường."
+      lore_2: "&7Mang lại một sự bùng nổ tốc độ và sự tập trung nhanh chóng."
+
+    hot_chocolate:
+      name: "&cSô cô la Nóng"
+      lore_1: "&7Tách ca cao và sữa ấm."
+      lore_2: "&7Hoàn hảo để chịu đựng những đêm đông lạnh giá."
+
+    season_clock:
+      name: "&6Đồng hồ Mùa"
+      lore_1: "&7Nhấp chuột phải để xem lịch"
+      lore_2: "&7sự kiện và thời tiết sắp tới"
+
+clock:
+  use:
+    header: "&6[Đồng hồ Mùa]"
+    date: "&7Ngày &e{day}&7/&e{max} &7— &a{season} &7(Năm {year})"
+
+    active_event: "&7Sự kiện đang hoạt động: &d{event} &7(còn {days} ngày)"
+    no_active_event: "&7Sự kiện đang hoạt động: &fKhông có"
+
+    next_events:
+      blocked_by_active: "&7Có thể xảy ra vào ngày mai: &8(đã có sự kiện đang hoạt động)"
+      none: "&7Có thể xảy ra vào ngày mai: &fKhông có"
+      single: "&7Ngày mai: &b{event}"
+
+    weather_line: "&7Thời tiết: {state} &7— thay đổi sau ~{minutes}m"
+
+  weather:
+    raining: "&9Mưa"
+    clear: "&fTrong lành"
+
+
+guide_food:
+  title: "&6Sách dạy nấu ăn Aeternum"
+  author: "&aĐầu bếp Lang thang"
+
+  page1: |
+    &0&lSách dạy nấu ăn Aeternum
+
+    &0Cuốn sách nhỏ này tập hợp
+    &0một số công thức yêu thích
+    &0của nông dân và khách du lịch.
+
+    &0Cây trồng theo mùa mới:
+
+    &cCà chua&0 – mọng nước và
+    &0tươi mới, tuyệt vời cho salad
+    &0và bánh sandwich.
+
+    &6Hành tây&0 – mùi mạnh
+    &0nhưng hoàn hảo cho món hầm
+    &0và bánh mì.
+
+    &6Gạo&0 – trồng trong nước.
+    &0Trồng hạt giống trong
+    &0ao cạn để thu được
+    &0thân lúa.
+
+  page2: |
+    &0&lCác món ăn cơ bản
+
+    &6Salad Cà chua&0
+    &7Bát + 2x Cà chua
+    &0Một món salad nhẹ
+    &0phục hồi một chút cơn đói
+    &0và mang lại một chút
+    &0hồi phục.
+
+    &6Bánh mì Rau củ&0
+    &7Bánh mì + Cà chua + Hành tây
+    &0Một ổ bánh mì đầy đặn nhồi
+    &0rau theo mùa.
+    &0Cấp một lá chắn nhỏ
+    &0máu hấp thụ.
+
+    &6Bánh sandwich Thịt&0
+    &7Bánh mì + thịt nấu chín +
+    &7Cà chua + Hành tây
+    &0Một chiếc bánh sandwich thịnh soạn
+    &0mang lại kháng cự và
+    &0thêm sức mạnh.
+
+  page3: |
+    &0&lCơm và món hầm
+
+    &6Trồng lúa&0
+    &0Hạt lúa có thể được trồng
+    &0trên mặt nước tĩnh. Chúng mọc
+    &0thành thân cao, giống như rong biển.
+
+    &0Phá vỡ thân cây sẽ tạo ra
+    &0thêm hạt lúa để trồng
+    &0lại.
+
+    &6Món hầm Thịt bò Gạo&0
+    &7Bát + thịt nấu chín +
+    &7Gạo
+    &0Một món hầm ấm áp lấp đầy
+    &0rất nhiều cơn đói, phục hồi
+    &0máu theo thời gian và
+    &0tăng nhẹ độ bão hòa.
+
+  page4: |
+    &0&lĐồ uống
+
+    &6Cà phê&0
+    &7Chai + Ca cao + Đường
+    &0Nóng và đắng. Loại bỏ
+    &0đóng băng, cấp tốc độ
+    &0và tầm nhìn ban đêm trong
+    &0một thời gian.
+
+    &6Trà Thảo dược&0
+    &7Chai + hoa rừng
+    &0Nước sắc làm dịu
+    &0hồi phục nhẹ nhàng, giúp
+    &0chống lại cái lạnh và
+    &0tăng một chút máu.
+
+    &6Nước tăng lực&0
+    &7Chai + Đường + Đá đỏ
+    &7+ Bột đá phát sáng
+    &0Rất ngọt và sủi bọt.
+    &0Cấp tốc độ và
+    &0hối hả mạnh mẽ trong thời gian ngắn.
+
+    &6Sô cô la Nóng&0
+    &7Chai + Ca cao + Sữa
+    &0Hoàn hảo cho đêm đông.
+    &0Làm ấm bạn,
+    &0chặn đóng băng và cấp
+    &0kháng cự và hấp thụ.
+
+  page5: |
+    &6Đất màu mỡ&0
+    Công thức phân bón giàu dinh dưỡng:
+
+      §2[T] [R] [R]
+      §2[W] [W] [B]
+      §2[B] [B] [B]
+
+    T = Đất
+    R = Thịt thối rữa
+    W = Lúa mì
+    B = Bột xương
+
+    &7Người ta kể rằng có một đầu bếp lang thang đã khám phá ra cách làm cây trồng của mình lớn nhanh hơn nhiều nhờ một loại phân bón đặc biệt.&0
+    &cHãy làm theo công thức này để chuẩn bị phân ủ thô:&0
+    &7nếu bạn để nó trong nước hai ngày,
+    nó sẽ biến thành lớp đất màu mỡ tuyệt vời cho việc trồng trọt.&0    
+
+crop:
+  lore:
+    grows_in: "Phát triển vào: {seasons}"
+    any_season: "&7Phát triển vào bất kỳ mùa nào"
+    greenhouse_light: "&8Nhà kính dưới lòng đất: ánh sáng {light}+"
+
+farming:
+  compost:
+    raw_name: "&aPhân ủ thô"
+    raw_lore_1: "&7Hỗn hợp ẩm của đất và xác hữu cơ."
+    raw_lore_2: "&7Để gần nước trong 2 ngày."
+    ready_name: "&2Đất màu mỡ giàu dinh dưỡng"
+    ready_lore_1: "&7Hoa màu trồng trên đây mọc &ax2 &7nhanh hơn."
+    ready_lore_2: "&7Dẫm lên sẽ không làm hỏng đất canh tác."
+    ready_message: "&aPhân ủ của bạn đã biến thành đất màu mỡ giàu dinh dưỡng."
+
+
+villager:
+  lazy_tag: "&7[&6Lười biếng&7]"
+
+
+greenhouse_debug_protected: Cây trồng này được bảo vệ bởi nhà kính (%season%).
+greenhouse_debug_not_protected: Cây trồng này KHÔNG được bảo vệ bởi nhà kính (%season%).
+greenhouse_debug_unclaimed: Không ai nhận khối này.
+
+temperature:
+  actionbar:
+    celsius: "&e[ {temp} °C ]"
+    fahrenheit: "&e[ {temp} °F ]"

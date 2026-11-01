@@ -1,0 +1,1014 @@
+season:
+  SPRING: 春季
+  SUMMER: 夏季
+  AUTUMN: 秋季
+  WINTER: 冬季
+hud:
+  title: "第 {day} 天，第 {year} 年 — {season}"
+  title_dim: "第 {day} 天，第 {year} 年 — {season} — {realm}"
+
+realm:
+  frost_overworld: "冰封領域"
+  heat_overworld: "餘燼領域"
+
+  frost_title: "&b{name}"
+  frost_subtitle: "&7僅包含寒冷生物群系"
+
+  heat_title: "&c{name}"
+  heat_subtitle: "&7在燃燒之地求生"
+
+  overworld_title: "&a主世界"
+  returned_from: "&7你已離開 &f{name}"
+
+log:
+  frost_world_loaded: "&a[世界] 冰雪世界 '{name}' 已加載。"
+  frost_world_created: "&a[世界] 冰雪世界 '{name}' 創建並加載成功。"
+  frost_world_failed: "&c[世界] 創建冰雪世界 '{name}' 失敗。"
+
+  heat_world_creating: "&6[世界] 正在創建炎熱世界 '{name}'..."
+  heat_world_loaded: "&a[世界] 炎熱世界 '{name}' 已加載。"
+  heat_world_created: "&a[世界] 炎熱世界 '{name}' 創建並加載完成。"
+  heat_world_failed: "&c[世界] 無法創建炎熱世界 '{name}'。"
+
+cmd:
+  event:
+    no_permission: "&c你沒有權限使用此指令。"
+    usage: "&e用法: {cmd} <list|info|start|stop> [id] [天數]"
+    list:
+      header: "&6已註冊事件清單:"
+      item: "&7- &e{id}&7 (&f{name}&7)"
+    started: "&a已強制啟動事件 &e{id}&a。"
+    stopped: "&c當前事件已停止。"
+    no_such_event: "&c不存在 ID 為 &e{id}&c 的事件。"
+    no_active: "&7目前沒有啟動中的事件。"
+    info: "&6當前啟動事件: &e{id}&7 (&f{name}&7), 剩餘 &e{days}&7 天。"
+
+  season:
+    no_permission: "&c你沒有權限使用此指令。"
+
+    info:
+      line: "&b季節: {season}&7 | 第 {day} 天/{max}&3 | 第 {year} 年"
+
+    set:
+      usage: "&e用法: /{label} set <SPRING|SUMMER|AUTUMN|WINTER>"
+      invalid: "&c無效的季節。"
+      success: "&6已將季節設定為 {season}。"
+
+
+    skipday:
+      done: "&6已跳過 1 天。"
+
+    day:
+      usage: "&e用法: /{label} day <1..{max}>"
+      invalid_number: "&c無效的數字。"
+      success: "&6已將日期設定為第 {day} 天 (當前季節)。"
+
+    year:
+      usage: "&e用法: /{label} year <數字>"
+      invalid_number: "&c無效的年份數字。"
+      success: "&a已將日曆年份設定為 &f{year}&a。"
+
+    reload:
+      done: "&a配置已重新載入。"
+
+    hud:
+      player_only: "&c此指令只能由玩家使用。"
+      usage: "&e用法: /{label} hud <fixed|variable|off>"
+      current: "&7當前模式: &b{mode}"
+      invalid: "&c無效模式。使用: &efixed&c, &evariable&c 或 &eoff&c。"
+      mode:
+        fixed: "固定"
+        variable: "可變"
+        off: "關閉"
+      set:
+        fixed:    "&a已啟用靜態 HUD。"
+        variable: "&a已啟用可變 HUD。"
+        "off": "&c已禁用 HUD。"
+
+    help: "&e用法: /{label} <info|set|skipday|day|reload|hud>"
+
+event:
+  blood_moon:
+    title: "§4☾ 血月之夜 ☾"
+    subtitle: "§c怪物變強，你無法入睡..."
+    end: "&6血月之夜已結束..."
+    no_sleep: "&4血月之夜期間你無法入睡..."
+    mob_name: "永夜惡靈"
+
+  heat_wave:
+    title: "§6☀ 熱浪來襲 ☀"
+    subtitle: "§e陽光更強烈，尋找陰影或保護。"
+    end: "&a熱浪已結束，氣候感覺更宜人。"
+
+  winter_freeze:
+    title: "§b❄ 嚴冬冰封 ❄"
+    subtitle: "§f如果你不保暖，冬天會變得致命。"
+    end: "&b嚴冬已過，空氣感覺不那麼刺骨了。"
+    freezing: "&3你凍得發抖... &b你需要保暖或熱源。"
+    cold_but_safe: "&7你感覺到寒冷，但你的保護使你安全。"
+
+  magic_storm:
+    title: "&5⚡ 魔法風暴 ⚡"
+    subtitle: "&d天空裂開，魔法隨著雨水落下。"
+    end: "&5魔法風暴消散，留下了奇怪的寂靜。"
+    mob_name: "&b風暴生物"
+
+  festival:
+    end: "&6節日結束了，但回憶依然存在。"
+    actionbar: "&6節日市場&7 • &e{season}&8 • &7庫存每日更新"
+    trader_name: "&e節日商人"
+    item:
+      spring: "&a春天花盆"
+      summer: "&e夏日蜂蜜"
+      autumn: "&6南瓜派"
+      winter: "&b節日雪球"
+      generic: "&f節日紀念品"
+    spring:
+      title: "§a✿ 春季節日 ✿"
+      subtitle: "&f鮮花、音樂和新的希望種子。尋找村莊"
+    summer:
+      title: "§e☀ 夏季節日 ☀"
+      subtitle: "&f美食、歡笑和溫暖的夜晚。尋找村莊"
+    autumn:
+      title: "§6🍂 秋季節日 🍂"
+      subtitle: "&f豐收、篝火和爐邊故事。尋找村莊。"
+    winter:
+      title: "§b❄ 冬季節日 ❄"
+      subtitle: "&f燈光、白雪和家中的溫暖。尋找村莊。"
+
+  fishing:
+    title: "§b🎣 釣魚節 🎣"
+    subtitle: "&f河流和海洋今天隱藏著寶藏。"
+    end: "&b釣魚節已結束。"
+
+  mining:
+    title: "§6⛏ 礦物祝福 ⛏"
+    subtitle: "&f礦脈似乎更慷慨了..."
+    end: "&6礦物祝福消退了。"
+
+  tornado:
+    title: "§7🌪 龍捲風 🌪"
+    subtitle: "&f狂風怒吼，尋找庇護所。"
+    end: "&7龍捲風緩慢消散。"
+
+  restful_sleep:
+    title: "§d😴 恢復性睡眠 😴"
+    subtitle: "&f睡個好覺會給你額外的力量。"
+    end: "&d你的睡眠恢復正常。"
+    sleeping: "&d你舒適地進入了深度睡眠..."
+    buffed: "&d你醒來時感覺精神煥發，充滿活力。"
+    lost: "&c傷害使你筋疲力盡，失去了恢復效果。"
+
+  halloween:
+    title: "&6亡者之日"
+    subtitle: "&7怪物變得更強..."
+  christmas:
+    title: "&b&l永恆聖誕"
+    subtitle: "&7你感受到了空氣中的聖誕氣氛。"
+    gift_found: "&a你感覺到一個禮物袋出現在你的物品欄中..."
+
+    gift_bundle_name: "&b聖誕禮物袋"
+    gift_bundle_lore_1: "&7一個裝滿 &f聖誕驚喜&7 的神秘袋子。"
+    gift_bundle_lore_2: "&7把它作為紀念品保存... 或者打開並享受戰利品。"
+
+  holiday:
+    end: "&7節日已結束。"
+
+  new_year:
+    name: "§e新年"
+    title: "§e✨ 永恆新年 ✨"
+    subtitle: "&7日曆標誌著一個新的開始。"
+    gift_found: "&a你收到了慶祝新年的煙花！"
+    end: "&7新年結束了，但冒險仍在繼續。"
+
+  nether_fishing_derby:
+    title: "§c地獄釣魚大賽"
+    subtitle: "§7在 §c岩漿§7 中釣魚獲取特殊戰利品。"
+    end: "§7§c地獄釣魚大賽§7 已結束。"
+    bite_actionbar: "§6✦ §c地獄魚上鉤! §7(§f右鍵點擊§7)"
+    no_bite_actionbar: "§7什麼都沒咬鉤… §8再試一次。"
+    no_loot_actionbar: "§7你什麼都沒釣到… §8(運氣太差了)"
+  piglin_market:
+    title: "§6豬布林市場"
+    subtitle: "§7以物易物暫時得到增強。"
+    end: "§7§6豬布林市場§7 關閉了。"
+  quartz_rush:
+    title: "§f石英熱潮"
+    subtitle: "§7開採時獲得更多 §f石英§7。"
+    end: "§7§f石英熱潮§7 結束了。"
+  fungus_bloom:
+    title: "§d真菌盛開"
+    subtitle: "§7緋紅/詭異蕈類掉落更多。"
+    end: "§7§d真菌盛開§7 結束了。"
+  blaze_surge:
+    title: "§6烈焰人浪潮"
+    subtitle: "§7更多烈焰棒和更活躍的烈焰人。"
+    end: "§7§6烈焰人浪潮§7 結束了。"
+  magma_tides:
+    title: "§c岩漿潮汐"
+    subtitle: "§7更多岩漿膏… 小心。"
+    end: "§7§c岩漿潮汐§7 消退了。"
+  ghast_alert:
+    title: "§f惡魂警報"
+    subtitle: "§7更多惡魂和額外獎勵。"
+    end: "§7§f惡魂警報§7 結束了。"
+    ghast_name: "§f潛伏惡魂"
+  wither_loose:
+    title: "§4最高警戒!"
+    subtitle: "§7§l凋零逃脫§7 在地獄。"
+    survive: "§c活下來!!"
+    end: "§7§4凋零§7 警報結束了。"
+    wither_name: "§4§l逃脫的凋零"
+    countdown_60: "§c凋零可能在 §f{seconds}§c 秒內出現…"
+    countdown_40: "§c還剩 §f{seconds}§c 秒…"
+    countdown_20: "§c還剩 §f{seconds}§c 秒…"
+    countdown_generic: "§c還剩 §f{seconds}§c 秒…"
+    idle_killed: "§7§4凋零§7 因不活躍而消失了…"
+  wither_skeleton_swarm:
+    title: "§8聚集"
+    subtitle: "§7更強的凋零骷髏和更好的戰利品。"
+    end: "§7§8聚集§7 結束了。"
+    mob_name: "§8凋零守衛"
+
+gguide:
+  # Título general (se usa tanto en chat como en el libro)
+  title: "Aeternum 季節指南"
+
+  # Título y autor del libro escrito
+  book_title: "Aeternum 季節指南"
+  book_author: "Aeternum"
+  book_given: "季節指南已授予您。"
+
+  # Línea con la estación actual
+  current: "當前季節: {season}"
+
+  # Primer párrafo del libro
+  intro: "本指南總結了每個季節的天氣、事件、作物和動物遷徙情況。"
+
+  section:
+    events: "§0季節性事件"
+    crops: "§0按季節劃分的作物"
+    migration: "§0動物遷徙"
+    stables: "馬廄和穀倉"
+    weather: "§0典型天氣"
+    crafting: "特殊製作"
+    dimensions: "維度"
+
+  crafting: # <- Y AQUÍ DENTRO tus recetas
+    advanced_composter: |
+      §6高級堆肥箱§7
+      §7配方:
+      §2[L] [H] [L]
+      §2[P] [C] [P]
+      §2[L] [H] [L]
+      §1L = 任意樹葉
+      §1H = 漏斗
+      §1P = 南瓜
+      §1C = 堆肥箱
+
+    harvest_hoe: |
+      §6豐收鋤§7
+      §7配方:
+      §2[W] [W] [W]
+      §2[E] [H] [E]
+      §2[E] [E] [E]
+      §1W = 小麥
+      §1E = 綠寶石
+      §1H = 任意鋤頭
+
+    farmer_boots: |
+      §6農民之靴§7
+      §7配方:
+      §2[W] [B] [W]
+      §2[W] [S] [W]
+      §2[W] [W] [W]
+      §1W = 小麥
+      §1B = 靴子
+      §1S = 鏟子 (石頭/鑽石)
+
+    lunar_lantern: |
+      §6月亮燈籠§7
+      §7配方:
+      §2[R] [L] [R]
+      §2[R] [E] [R]
+      §2[R] [L] [R]
+      §1R = 紅石
+      §1L = 燈籠
+      §1E = 末影珍珠
+
+    solar_torch: |
+      §6太陽火把§7
+      §7配方:
+      §2[B] [B] [B]
+      §2[ ] [T] [ ]
+      §2[ ] [F] [ ]
+      §1B = 烈焰粉
+      §1T = 普通火把
+      §1F = 向日葵
+
+    spring_bell: |
+      §d春天之鐘§7
+      §7配方:
+      §2[A] [P] [A]
+      §2[P] [B] [P]
+      §2[A] [P] [A]
+      §1A = 紫水晶碎片
+      §1P = 花瓣 / 粉色花
+      §1B = 鐘
+
+    spring_boots: |
+      §d春天步伐之靴§7
+      §7配方:
+      §2[P] [P] [P]
+      §2[P] [B] [P]
+      §2[P] [P] [P]
+      §1P = 花瓣 / 粉色花
+      §1B = 靴子
+
+    snow_boots: |
+      §6抗雪之靴§7
+      §7配方:
+      §2[ ] [B] [ ]
+      §2[ ] [S] [ ]
+      §2[ ] [S] [ ]
+      §1B = 靴子
+      §1S = 細雪桶
+
+    woodcutter_axe: |
+      §6自然伐木斧§7
+      §7配方:
+      §2[L] [A] [L]
+      §2[O] [ ] [O]
+      §2[L] [ ] [L]
+      §1L = 任意樹葉
+      §1O = 任意原木
+      §1A = 任意斧頭
+
+    frost_core: |
+      §6寒冬核心§7
+      §7配方:
+      §2[S] [I] [S]
+      §2[I] [B] [I]
+      §2[S] [I] [S]
+      §1S = 雪塊
+      §1I = 冰塊
+      §1B = 海之心
+      §7右鍵點擊雪傀儡進行升級。
+
+    guardian_core: |
+      §6守衛者核心§7
+      §7配方:
+      §2[I] [B] [I]
+      §2[B] [G] [B]
+      §2[I] [B] [I]
+      §1I = 鐵塊
+      §1B = 鐵錠
+      §1G = 紫水晶碎片
+      §7右鍵點擊鐵傀儡。
+
+    fish_trap: |
+      §6捕魚陷阱§7
+      §7配方:
+      §2[S] [ ] [S]
+      §2[S] [B] [S]
+      §2[S] [ ] [S]
+      §1S = 細繩
+      §1B = 木桶
+
+    creature_generator: |
+      §6生物陷阱§7
+      §7配方:
+      §2[S] [I] [S]
+      §2[I] [T] [I]
+      §2[S] [I] [S]
+      §1S = 細繩
+      §1I = 鐵錠
+      §1T = 木棍
+
+    Clock: |
+      §6季節時鐘§7
+      §7配方:
+      §2[ ] [B] [ ]
+      §2[ ] [R] [ ]
+      §2[ ] [ ] [ ]
+      §1B = 指南針
+      §1R = 時鐘
+  
+
+  dimensions:
+    snowbound:
+      title: "冰封世界"
+      build: "傳送門建造:"
+      block: "螢石"
+      activate: "向傳送門投擲雪球即可啟動。"
+
+      warning_title: "警告: 極端天氣"
+      warning_1: "在暴風雪期間，您的視野幾乎完全受限。"
+      warning_2: "只有光源或躲藏在洞穴內才能看清。"
+      warning_3: "寒冷加劇，請做好防護。"
+
+    emberbound:
+      title: "通往地獄世界的傳送門"
+      build_glitched: "建造..."
+      block: "方塊 SDFSD"
+      glitch_warning: "看起來這個世界的信息已損壞..."
+
+  events:
+    blood_moon: "§c血月§7: 怪物更強，您無法入睡。"
+    heat_wave: "§6熱浪§7: 如果沒有陰涼，太陽會讓人筋疲力盡。"
+    winter_freeze: "§9寒潮§7: 沒有合適的衣物，您會迅速凍僵。"
+    magic_storm: "§9魔法風暴§7: 奇怪的天氣和魔法戰利品。"
+    festival: "§6節日§7: 村民、交易和裝飾。"
+    fishing: "§9釣魚節§7: 釣魚時有額外戰利品。"
+    mining: "§6採礦祝福§7: 更多礦物和更好的掉落。"
+    tornado: "§7龍捲風§7: 風會拖曳並損壞莊稼。"
+    restful_sleep: "§9安穩睡眠§7: 睡覺會暫時獲得額外的生命值。"
+
+  crops:
+    SPRING: "小麥、胡蘿蔔、馬鈴薯、甜菜根和南瓜繁茂生長; 是一個非常好的普遍種植季節。"
+    SUMMER: "西瓜、甘蔗、仙人掌和耐熱作物生長得最好。"
+    AUTUMN: "南瓜、蘑菇和根莖類作物; 非常適合大量收割和儲存。"
+    WINTER: "戶外幾乎沒有作物生長; 溫室可以繼續種植。"
+
+  migration:
+    SPRING: "開花草地和森林中有更多的綿羊、蜜蜂和兔子。"
+    SUMMER: "溫暖的海洋中有更多的熱帶魚、海豚、海龜和美西螈。"
+    AUTUMN: "狐狸、狼和山羊集中在針葉林和山區。"
+    WINTER: "狼和北極熊主宰寒冷生物群系; 許多溫帶動物消失。"
+
+  stables:
+    winter: "不耐寒的動物如果沒有馬廄或庇護所可能會死亡。"
+    breeding: "如果不在馬廄中，繁殖效果會降低（或無效）。"
+    bonus_drops: "在馬廄中飼養或受保護的動物會掉落更多戰利品（肉、羽毛、羊毛、皮革）。"
+
+  weather:
+    SPRING: "小雨、溫和的天氣和更長的白天有利於作物生長。"
+    SUMMER: "強烈的陽光、酷熱和一些劇烈的風暴。"
+    AUTUMN: "涼爽的風、多雲的天空和突然的溫度變化。"
+    WINTER: "經常下雪、極度寒冷以及如果不保護自己就有凍僵的風險。"
+
+  footer: " 使用 /seasonguide。"
+
+item:
+  snow_step_boots:
+    name: "&b防雪靴"
+    lore1: "&7讓你可以在 &f粉雪&7 上行走"
+    lore2: "&7而不會沉下去或被困住。"
+
+  labrador_boots:
+    name: "&a農夫之靴"
+    lore1: "&7跳躍時不會踩壞 &6耕地&7。"
+    lore2: "&7在 &6 耕地 &7上移動速度更快。"
+    lore3: "&7收穫時有機會獲得 &a額外種子&7。"
+
+  spring_stride_boots:
+    name: "&d春天跨步靴"
+    lore1: "&7更輕盈、更 &d繁盛 &7的跳躍。"
+    lore2: "&7落地時，你的腳步會綻放出 &f花朵&7。"
+    lore3: "&7非常適合在春天探索草原。"
+
+  solar_torch:
+    name: "&e太陽火把"
+    lore1: "&7一把被 &6太陽 &7祝福的火把。"
+    lore2: "&7在夏天，它能加速作物生長。"
+    lore3: "&7在夜晚，它會削弱附近的怪物。"
+
+  advanced_composter:
+    name: "&6高級堆肥桶"
+    lore1: "&7處理堆肥的效率 &a快兩倍&7。"
+    lore2: "&7有機會提供 &f額外骨粉&7。"
+    lore3: "&7在 &6 秋天 &7效果更好。"
+
+  spring_bell:
+    name: "&d春天之鐘"
+    lore1: "&7敲響時，會使附近的作物開花結果。"
+    lore2: "&7安撫和祝福附近的 &e蜜蜂&7。"
+    lore3: "&7它的魔法在 &a 春天 &7最強。"
+
+  lunar_lantern:
+    name: "&9月光燈籠"
+    lore1: "&7在夜晚閃爍著 &9藍色 &7的光芒。"
+    lore2: "&7增加 &3蘑菇 &7和黑暗植物的生長。"
+    lore3: "&7為旅行者增添柔和的 &b 夜間光芒&7。"
+
+  harvest_hoe:
+    name: "&6豐收鋤"
+    lore1: "&7僅收穫 &e區域內 &7成熟的作物。"
+    lore2: "&7如果物品欄中有 &f種子&7，會自動重新種植。"
+    lore3: "&7每次收穫作物都會消耗耐久度。"
+
+  natural_tree_axe:
+    name: "&2自然伐木斧"
+    lore1: "&7一擊砍倒 &a整棵樹木&7。"
+    lore2: "&7只影響相連的原木，不會摧毀整個森林。"
+    lore3: "&7每次砍伐原木都會消耗耐久度。"
+
+  frost_core:
+    name: "&b寒冬核心"
+    lore1: "&7強化雪傀儡。"
+    lore2: "&7它的力量在冬天會更強。"
+    lore3: "&e右鍵點擊雪傀儡。"
+    lore4: "&a冬天:&7 更多生命值和更強的雪球。"
+    lore5: "&7不會在地面留下雪並不會死於天氣。"
+
+  guardian_core:
+    name: "&6守護者核心"
+    lore1: "&7灌注鐵傀儡,"
+    lore2: "&7其力量與季節相關。"
+    lore3: "&e右鍵點擊鐵傀儡。"
+    lore4: "&a冬天:&7 大幅增加生命值和傷害。"
+    lore5: "&e夏天:&7 免疫火焰並會燃燒敵人。"
+
+  everfrost_shard:
+    name: "&b永恆寒冰碎片"
+    lore_line1: "&7一塊來自 &b冰川之核&7 的力量。"
+    lore_line2: "&7用於鍛造抵抗酷熱的盔甲。"
+
+  glacialis_core:
+    name: "&3冰川之核"
+    lore_line1: "&7帶著一種反自然的寒冷脈動。"
+    lore_line2: "&7是鍛造抗熱盔甲的關鍵。"
+
+  heat_armor:
+    helmet:
+      name: "&b永恆寒霜頭盔"
+      lore_line1: "&7由 &b冰川之核 &7的力量鍛造。"
+      lore_line2: "&7有助於抵抗酷熱。"
+    chest:
+      name: "&b永恆寒霜胸甲"
+      lore_line1: "&7永恆的寒冷保護著你的心臟。"
+      lore_line2: "&7有助於抵抗酷熱。"
+    legs:
+      name: "&b永恆寒霜護腿"
+      lore_line1: "&7讓你能在餘燼中行走。"
+      lore_line2: "&7有助於抵抗酷熱。"
+    boots:
+      name: "&b永恆寒霜靴子"
+      lore_line1: "&7能在岩漿上留下腳印。"
+      lore_line2: "&7有助於抵抗酷熱。"
+
+golem:
+  frostbound:
+    name: "&b冰封傀儡"
+
+  guardian:
+    name: "&6守護者傀儡"
+
+  upgrade:
+    too_many: "&c此區塊已達到升級傀儡的最大數量 (&e{max}&c)。"
+    frost_ok: "&b你的雪傀儡現在是 &f冰封傀儡&b 了。"
+    guardian_ok: "&6你的鐵傀儡現在是 &f守護者傀儡&6 了。"
+    wrong_target: "&7你只能在適當的傀儡上使用此核心。"
+
+boss:
+  glacialis:
+    name: "&b冰川之核, 寒冬之心"
+    spawn: "&b[冰川之核]&7 遠古的寒冷在 &f冰封領域 &7中覺醒..."
+    defeated: "&b[冰川之核]&7 已被擊敗。 &7它的冰冷碎片散落在雪中。"
+
+frost_guide:
+  book_title: "冰封領域指南"
+  book_author: "永恆季節製圖師"
+
+  page1: |
+    §9冰封領域
+    §7你穿過螢石傳送門，來到一個
+    永恆寒冬的世界。
+
+    §1你可以建立你的基地、採礦和探索，
+    §4但請記住敵人會更強大§7。
+
+
+  page2: |
+    §9冰雪的危險
+    
+    §7在冰封領域，幾乎所有敵人都有
+    寒冷變種。
+
+    §4保持移動，隨時攜帶
+    好的盔甲和食物
+
+  page3: |
+    §9冰川之核, 寒冬之心
+    
+    §7這個頭目是導致這個維度
+    陷入永恆寒冬的原因。
+    §4冰川之核每 §628 天 §7晚上會在冰封領域出現。
+    它的戰利品對於製作寒冷盔甲很特別
+
+  page4: |
+    §6寒霜頭盔
+    §7配方:
+    §2[S] [S] [S]
+    §2[S] [C] [S]
+    §2[ ] [H] [ ]
+
+    §1S = 永恆寒冰碎片
+    §1C = 冰川之核
+    §1H = 鑽石頭盔
+
+    §7寒霜頭盔是第一件抵禦
+    酷熱的盔甲。
+
+  page5: |
+    §6寒霜胸甲
+    §7配方:
+    §2[ ] [C] [ ]
+    §2[S] [A] [S]
+    §2[S] [ ] [S]
+
+    §1S = 永恆寒冰碎片
+    §1C = 冰川之核
+    §1A = 鑽石胸甲
+
+    §7寒霜胸甲強化你的身體。
+
+  page6: |
+    §6寒霜護腿
+    §7配方:
+    §2[S] [C] [S]
+    §2[S] [A] [S]
+    §2[S] [A] [S]
+
+    §1S = 永恆寒冰碎片
+    §1C = 冰川之核
+    §1A = 鑽石護腿
+
+    §7它們適用於炎熱地形。
+
+  page7: |
+    §6寒霜靴子
+    §7配方:
+    §2[ ] [C] [ ]
+    §2[S] [A] [S]
+    §2[S] [ ] [S]
+
+    §1S = 永恆寒冰碎片
+    §1C = 冰川之核
+    §1A = 鑽石靴子
+
+    §7靴子是抵禦
+    炎熱所必需的。
+
+  page8: |
+    §4下一個維度
+    §7一個被遺忘的，被 §c下界吞噬§7 的世界，
+    通往一個酷熱的領域。
+
+    §7在那裡敵人會更強大，生命值和傷害都會成倍增加。
+
+    §7穿上整套盔甲
+    你將為地獄般的火焰做好準備。
+
+  page9: |
+    §4餘燼領域
+    §7建造:
+    §2[W] [W] [W] [W]
+    §2[W] [ ] [ ]  [W]
+    §2[W] [ ] [ ]  [W]
+    §2[W] [ ] [ ]  [W]
+    §2[W] [W] [W] [W]
+    
+    §1W = 下界疣塊
+    §1用打火石點燃它
+
+  page10: |
+    §4餘燼領域
+    只有穿著寒霜盔甲才能進入這個地方。
+    如果你沒有穿，你會被燒死。
+
+guide_heat:
+  book_title: "餘燼領域指南"
+  book_author: "永恆檔案"
+
+  page1: |
+    §4§l餘燼領域
+    §c你已經進入餘燼領域。
+
+    §6這裡的空氣灼熱，石頭流淌著火焰，
+    一切都不想讓你活著離開。
+    §4這個領域可能是你旅程的終點...
+    §c...或者你是浴火重生的戰士。
+
+  page2: |
+    §6§l基礎生存
+
+    §8• §c持續的高溫 §6會在沒有適當保護的情況下
+    §6消耗你。
+    §8• §6永遠不要沒有 §a食物§6、 §a方塊 §6和
+    §2 藥水 §6就來。
+    §8• §c不要單獨前來。
+
+  page3: |
+    §3§l寒霜盔甲
+
+    §6只有 §6整套盔甲 §6才能
+    抵抗極端天氣。
+
+    §c沒有盔甲§6，火焰和岩漿
+    會毫不留情地熔化你。
+    §4有了它§6，你就可以在火焰中行走，
+    就好像它們是普通的石頭一樣。
+
+  page4: |
+    §4§l領域生物
+
+    §8• §6這裡的怪物大約
+    §c強大 4 倍。
+    §8• §6它們有 §c更多生命值§6、 §c更多傷害 §6，幾乎所有
+    都會造成 §c火焰傷害§6。
+    §8• §6存在火焰變種
+    §c如果你低估了它們，你會死。
+
+  page5: |
+    §6§l戰利品與風險
+
+    §8• §6廢墟和高塔隱藏著附魔
+    遠超尋常的裝備。
+    §8• §6這是 §5永恆§6 中最好的戰利品
+    §a如果你已經到達這裡，你已經證明了你的勇氣。
+    §2現在證明你有能力
+    活著回來。
+
+items:
+  food:
+    grows_in: "生長季節: {seasons}"
+
+    winter_bread:
+      name: "&b冬日麵包"
+      lore_1: "&7為嚴冬烘烤的熱麵包。"
+      lore_2: "&7略微增加你的抗寒性。"
+
+    everfrost_ice_cream:
+      name: "&b永恆雪冰淇淋"
+      lore_1: "&7一種從冰封領域帶來的甜點。"
+      lore_2: "&7少量治療並有助於忍受寒冷的風暴。"
+
+    tomato:
+      name: "&c番茄"
+      lore_1: "&7新鮮多汁的番茄。"
+      lore_2: "&7非常適合沙拉和三明治。"
+
+    onion:
+      name: "&e洋蔥"
+      lore_1: "&7氣味濃烈的洋蔥。"
+      lore_2: "&7非常適合燉菜和麵包。"
+
+    rice:
+      name: "&f稻米"
+      lore_1: "&7小小的米粒。"
+      lore_2: "&7豐盛食物的基本成分。"
+
+    tomato_salad:
+      name: "&a番茄沙拉"
+      lore_1: "&7清淡爽口的沙拉。"
+      lore_2: "&7恢復少量生命值和飢餓值。"
+
+    vegetable_bread:
+      name: "&6蔬菜麵包"
+      lore_1: "&7塞滿時令蔬菜的麵包。"
+      lore_2: "&7非常飽腹，並給予少量加成。"
+
+    meat_sandwich:
+      name: "&6肉三明治"
+      lore_1: "&7麵包、熟肉、番茄和洋蔥。"
+      lore_2: "&7給冒險家的一頓豐盛餐點。"
+
+    beef_rice_stew:
+      name: "&6牛肉燉飯"
+      lore_1: "&7熱騰騰的肉和稻米燉菜。"
+      lore_2: "&7恢復大量飢餓值，並提供少量益處。"
+
+    coffee:
+      name: "&6咖啡"
+      lore_1: "&7熱的、苦澀的和令人興奮的。"
+      lore_2: "&7讓你暖和並提高你的感官。"
+
+    herbal_tea:
+      name: "&a草本茶"
+      lore_1: "&7森林草藥的舒緩浸劑。"
+      lore_2: "&7溫和地恢復健康並緩解寒冷。"
+
+    energy_drink:
+      name: "&d能量飲料"
+      lore_1: "&7甜的、碳酸的和充滿糖分的。"
+      lore_2: "&7快速提升速度和挖掘效率。"
+
+    hot_chocolate:
+      name: "&c熱巧克力"
+      lore_1: "&7一杯熱牛奶可可。"
+      lore_2: "&7非常適合忍受寒冷的冬夜。防凍，並給予抗性和吸收心。"
+
+    season_clock:
+      name: "&6季節時鐘"
+      lore_1: "&7右鍵點擊查看日曆"
+      lore_2: "&7事件和即將到來的天氣"
+
+clock:
+  use:
+    header: "&6[季節時鐘]"
+    date: "&7第 &e{day}&7/&e{max} &7天 — &a{season} &7(第 {year} 年)"
+
+    active_event: "&7正在進行的事件: &d{event} &7(剩餘 {days} 天)"
+    no_active_event: "&7正在進行的事件: &f無"
+
+    next_events:
+      blocked_by_active: "&7明天可能發生: &8(已有事件在進行)"
+      none: "&7明天可能發生: &f無"
+      single: "&7明天: &b{event}"
+
+    weather_line: "&7天氣: {state} &7— 將在 ~{minutes} 分鐘內改變"
+
+  weather:
+    raining: "&9正在下雨"
+    clear: "&f晴朗"
+
+
+guide_food:
+  title: "&6永恆食譜"
+  author: "&a流浪廚師"
+
+  page1: |
+    &0&l永恆食譜
+
+    &0這本小書收集了一些
+    &0農夫和旅行者最愛的
+    &0食譜。
+
+    &0新季節作物:
+
+    &c番茄&0 – 多汁新鮮，
+    &0非常適合沙拉
+    &0和三明治。
+
+    &6洋蔥&0 – 氣味濃烈，
+    &0但非常適合燉菜
+    &0和麵包。
+
+    &6稻米&0 – 在水中
+    &0種植。將種子
+    &0種植在淺水池中。
+
+  page2: |
+    &0&l基礎菜餚
+
+    &6番茄沙拉&0
+    &7碗 + 2x 番茄
+    &0清淡沙拉，恢復少量
+    &0飢餓值並在幾秒內
+    &0給予生命恢復。
+
+    &6蔬菜麵包&0
+    &7麵包 + 番茄 + 洋蔥
+    &0非常飽腹的麵包，塞滿了
+    &0時令蔬菜。給予一個小小的
+    &0吸收心護盾。
+
+    &6肉三明治&0
+    &7麵包 + 熟肉 +
+    &7番茄 + 洋蔥
+    &0扎實的三明治，
+    &0給予抗性提升和
+    &0額外力量。
+
+  page3: |
+    &0&l稻米與燉菜
+
+    &6種植稻米&0
+    &0稻米種子可種植在
+    &0靜水中，生長如海帶。
+
+    &0破壞稻稈可獲得
+    &0更多種子繼續種植。
+
+    &6牛肉燉飯&0
+    &7碗 + 熟肉 +
+    &7稻米
+    &0溫暖的燉菜，大幅
+    &0恢復飢餓值，持續恢復
+    &0生命值並短暫提升飽食度。
+
+  page4: |
+    &0&l飲品
+
+    &6咖啡&0
+    &7瓶子 + 可可豆 + 糖
+    &0熱而苦澀。解除
+    &0凍結，給予速度和
+    &0夜視效果一段時間。
+
+    &6草本茶&0
+    &7瓶子 + 森林花卉
+    &0舒緩浸劑，溫和治療，
+    &0幫助抵禦寒冷並給予
+    &0少量生命提升。
+
+    &6能量飲料&0
+    &7瓶子 + 糖 + 紅石粉
+    &7+ 螢石粉
+    &0非常甜，有氣，充滿糖分。
+    &0在幾秒內給予大量速度和
+    &0挖掘效率。
+
+    &6熱巧克力&0
+    &7瓶子 + 可可豆 + 牛奶
+    &0理想的冬夜飲品。保暖，
+    &0避免凍結，並給予抗性和
+    &0吸收心。
+
+  page5: |
+    &6肥沃土壤&0
+    富饒肥料配方:
+
+      §2[T] [R] [R]
+      §2[W] [W] [B]
+      §2[B] [B] [B]
+
+    T = 泥土
+    R = 殭屍肉
+    W = 小麥
+    B = 骨粉
+
+    &7他們說一位流浪廚師發現了如何通過一種特殊肥料讓他的作物生長得更快。&0
+    &c遵循這個配方來準備生堆肥:&0
+    &7如果你把它放在水邊兩天，
+    它就會變成適合種植的富饒土壤。&0.
+
+crop:
+  lore:
+    grows_in: "生長季節: {seasons}"
+    any_season: "&7在任何季節生長"
+    greenhouse_light: "&8地下溫室: 光照 {light}+"
+
+farming:
+  compost:
+    raw_name: "&a生堆肥"
+    raw_lore_1: "&7泥土和有機殘渣的濕潤混合物。"
+    raw_lore_2: "&7將它放在水邊 2 天。"
+    ready_name: "&2富饒土壤"
+    ready_lore_1: "&7這裡的作物生長速度快 &ax2 &7。"
+    ready_lore_2: "&7踩踏時耕地不會被破壞。"
+    ready_message: "&a你的堆肥已變成富饒土壤。"
+
+villager:
+  lazy_tag: "&7[&6懶惰&7]"
+
+greenhouse_debug_protected: 此作物受到溫室保護 (%season%)。
+greenhouse_debug_not_protected: 此作物未受到溫室保護 (%season%)。
+greenhouse_debug_unclaimed: 沒有人認領此方塊。
+
+farming:
+  compost:
+    raw_name: "&a生堆肥"
+    raw_lore_1: "&7土壤和有機殘渣的潮濕混合物。"
+    raw_lore_2: "&7將其放在水邊2天。"
+    ready_name: "&2肥沃富饒的泥土"
+    ready_lore_1: "&7作物在此生長速度 &ax2 &7倍。"
+    ready_lore_2: "&7踩踏時，耕地不會破裂。"
+    ready_message: "&a你的堆肥已變成肥沃富饒的泥土。"
+
+fishtrap:
+  item:
+    name: "&b捕魚陷阱"
+    lore: "&7放置在接觸水的地方以捕捉戰利品。"
+  gui:
+    title: "&8 捕魚陷阱"
+  msg:
+    placed: "&a陷阱已放置。"
+    broken: "&c陷阱已收起。"
+    not_in_water: "&c必須接觸水才能工作。"
+
+generator:
+  item:
+    name: "&d生物陷阱"
+    lore1: "&7使用次數: &f{uses}"
+    lore2: "&7生物: &f{mob}"
+    lore3: "&8隨時間生成刷怪蛋"
+  gui:
+    title: "&8 自製陷阱"
+  captured:
+    name: "&b捕獲的蛋 &7({mob})"
+    lore1: "&7生物: &f{mob}"
+    lore2: "&8不能投擲"
+  msg:
+    placed: "&a陷阱已放置。使用次數: &f{uses}"
+    not_allowed: "&c你不能在這個陷阱中使用原版刷怪蛋。"
+    broken: "&c陷阱磨損並破裂了。"
+
+
+fauna:
+  barn:
+    breed_fail: "&c它們需要待在 &e穀倉/馬廄&c 中才能很好地繁殖。"
+  winter:
+    died: "&b冬天的寒冷殺死了一隻沒有庇護的動物..."
+  horse:
+    tired: "&e你的馬累了..."
+  horse_bag:
+    title: "&8 馬鞍袋"
+    no_armor: "&c這匹馬沒有馬鞍袋 (需要盔甲)。"
+    need_saddle: "&c你需要先給馬套上馬鞍。"
+
+temperature:
+  actionbar:
+    celsius: "&e[ {temp} °C ]"
+    fahrenheit: "&e[ {temp} °F ]"

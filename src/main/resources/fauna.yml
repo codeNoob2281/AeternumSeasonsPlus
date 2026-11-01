@@ -1,0 +1,150 @@
+fish_trap:
+  enabled: true                     # Trampa de peces / Fish trap
+  crafting: true                    # Habilitar crafteo / Enable crafting
+  tick_seconds: 60                  # Segundos por intento / Seconds per tick
+  required_adjacent_water: 1        # Agua adyacente / Adjacent water
+  book_level_cap: 3                 # Nivel máx libros / Book level cap
+  weights:                          # Pesos de botín / Loot weights
+    fish: 500
+    junk: 350
+    treasure: 50
+  slots: 6
+  max_fish_stack: 16
+
+creature_generator:
+  enabled: true                     # Generador criaturas / Creature gen
+  uses: 10                          # Usos del generador / Generator uses
+  crafting:
+    generator: true                 # Permitir crafteo / Enable crafting
+  tick_seconds: 180                 # Segundos por tick / Seconds per tick
+  require_player_nearby: true       # Requiere jugador / Require player
+  player_range: 16                  # Rango del jugador / Player range
+  allowed_weighted:                 # Probabilidades mobs / Mob weights
+    RABBIT: 60
+    FROG: 25
+    BEE: 10
+    PARROT: 5
+    CHICKEN: 25
+
+stables:
+  enabled: true                     # Sistema establos / Stables system
+  barn_radius: 6                    # Radio del establo / Barn radius
+  min_hay_bales: 3                  # Balas de heno mín / Min hay bales
+  roof:
+    min_height: 3                   # Altura mín techo / Min roof height
+    max_height: 25                  # Altura máx techo / Max roof height
+    allow_any_solid: true           # Bloques sólidos / Allow solid blocks
+    allow: []                       # Bloques permitidos / Allowed blocks
+    area_radius: 2                  # Radio del área / Area radius
+    use_skylight: true              # Usar luz solar / Use skylight
+    skylight_max: 14                # Luz máx (techo) / Max skylight
+  breeding:
+    require_barn: false             # Vanilla fuera del establo / Vanilla outside barn
+    barn_bonus_enabled: true        # Bonus solo en establo / Bonus only in barn
+    bonus_baby_chance: 0.65         # Probabilidad de cría extra / Extra baby chance
+    extra_babies_min: 1             # Crías extra mín / Min extra babies
+    extra_babies_max: 2             # Crías extra máx / Max extra babies
+  winter:
+    kill_unsheltered: false         # Eliminado castigo por frío / Cold punishment removed
+    check_interval_ticks: 200       # Legacy / sin uso
+    per_tick: 40                    # Legacy / sin uso
+    damage: 1000.0                  # Legacy / sin uso
+    types:                          # Legacy / sin uso
+      - COW
+      - PIG
+      - CHICKEN
+      - SHEEP
+      - RABBIT
+      - HORSE
+  drops:
+    enabled: true                   # Drops extras / Extra drops
+    cow:
+      extra_beef_min: 1
+      extra_beef_max: 2
+      extra_leather_min: 0
+      extra_leather_max: 1
+    pig:
+      extra_pork_min: 1
+      extra_pork_max: 2
+    chicken:
+      extra_chicken_min: 1
+      extra_chicken_max: 2
+      extra_feather_min: 0
+      extra_feather_max: 2
+    sheep:
+      extra_wool_min: 1
+      extra_wool_max: 2
+
+horse_stable:
+  enabled: true                     # Establo caballos / Horse stable
+  tick_interval_ticks: 40           # Intervalo ticks / Tick interval
+  per_tick: 40                      # Caballos por tick / Horses per tick
+  stamina:
+    max: 100.0                      # Estamina máx / Max stamina
+    drain_per_tick: 2.0             # Gasto estamina / Stamina drain
+    regen_per_tick: 3.0             # Regen. normal / Normal regen
+    regen_in_barn_bonus: 4.0        # Bono en establo / Barn regen bonus
+    tired_threshold: 15.0           # Umbral cansancio / Tired threshold
+    recover_threshold: 35.0         # Umbral recuperación / Recover threshold
+    tired_speed_multiplier: 0.70    # Multiplicador cansado / Tired speed mult
+  regen_in_barn:
+    enabled: true                   # Curar en establo / Heal in barn
+    heal_amount: 1.0                # Cantidad cura / Heal amount
+    only_if_not_full: true          # Solo si falta vida / Only if not full
+  affinity:
+    enabled: true                   # Afinidad caballo / Horse affinity
+    max: 100.0                      # Afinidad máxima / Max affinity
+    gain_riding_move: 0.30          # Ganancia montando y moviéndose / Gain while riding moving
+    gain_in_barn: 0.10              # Ganancia por descansar en establo / Gain in barn
+    gain_healthy: 0.10              # Ganancia por mantenerse sano / Gain while healthy
+    decay_when_neglected: 0.00      # Pérdida si se descuida / Decay if neglected
+    speed_bonus_at_max: 0.12        # Bono velocidad al máximo / Max speed bonus
+    health_bonus_at_max: 6.0        # Bono vida al máximo / Max health bonus
+    notify_every: 10.0              # Aviso visible cada X afinidad / Notify every X affinity
+
+fauna_ai:
+  enabled: true                     # IA de fauna / Fauna AI
+  tick_interval_ticks: 40           # Intervalo ticks / Tick interval
+  per_tick: 30                      # Entidades/tick / Entities per tick
+  search_radius: 12                 # Radio búsqueda / Search radius
+  random_samples: 10                # Muestras azar / Random samples
+  nudge_strength: 0.12              # Fuerza empuje / Nudge strength
+  winter_seek_shelter: true         # Buscar refugio / Seek shelter
+  summer_seek_shade: true           # Buscar sombra / Seek shade
+
+cold_exposure:
+  enabled: false                    # Frío desactivado para animales / Cold disabled for animals
+  tick_period_ticks: 40             # Periodo revisión / Tick period
+  budget_entities_per_tick: 200     # Límite entidades / Entities limit
+  max_exposure_ticks: 12            # Legacy / sin uso
+  min_block_light_level: 8          # Legacy / sin uso
+  max_roof_height: 6                # Legacy / sin uso
+  heat_light_scan_radius: 6         # Legacy / sin uso
+  heat_light_blocks:                # Legacy / sin uso
+    - TORCH
+    - SOUL_TORCH
+    - LANTERN
+    - SOUL_LANTERN
+    - CAMPFIRE
+    - SOUL_CAMPFIRE
+    - GLOWSTONE
+    - SEA_LANTERN
+    - SHROOMLIGHT
+    - OCHRE_FROGLIGHT
+    - VERDANT_FROGLIGHT
+    - PEARLESCENT_FROGLIGHT
+    - JACK_O_LANTERN
+    - LAVA
+  vulnerable:
+    - COW
+    - PIG
+    - CHICKEN
+    - SHEEP
+    - RABBIT
+    - HORSE
+  ignore_tamed: true                # Legacy / sin uso
+  ignore_named: true                # Legacy / sin uso
+  block_breeding_when_exposed: false
+  disabled_worlds:
+    - lobby
+    - aeternum_heat

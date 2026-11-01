@@ -1,0 +1,974 @@
+season:
+  SPRING: İlkbahar
+  SUMMER: Yaz
+  AUTUMN: Sonbahar
+  WINTER: Kış
+hud:
+  title: "Gün {day}, Yıl {year} — {season}"
+  title_dim: "Gün {day}, Yıl {year} — {season} — {realm}"
+
+realm:
+  frost_overworld: "Karla Kaplı Diyar"
+  heat_overworld: "Köz Diyarı"
+
+  frost_title: "&b{name}"
+  frost_subtitle: "&7Sadece soğuk biyomlar"
+
+  heat_title: "&c{name}"
+  heat_subtitle: "&7Yanan topraklarda hayatta kal"
+
+  overworld_title: "&aAna Dünya"
+  returned_from: "&7Şuradan ayrıldınız: &f{name}"
+
+log:
+  frost_world_loaded: "&a[Dünya] Kar dünyası '{name}' zaten yüklüydü."
+  frost_world_created: "&a[Dünya] Kar dünyası '{name}' başarıyla oluşturuldu ve yüklendi."
+  frost_world_failed: "&c[Dünya] Kar dünyası '{name}' oluşturulamadı."
+
+  heat_world_creating: "&6[Dünya] Sıcak dünya '{name}' oluşturuluyor..."
+  heat_world_loaded: "&a[Dünya] Sıcak dünya '{name}' zaten yüklüydü."
+  heat_world_created: "&a[Dünya] Sıcak dünya '{name}' oluşturuldu ve yüklendi."
+  heat_world_failed: "&c[Dünya] Sıcak dünya '{name}' oluşturulamadı."
+
+cmd:
+  event:
+    no_permission: "&cBu komutu kullanma izniniz yok."
+    usage: "&eKullanım: {cmd} <list|info|start|stop> [id] [days]"
+    list:
+      header: "&6Kayıtlı etkinlikler:"
+      item: "&7- &e{id}&7 (&f{name}&7)"
+    started: "&aEtkinlik &e{id}&a başlamaya zorlandı."
+    stopped: "&cAktif etkinlik durduruldu."
+    no_such_event: "&e{id}&c kimliğine sahip hiçbir etkinlik bulunamadı."
+    no_active: "&7Şu anda aktif bir etkinlik yok."
+    info: "&6Aktif etkinlik: &e{id}&7 (&f{name}&7), kalan &e{days}&7 gün."
+
+  season:
+    no_permission: "&cBu komutu kullanma izniniz yok."
+
+    info:
+      line: "&bMevsim: {season}&7 | Gün {day}/{max}&3 | Yıl {year}"
+
+    set:
+      usage: "&eKullanım: /{label} set <SPRING|SUMMER|AUTUMN|WINTER>"
+      invalid: "&cGecersiz mevsim."
+      success: "&6Mevsim {season} olarak ayarlandı."
+
+    skipday:
+      done: "&61 gün atladınız."
+
+    day:
+      usage: "&eKullanım: /{label} day <1..{max}>"
+      invalid_number: "&cGecersiz sayı."
+      success: "&6Gün {day} olarak ayarlandı (mevcut mevsim)."
+
+    year:
+      usage: "&eKullanım: /{label} year <sayı>"
+      invalid_number: "&cGeçersiz yıl numarası."
+      success: "&aTakvim yılı &f{year}&a olarak ayarlandı."
+
+    reload:
+      done: "&aYapılandırmalar yeniden yüklendi."
+
+    hud:
+      player_only: "&cBu komut sadece bir oyuncu tarafından kullanılabilir."
+      usage: "&eKullanım: /{label} hud <fixed|variable|off>"
+      current: "&7Mevcut mod: &b{mode}"
+      invalid: "&cGecersiz mod. Kullanın: &efixed&c, &evariable&c veya &eoff&c."
+      mode:
+        fixed: "sabit"
+        variable: "değişken"
+        off: "kapalı"
+      set:
+        fixed: "&aStatik HUD gösterimi etkinleştirildi."
+        variable: "&aDeğişken HUD modu etkinleştirildi."
+        "off": "&cHUD devre dışı bırakıldı."
+
+    help: "&eKullanım: /{label} <info|set|skipday|day|reload|hud>"
+
+event:
+  blood_moon:
+    title: "§4☾ Kanlı Ay ☾"
+    subtitle: "§cYaratıklar güçleniyor ve uyuyamıyorsunuz..."
+    end: "&6Kanlı Ay soldu..."
+    no_sleep: "&4Kanlı Ay sırasında uyuyamazsınız..."
+    mob_name: "Gecenin Tohumu"
+
+  heat_wave:
+    title: "§6☀ Sıcak Hava Dalgası ☀"
+    subtitle: "&eGüneş daha sert yakıyor, gölge veya koruma arayın."
+    end: "&aSıcak hava dalgası sona erdi, hava daha yumuşak hissediliyor."
+
+  winter_freeze:
+    title: "§b❄ Kış Soğuk Algınlığı ❄"
+    subtitle: "§fKorunmazsanız kış ölümcül hale gelir."
+    end: "&bSoğuk hava dalgası geçti, hava daha az keskin hissediliyor."
+    freezing: "&3Titriyorsunuz... &bısıya veya daha iyi ekipmana ihtiyacınız var."
+    cold_but_safe: "&7Soğuğu hissediyorsunuz, ancak korumanız sizi güvende tutuyor."
+
+  magic_storm:
+    title: "§5⚡ Büyü Fırtınası ⚡"
+    subtitle: "&dGök yarılıyor ve yağmurla birlikte büyü düşüyor."
+    end: "&5Büyü fırtınası soluyor, ürkütücü bir sessizlik bırakıyor."
+    mob_name: "&bFırtınaya Dokunmuş Yaratık"
+
+  festival:
+    end: "&6Festival sona erdi, ancak anıları kaldı."
+    actionbar: "&6Festival Pazarı&7 • &e{season}&8 • &7Stoklar her gün değişir"
+    trader_name: "&eFestival Tüccarı"
+    item:
+      spring: "&aİlkbahar Çiçek Saksısı"
+      summer: "&eYaz Bal Şekeri"
+      autumn: "&6Sonbahar Balkabaklı Turta"
+      winter: "&bŞenlikli Kartopu"
+      generic: "&fFestival Hatırası"
+    spring:
+      title: "§a✿ İlkbahar Festivali ✿"
+      subtitle: "&fÇiçekler, müzik ve yeni umut tohumları. Bir köy bulun"
+    summer:
+      title: "§e☀ Yaz Festivali ☀"
+      subtitle: "&fYemek, kahkaha ve sıcak geceler. Bir köy bulun"
+    autumn:
+      title: "§6🍂 Sonbahar Festivali 🍂"
+      subtitle: "&fHasatlar, şenlik ateşleri ve ateş başı hikayeleri. Bir köy bulun"
+    winter:
+      title: "§b❄ Kış Festivali ❄"
+      subtitle: "&fIşıklar, kar ve evin sıcaklığı. Bir köy bulun"
+
+  fishing:
+    title: "§b🎣 Balıkçılık Festivali 🎣"
+    subtitle: "&fNehirler ve denizler bugün fazladan hazineler saklıyor."
+    end: "&bBalıkçılık festivali sona erdi."
+
+  mining:
+    title: "§6⛏ Madencilik Kutsaması ⛏"
+    subtitle: "&fCevher damarları daha cömert hissediyor..."
+    end: "&6Madencilik kutsaması kayboluyor."
+
+  tornado:
+    title: "§7🌪 Kasırga 🌪"
+    subtitle: "&fRüzgar uluyor, sığınak arayın."
+    end: "&7Kasırga yavaşça dağılıyor."
+
+  restful_sleep:
+    title: "§d😴 Dinlendirici Uyku 😴"
+    subtitle: "&fİyi uyku size ekstra güç verecektir."
+    end: "&dUykunuz normale dönüyor."
+    sleeping: "&dDerin, onarıcı bir uykuya dalıyorsunuz..."
+    buffed: "&dZinde uyandınız, ekstra canlılık hissediyorsunuz."
+    lost: "&cHasar sizi yıprattı ve onarıcı etkiyi kaybettiniz."
+
+  halloween:
+    title: "&6&lBalkabağı &e&lGecesi"
+    subtitle: "&7Canavarlar güçleniyor ve ruhlara acıkıyor..."
+
+  christmas:
+    title: "&b&lAeternum'da Noel"
+    subtitle: "&7Hava daha sıcak hissediliyor ve hediyeler bekliyor..."
+    gift_found: "&aEnvanterinizde bir hediye çuvalının belirdiğini hissediyorsunuz..."
+    gift_bundle_name: "&bNoel Hediye Torbası"
+    gift_bundle_lore_1: "&7İçinde &fşenlikli sürprizler&7 olan gizemli bir torba."
+    gift_bundle_lore_2: "&7Onu bir hatıra olarak sakla... ya da aç ve ganimetten keyif al."
+
+  holiday:
+    end: "&7Tatil kutlamaları sona erdi."
+
+  new_year:
+    name: "§eYeni Yıl"
+    title: "§e✨ Aeternum'da Yeni Yıl ✨"
+    subtitle: "&7Takvim yeni bir başlangıcı işaret ediyor."
+    gift_found: "&aYeni Yılı kutlamak için roketler aldınız!"
+    end: "&7Yeni Yıl sona eriyor, ama macera devam ediyor."
+
+  nether_fishing_derby:
+    title: "§cNether Balıkçılık Derbisi"
+    subtitle: "§7Özel ganimet için §clava§7'da balık tut."
+    end: "§7§cNether Balıkçılık Derbisi§7 sona erdi."
+    bite_actionbar: "§6✦ §cCehennem Isırığı! §7(§fSağ Tık§7)"
+    no_bite_actionbar: "§7Hiçbir şey ısırmadı… §8tekrar dene."
+    no_loot_actionbar: "§7Hiçbir şey yakalayamadın… §8(ne kötü şans)"
+  piglin_market:
+    title: "§6Piglin Pazarı"
+    subtitle: "§7Bir süreliğine geliştirilmiş takaslar."
+    end: "§7§6Piglin Pazarı§7 kapandı."
+  quartz_rush:
+    title: "§fKuvars Hücumu"
+    subtitle: "§7Madencilikte daha fazla §fkuvars§7."
+    end: "§7§fKuvars Hücumu§7 sona erdi."
+  fungus_bloom:
+    title: "§dMantar Çiçeklenmesi"
+    subtitle: "§7Kızıl/Çarpıklar daha fazla eşya düşürür."
+    end: "§7§dÇiçeklenme§7 sona erdi."
+  blaze_surge:
+    title: "§6Blaze Dalgası"
+    subtitle: "§7Daha çok çubuk ve daha aktif blaze'ler."
+    end: "§7§6Blaze Dalgası§7 sona erdi."
+  magma_tides:
+    title: "§cMagma Gelgitleri"
+    subtitle: "§7Daha fazla magma kremi… dikkatli ol."
+    end: "§7§cMagma Gelgitleri§7 çekildi."
+  ghast_alert:
+    title: "§fGhast Alarmı"
+    subtitle: "§7Daha çok ghast ve ekstra ödül."
+    end: "§7§fGhast Alarmı§7 sona erdi."
+    ghast_name: "§fGizlenen Ghast"
+  wither_loose:
+    title: "§4MAKSİMUM ALARM!"
+    subtitle: "§7§lWITHER SERBEST§7 Nether'da."
+    survive: "§cHAYATTA KAL!!"
+    end: "§7§4Wither§7 alarmı sona erdi."
+    wither_name: "§4§lSERBEST WITHER"
+    countdown_60: "§cWither §f{seconds}§c saniye içinde ortaya çıkabilir…"
+    countdown_40: "§f{seconds}§c saniye kaldı…"
+    countdown_20: "§f{seconds}§c saniye kaldı…"
+    countdown_generic: "§f{seconds}§c saniye kaldı…"
+    idle_killed: "§7§4Wither§7 hareketsizlikten dolayı kayboldu…"
+  wither_skeleton_swarm:
+    title: "§8Toplanma"
+    subtitle: "§7Daha güçlü Wither İskeletleri ve daha iyi ganimet."
+    end: "§7§8Toplanma§7 sona erdi."
+    mob_name: "§8Wither Muhafızı"
+
+guide:
+  # Título general (se usa tanto en chat como en el libro)
+  title: "Aeternum Mevsim Rehberi"
+
+  # Título y autor del libro escrito
+  book_title: "Aeternum Mevsim Rehberi"
+  book_author: "Aeternum"
+  book_given: "Mevsim rehberi size verildi."
+
+  # Línea con la estación actual
+  current: "Mevcut Mevsim: {season}"
+
+  # Primer párrafo del libro
+  intro: "Bu rehber, her mevsim için hava durumunu, etkinlikleri, ekinleri ve hayvan göçünü özetler."
+
+  section:
+    events: "§0Mevsimlik Etkinlikler"
+    crops: "§0Mevsime Göre Ekinler"
+    migration: "§0Hayvan Göçü"
+    stables: "Ahırlar ve Ambarlar"
+    weather: "§0Tipik Hava Durumu"
+    crafting: "Özel Üretim"
+    dimensions: "Boyutlar"
+
+  crafting: # <- Y AQUÍ DENTRO tus recetas
+    advanced_composter: |
+      §6Gelişmiş Kompost Kutusu§7
+      §7Tarif:
+      §2[L] [H] [L]
+      §2[P] [C] [P]
+      §2[L] [H] [L]
+      §1L = herhangi bir yaprak
+      §1H = huni
+      §1P = balkabağı
+      §1C = kompost kutusu
+
+    harvest_hoe: |
+      §6Hasat Çapası§7
+      §7Tarif:
+      §2[W] [W] [W]
+      §2[E] [H] [E]
+      §2[E] [E] [E]
+      §1W = buğday
+      §1E = zümrüt
+      §1H = herhangi bir çapa
+
+    farmer_boots: |
+      §6Çiftçi Botları§7
+      §7Tarif:
+      §2[W] [B] [W]
+      §2[W] [S] [W]
+      §2[W] [W] [W]
+      §1W = buğday
+      §1B = botlar
+      §1S = kürek (taş/elmas)
+
+    lunar_lantern: |
+      §6Ay Feneri§7
+      §7Tarif:
+      §2[R] [L] [R]
+      §2[R] [E] [R]
+      §2[R] [L] [R]
+      §1R = redstone
+      §1L = fener
+      §1E = Ender incisi
+
+    solar_torch: |
+      §6Güneş Meşalesi§7
+      §7Tarif:
+      §2[B] [B] [B]
+      §2[ ] [T] [ ]
+      §2[ ] [F] [ ]
+      §1B = blaze tozu
+      §1T = normal meşale
+      §1F = Ayçiçeği
+
+    spring_bell: |
+      §dBahar Çanı§7
+      §7Tarif:
+      §2[A] [P] [A]
+      §2[P] [B] [P]
+      §2[A] [P] [A]
+      §1A = ametist parçası
+      §1P = yaprak / pembe çiçek
+      §1B = çan
+
+    spring_boots: |
+      §dBahar Adım Botları§7
+      §7Tarif:
+      §2[P] [P] [P]
+      §2[P] [B] [P]
+      §2[P] [P] [P]
+      §1P = yaprak / pembe çiçek
+      §1B = botlar
+
+    snow_boots: |
+      §6Anti-Kar Botları§7
+      §7Tarif:
+      §2[ ] [B] [ ]
+      §2[ ] [S] [ ]
+      §2[ ] [S] [ ]
+      §1B = botlar
+      §1S = Toz Kar kovası
+
+    woodcutter_axe: |
+      §6Doğal Oduncu Baltası§7
+      §7Tarif:
+      §2[L] [A] [L]
+      §2[O] [ ] [O]
+      §2[L] [ ] [L]
+      §1L = herhangi bir yaprak
+      §1O = herhangi bir kütük
+      §1A = herhangi bir balta
+
+    frost_core: |
+      §6Kış Çekirdeği§7
+      §7Tarif:
+      §2[S] [I] [S]
+      §2[I] [B] [I]
+      §2[S] [I] [S]
+      §1S = Kar bloğu
+      §1I = Paketlenmiş buz
+      §1B = Denizin Kalbi
+      §7Geliştirmek için Kar Golemine sağ tıklayın.
+
+    guardian_core: |
+      §6Muhafız Çekirdeği§7
+      §7Tarif:
+      §2[I] [B] [I]
+      §2[B] [G] [B]
+      §2[I] [B] [I]
+      §1I = Demir bloğu
+      §1B = Demir külçesi
+      §1G = Ametist parçası
+      §7Demir Goleme sağ tıklayın.
+
+    fish_trap: |
+      §6Balık Tuzağı§7
+      §7Tarif:
+      §2[S] [ ] [S]
+      §2[S] [B] [S]
+      §2[S] [ ] [S]
+      §1S = ip
+      §1B = fıçı
+
+    creature_generator: |
+      §6Yaratık Tuzağı§7
+      §7Tarif:
+      §2[S] [I] [S]
+      §2[I] [T] [I]
+      §2[S] [I] [S]
+      §1S = ip
+      §1I = demir külçesi
+      §1T = çubuk
+
+    Clock: |
+      §6Mevsimlik Saat§7
+      §7Tarif:
+      §2[ ] [B] [ ]
+      §2[ ] [R] [ ]
+      §2[ ] [ ] [ ]
+      §1B = Pusula
+      §1R = Saat
+
+
+  dimensions:
+    snowbound:
+      title: "Donmuş Dünya"
+      build: "Portal İnşası:"
+      block: "Parlayan Taş (Glowstone)"
+      activate: "Portala bir kartopu atarak etkinleştirin."
+
+      warning_title: "Uyarı: Aşırı Hava Durumu"
+      warning_1: "Kar fırtınaları sırasında görüşünüz neredeyse tamamen azalır."
+      warning_2: "Sadece ışık kaynağıyla veya bir mağaranın içinde barınarak görebileceksiniz."
+      warning_3: "Soğuk yoğunlaşıyor, kendinizi iyi koruyun."
+
+    emberbound:
+      title: "Cehennem Dünyası Portalı"
+      build_glitched: "Yapı..."
+      block: "Blok SDFSD"
+      glitch_warning: "Bu dünyaya ait bilgilerin bozuk olduğu anlaşılıyor..."
+
+  events:
+    blood_moon: "§cKanlı Ay§7: daha güçlü moblar, uyuyamazsınız."
+    heat_wave: "§6Sıcak Hava Dalgası§7: gölgede değilseniz güneş sizi yorar."
+    winter_freeze: "§9Kış Donması§7: uygun kıyafet olmadan hızla donarsınız."
+    magic_storm: "§9Büyülü Fırtına§7: garip hava ve büyülü ganimet."
+    festival: "§6Festivaller§7: köylüler, takaslar ve dekorasyon."
+    fishing: "§9Balıkçılık Festivali§7: balık tutarken ekstra ganimet."
+    mining: "§6Madencilik Kutsaması§7: daha fazla mineral ve daha iyi drop."
+    tornado: "§7Tornado§7: ekinleri sürükleyen ve zarar veren rüzgar."
+    restful_sleep: "§9Dinlendirici Uyku§7: uyumak geçici ekstra can verir."
+
+  crops:
+    SPRING: "Buğday, havuç, patates, kırmızı pancar ve balkabağı gelişir; genel olarak çok iyi bir ekim mevsimi."
+    SUMMER: "Karpuz, şeker kamışı, kaktüs ve sıcağa dayanıklı ekinler en iyi şekilde büyür."
+    AUTUMN: "Balkabağı, mantar ve kökler; büyük hasatlar ve depolama için idealdir."
+    WINTER: "Dışarıda neredeyse hiçbir şey büyümez; seralar sürekli ekime izin verir."
+
+  migration:
+    SPRING: "Çiçekli çayırlarda ve ormanlarda daha fazla koyun, arı ve tavşan."
+    SUMMER: "Sıcak denizlerde daha fazla tropikal balık, yunus, kaplumbağa ve aksolotl."
+    AUTUMN: "Tilkiler, kurtlar ve keçiler taygalarda ve dağlık bölgelerde yoğunlaşır."
+    WINTER: "Kurtlar ve kutup ayıları soğuk biyomlara hakim olur; birçok sıcak iklim hayvanı kaybolur."
+
+  stables:
+    winter: "Soğuğa dayanıklı olmayan hayvanlar, bir ahır veya barınakları yoksa ölebilirler."
+    breeding: "Bir ahırda değillerse üreme daha az etkilidir (veya hiç olmaz)."
+    bonus_drops: "Ahırlarda yetiştirilen veya korunan hayvanlar daha fazla ganimet (et, tüy, yün, deri) düşürür."
+
+  weather:
+    SPRING: "Hafif yağmurlar, ılıman hava ve ekinleri destekleyen daha uzun günler."
+    SUMMER: "Yoğun güneş, şiddetli sıcak ve bazı şiddetli fırtınalar."
+    AUTUMN: "Serin rüzgar, bulutlu gökyüzü ve ani sıcaklık değişiklikleri."
+    WINTER: "Sık kar yağışı, aşırı soğuk ve kendinizi korumazsanız donma riski."
+
+  footer: " /seasonguide kullanın."
+
+item:
+  snow_step_boots:
+    name: "&bKar Adımı Çizmesi"
+    lore1: "&7&fToz Kara&7 batmadan veya sıkışmadan"
+    lore2: "&7yürümenizi sağlar."
+
+  labrador_boots:
+    name: "&aLabrador Çizmesi"
+    lore1: "&7Atlarken &6sürülmüş toprağı&7 ezmezsiniz."
+    lore2: "&7&6Çiftlik arazisinde&7 daha hızlı hareket edersiniz."
+    lore3: "&7Bazen hasat yaparken &afazladan tohum&7 verir."
+
+  spring_stride_boots:
+    name: "&dİlkbahar Adımı"
+    lore1: "&7Daha hafif, &dçiçek açan&7 bir sıçrama."
+    lore2: "&7İndiğinizde, adımınız &fçiçeklerin&7 açmasını sağlar."
+    lore3: "&7İlkbahar çayırlarını keşfetmek için mükemmel."
+
+  solar_torch:
+    name: "&eGüneş Meşalesi"
+    lore1: "&6güneş&7 tarafından kutsanmış bir meşale."
+    lore2: "&7Yaz aylarında, ekin büyümesini hızlandırır."
+    lore3: "&7Geceleri, yakındaki canavarları zayıflatır."
+
+  advanced_composter:
+    name: "&6Gelişmiş Gübreleyici"
+    lore1: "&7Gübreyi &eiki kat daha hızlı&7 işler."
+    lore2: "&7&fEkstra kemik unu&7 verme şansı vardır."
+    lore3: "&7&6Sonbaharda&7 daha da iyi çalışır."
+
+  spring_bell:
+    name: "&dİlkbahar Çanı"
+    lore1: "&7Çalındığında, yakındaki ekinlerin çiçek açmasını sağlar."
+    lore2: "&7Yakındaki &earıları&7 sakinleştirir ve kutsar."
+    lore3: "&7Büyüsü &ailkbaharda&7 daha güçlüdür."
+
+  lunar_lantern:
+    name: "&9Ay Feneri"
+    lore1: "&7Geceleri &9mavimsi&7 bir ışıkla parlar."
+    lore2: "&3mantarların&7 ve karanlık bitkilerin büyümesini artırır."
+    lore3: "&7Gezginler için nazik bir &bgece netliği&7 ekler."
+
+  harvest_hoe:
+    name: "&6Hasat Çapası"
+    lore1: "&7Sadece olgunlaştığında &ealanda&7 ekinleri hasat eder."
+    lore2: "&7Envanterdeki &etohumları&7 kullanarak otomatik olarak yeniden eker."
+    lore3: "&7Hasat edilen ekin başına dayanıklılık tüketir."
+
+  natural_tree_axe:
+    name: "&2Doğal Ağaç Kesme Baltası"
+    lore1: "&7Tek bir sallama ile &otüm ağaçları&7 keser."
+    lore2: "&7Sadece bağlı kütükleri etkiler, ormanı korur."
+    lore3: "&7Kesilen kütük başına dayanıklılık tüketir."
+
+  frost_core:
+    name: "&bKış Çekirdeği"
+    lore1: "&7Bir Kar Golemini güçlendirir."
+    lore2: "&7Gücü kışın daha da artar."
+    lore3: "&eBir Kar Golemine sağ tıklayın."
+    lore4: "&aKış:&7 daha fazla can ve daha güçlü kartopları."
+    lore5: "&7Yerde kar bırakmaz ve hava koşullarından ölmez."
+
+  guardian_core:
+    name: "&6Gardiyan Çekirdeği"
+    lore1: "&7Bir Demir Golemi mevsimlere bağlı"
+    lore2: "&7güçle donatır."
+    lore3: "&eBir Demir Golemine sağ tıklayın."
+    lore4: "&aKış:&7 çok daha fazla can ve hasar."
+    lore5: "&eYaz:&7 ateşe karşı bağışıklık kazanır ve düşmanları yakar."
+
+  everfrost_shard:
+    name: "&bEbedi Buz Parçası"
+    lore_line1: "&bGlacialis&7'in gücünün bir parçası."
+    lore_line2: "&7Cehennem sıcağına direnen zırhı dövmek için kullanılır."
+
+  glacialis_core:
+    name: "&3Glacialis Çekirdeği"
+    lore_line1: "&7Doğal olmayan bir soğukla nabız atıyor."
+    lore_line2: "&7Sıcağa karşı zırh dövmenin anahtarı."
+
+  heat_armor:
+    helmet:
+      name: "&bEbedi Buz Miğferi"
+      lore_line1: "&bGlacialis&7'in gücüyle dövülmüş."
+      lore_line2: "&7Cehennem sıcağına direnmeye yardımcı olur."
+    chest:
+      name: "&bEbedi Buz Göğüslük"
+      lore_line1: "&7Ebedi don kalbinizi korur."
+      lore_line2: "&7Cehennem sıcağına direnmeye yardımcı olur."
+    legs:
+      name: "&bEbedi Buz Zırhı"
+      lore_line1: "&7Korların üzerinden yürümenizi sağlar."
+      lore_line2: "&7Cehennem sıcağına direnmeye yardımcı olur."
+    boots:
+      name: "&bEbedi Buz Çizmesi"
+      lore_line1: "&7Lavın üzerinde ayak izi bırakır."
+      lore_line2: "&7Cehennem sıcağına direnmeye yardımcı olur."
+
+golem:
+  frostbound:
+    name: "&bKışa Bağlı Golem"
+
+  guardian:
+    name: "&6Gardiyan Golem"
+
+  upgrade:
+    too_many: "&cBu chunk'ta zaten maksimum yükseltilmiş golem sayısı var (&e{max}&c)."
+    frost_ok: "&bKar Goleminiz artık bir &fKışa Bağlı Golem&b."
+    guardian_ok: "&6Demir Goleminiz artık bir &fGardiyan Golem&6."
+    wrong_target: "&7Bu çekirdeği yalnızca uygun bir golem üzerinde kullanabilirsiniz."
+
+boss:
+  glacialis:
+    name: "&bGlacialis, Kışın Kalbi"
+    spawn: "&b[Glacialis]&7 &fDonmuş Dünyada&7 kadim bir soğuk uyanıyor..."
+    defeated: "&b[Glacialis]&7 yenildi. &7Donmuş parçaları karda dağıldı."
+
+frost_guide:
+  book_title: "Donmuş Dünya Rehberi"
+  book_author: "Aeternum Mevsimler Haritacısı"
+
+  page1: |
+    §9Ebedi Buz Diyarı
+    §7Alevtaşı portalını geçtiniz ve
+    sonsuz bir kış diyarına ulaştınız.
+    
+    §1Üssünüzü inşa edebilir, madencilik yapabilir ve keşfedebilirsiniz,
+    §4ama unutmayın düşmanlar daha güçlü§7.
+  
+
+  page2: |
+    §9Buzun Tehlikeleri
+    
+    §7Ebedi Buz Diyarında neredeyse her düşmanın
+    donmuş varyantları vardır.
+    
+    §4Hareket etmeye devam edin ve her zaman
+    iyi zırh ve yiyecek taşıyın.
+
+  page3: |
+    §9Glacialis, Kışın Kalbi
+    
+    §7Bu boss, bu boyutun
+    sonsuz bir kışa hapsolmasının nedenidir.
+    §4Glacialis, Ebedi Buz Diyarında geceleri,
+    her §628 günde bir§7 ortaya çıkar.
+    Ganimeti, Ebedi Buz zırhı için özeldir.
+
+  page4: |
+    §6Ebedi Buz Miğferi
+    §7Tarif:
+    §2[S] [S] [S]
+    §2[S] [C] [S]
+    §2[ ] [H] [ ]
+    
+    §1S = Ebedi Buz Parçası
+    §1C = Glacialis Çekirdeği
+    §1H = Elmas Miğfer
+    
+    §7Ebedi Buz Miğferi, cehennem sıcağıyla
+    yüzleşmek için ilk parçadır.
+
+  page5: |
+    §6Ebedi Buz Göğüslük
+    §7Tarif:
+    §2[ ] [C] [ ]
+    §2[S] [A] [S]
+    §2[S] [ ] [S]
+    
+    §1S = Ebedi Buz Parçası
+    §1C = Glacialis Çekirdeği
+    §1A = Elmas Göğüslük
+    
+    §7Ebedi Buz Göğüslük vücudunuzu güçlendirir.
+
+  page6: |
+    §6Ebedi Buz Zırhı
+    §7Tarif:
+    §2[S] [C] [S]
+    §2[S] [A] [S]
+    §2[S] [A] [S]
+    
+    §1S = Ebedi Buz Parçası
+    §1C = Glacialis Çekirdeği
+    §1A = Elmas Zırh
+    
+    §7Kavurucu araziler için tasarlanmıştır.
+
+  page7: |
+    §6Ebedi Buz Çizmesi
+    §7Tarif:
+    §2[ ] [C] [ ]
+    §2[S] [A] [S]
+    §2[S] [ ] [S]
+    
+    §1S = Ebedi Buz Parçası
+    §1C = Glacialis Çekirdeği
+    §1A = Elmas Çizme
+    
+    §7Çizmeler, sıcağa dayanmak için
+    çok önemlidir.
+
+  page8: |
+    §4Sonraki Boyut
+    §7Unutulmuş ve §4Nether tarafından yutulmuş§7 bir dünya
+    cehennem sıcağı diyarına götürür.
+    
+    §7Orada düşmanlar daha da güçlüdür, can ve
+    hasarları katlanmıştır.
+    
+    §7Tam Ebedi Buz seti ile
+    cehennem alevlerine hazır olacaksınız.
+
+  page9: |
+    §4Köz Diyarı
+    §7İnşaat:
+    §2[W] [W] [W] [W]
+    §2[W] [ ] [ ]  [W]
+    §2[W] [ ] [ ]  [W]
+    §2[W] [ ] [ ]  [W]
+    §2[W] [W] [W] [W]
+    
+    §1W = Nether Siğili Bloğu
+    §1Çakmak ve çelikle yakın
+
+  page10: |
+    §4Köz Diyarı
+    Bu yere sadece Ebedi Buz zırhı ile ulaşabilirsiniz.
+    Onsuz girmeye karar verirseniz, yanarak ölürsünüz.
+
+guide_heat:
+  book_title: "Köz Diyarı Hayatta Kalma Rehberi"
+  book_author: "Aeternum Arşivleri"
+
+  page1: |
+    &0&lKÖZ DİYARI
+    §cCöz Diyarı'na geçtiniz.
+
+    §6Burada hava yakar, taş ateş kanar
+    ve hiçbir şey hayatta kalmanızı istemez.
+    §4Bu diyar yolculuğunuzun sonu olabilir…
+    §c…veya alevlerde yeniden doğduğunuz yer olabilir.
+
+  page2: |
+    §6&lTEMEL HAYATTA KALMA
+
+    §8• §cSürekli sıcaklık §6uygun koruma
+    olmadan sizi tüketir.
+    §8• §6Yanınızda §ayiyecek§6, §ablok §6ve
+    §aşişeler §6hazır olmadan asla gelmeyin.
+    §8• §cBu diyarın sırlarını hala bilmiyorsanız
+    §6yalnız gelmeyin.
+
+  page3: |
+    §3&lKIŞ DÖVME ZIRH
+
+    §6Sadece tam §1Ebedi Buz §6seti aşırı iklime
+    dayanabilir.
+    §cSet olmadan§6, ateş ve lav
+    sizi acımasızca eritir.
+    §1Onunla§6, alevlerin içinden
+    sanki sert taşlarmış gibi yürüyebilirsiniz.
+
+  page4: |
+    §4&lDİYARIN YARATIKLARI
+
+    §8• §6Buradaki canavarlar yaklaşık
+    §c4 kat daha güçlüdür.
+    §8• §6Daha §cçok can§6, daha §cçok hasar §6sahiptirler ve neredeyse
+    hepsi §cateş hasarı§6 verir.
+    §8• §6Ateşli varyantlar vardır.
+    §cOnları küçümserseniz, ölürsünüz.
+
+  page5: |
+    §6&lGANİMET VE RİSK
+
+    §8• §6Harabeler ve kuleler normalden çok daha yüksek büyülerle
+    donatılmış ekipmanları saklar.
+    §8• §5Aeternum'daki§6 en iyi ganimettir
+    §aBuraya kadar geldiyseniz, cesaretinizi zaten kanıtladınız.
+    §2Şimdi canlı dönüp dönemeyeceğinizi
+    kanıtlayın.
+
+items:
+  food:
+    grows_in: "Büyüdüğü mevsimler: {seasons}"
+
+    winter_bread:
+      name: "&bKış Ekmeği"
+      lore_1: "&7Sert kışlar için pişirilmiş sıcak bir somun."
+      lore_2: "&7Soğuğa karşı direncinizi hafifçe artırır."
+
+    everfrost_ice_cream:
+      name: "&bEbedi Buz Dondurması"
+      lore_1: "&7Don Diyarı'ndan getirilmiş tatlı bir lezzet."
+      lore_2: "&7Biraz iyileştirir ve buz fırtınalarına dayanmaya yardımcı olur."
+
+    tomato:
+      name: "&cCà chua"
+      lore_1: "&7Taze, sulu bir cà chua."
+      lore_2: "&7Salata ve sandviçler için harika."
+
+    onion:
+      name: "&eSoğan"
+      lore_1: "&7Keskin kokulu bir soğan."
+      lore_2: "&7Güveç ve ekmekler için mükemmel."
+
+    rice:
+      name: "&fPirinç"
+      lore_1: "&7Küçük pirinç taneleri."
+      lore_2: "&7Doyurucu yemekler için temel bir malzeme."
+
+    tomato_salad:
+      name: "&aDomates Salatası"
+      lore_1: "&7Hafif, ferahlatıcı bir salata."
+      lore_2: "&7Bir miktar can ve açlığı geri kazandırır."
+
+    vegetable_bread:
+      name: "&6Sebzeli Ekmek"
+      lore_1: "&7Mevsimlik sebzelerle doldurulmuş ekmek."
+      lore_2: "&7Çok doyurucudur ve küçük bir destek verir."
+
+    meat_sandwich:
+      name: "&6Etli Sandviç"
+      lore_1: "&7Ekmek, et, domates ve soğan."
+      lore_2: "&7Maceracılar için sağlam bir öğün."
+
+    beef_rice_stew:
+      name: "&6Dana Etli & Pirinçli Güveç"
+      lore_1: "&7Dana eti ve pirinç içeren doyurucu bir güveç."
+      lore_2: "&7Açlığı büyük ölçüde giderir ve küçük takviyeler sağlar."
+
+    coffee:
+      name: "&6Kahve"
+      lore_1: "&7Sıcak, acı ve enerji verici."
+      lore_2: "&7Sizi ısıtır ve duyularınızı keskinleştirir."
+
+    herbal_tea:
+      name: "&aBitki Çayı"
+      lore_1: "&7Orman bitkilerinden sakinleştirici bir infüzyon."
+      lore_2: "&7Nazikçe can yeniler ve soğuğu hafifletir."
+
+    energy_drink:
+      name: "&dEnerji İçeceği"
+      lore_1: "&7Tatlı, gazlı ve şeker dolu."
+      lore_2: "&7Kısa süreliğine hızlı bir hız ve odaklanma patlaması sağlar."
+
+    hot_chocolate:
+      name: "&cSıcak Çikolata"
+      lore_1: "&7Sıcak bir bardak kakao ve süt."
+      lore_2: "&7Soğuk kış gecelerine dayanmak için mükemmel."
+
+    season_clock:
+      name: "&6Mevsim Saati"
+      lore_1: "&7Takvimi, etkinlikleri"
+      lore_2: "&7ve yaklaşan hava durumunu görmek için sağ tıklayın"
+
+clock:
+  use:
+    header: "&6[Mevsim Saati]"
+    date: "&7Gün &e{day}&7/&e{max} &7— &a{season} &7(Yıl {year})"
+
+    active_event: "&7Aktif etkinlik: &d{event} &7(kalan {days} gün)"
+    no_active_event: "&7Aktif etkinlik: &fYok"
+
+    next_events:
+      blocked_by_active: "&7Yarın olası: &8(zaten aktif bir etkinlik var)"
+      none: "&7Yarın olası: &fYok"
+      single: "&7Yarın: &b{event}"
+
+    weather_line: "&7Hava Durumu: {state} &7— ~{minutes} dakika içinde değişim"
+
+  weather:
+    raining: "&9Yağmurlu"
+    clear: "&fAçık"
+
+
+guide_food:
+  title: "&6Aeternum Yemek Kitabı"
+  author: "&aSeyahat Eden Şef"
+
+  page1: |
+    &0&lAeternum Yemek Kitabı
+
+    &0Bu küçük kitap,
+    &0çiftçilerin ve
+    &0gezginlerin en sevdiği
+    &0bazı tarifleri bir araya getiriyor.
+
+    &0Yeni mevsimlik ekinler:
+
+    &cDomates&0 – sulu ve
+    &0taze, salatalar ve
+    &0sandviçler için harika.
+
+    &6Soğan&0 – keskin kokulu
+    &0ama güveçler ve
+    &0ekmekler için mükemmel.
+
+    &6Pirinç&0 – suda yetiştirilir.
+    &0Pirinç sapları elde etmek
+    &0için tohumları sığ göletlere
+    &0ekin.
+
+  page2: |
+    &0&lTemel yemekler
+
+    &6Domates Salatası&0
+    &7Kase + 2x Domates
+    &0Biraz açlığı geri kazandıran
+    &0ve biraz yenilenme veren
+    &0hafif bir salata.
+
+    &6Sebzeli Ekmek&0
+    &7Ekmek + Domates + Soğan
+    &0Mevsimlik sebzelerle doldurulmuş
+    &0doyurucu bir ekmek.
+    &0Küçük bir absorpsiyon canı
+    &0kalkanı verir.
+
+    &6Etli Sandviç&0
+    &7Ekmek + pişmiş et +
+    &7Domates + Soğan
+    &0Maceracılar için direnç ve
+    &0ekstra güç veren
+    &0doyurucu bir sandviç.
+
+  page3: |
+    &0&lPirinç ve güveçler
+
+    &6Pirinç ekimi&0
+    &0Pirinç tohumları durgun suya
+    &0ekilebilir. Su yosunu gibi
+    &0uzun saplar halinde büyürler.
+
+    &0Sapı kırmak, yeniden ekmek
+    &0için daha fazla pirinç tohumu
+    &0verir.
+
+    &6Dana Etli Pirinçli Güveç&0
+    &7Kase + pişmiş et +
+    &7Pirinç
+    &0Çok fazla açlığı gideren,
+    &0zamanla canı geri kazandıran
+    &0ve doygunluğu kısa süreliğine
+    &0artıran sıcak bir güveç.
+
+  page4: |
+    &0&lİçecekler
+
+    &6Kahve&0
+    &7Şişe + Kakao + Şeker
+    &0Sıcak ve acı. Donmayı
+    &0giderir, bir süreliğine hız
+    &0ve gece görüşü verir.
+
+    &6Bitki Çayı&0
+    &7Şişe + orman çiçeği
+    &0Nazikçe iyileştiren, soğuğa
+    &0karşı yardımcı olan ve küçük
+    &0bir can takviyesi veren
+    &0sakinleştirici infüzyon.
+
+    &6Enerji İçeceği&0
+    &7Şişe + Şeker + Kızıltaş
+    &7+ Parlaktaş tozu
+    &0Çok tatlı ve gazlı.
+    &0Kısa süreliğine güçlü hız ve
+    &0acele verir.
+
+    &6Sıcak Çikolata&0
+    &7Şişe + Kakao + Süt
+    &0Kış geceleri için mükemmel.
+    &0Sizi ısıtır, donmayı
+    &0engeller ve direnç ile
+    &0absorpsiyon verir.
+
+  page5: |
+    &6Verimli toprak&0
+    Zengin gübre tarifi:
+
+      §2[T] [R] [R]
+      §2[W] [W] [B]
+      §2[B] [B] [B]
+
+    T = Toprak
+    R = Çürük et
+    W = Buğday
+    B = Kemik tozu
+
+    &7Söylentilere göre, gezgin bir aşçı özel bir gübre sayesinde mahsullerini çok daha hızlı büyütmenin yolunu keşfetmiş.&0
+    &cHam kompostu hazırlamak için bu tarife uy:&0
+    &7onu iki gün boyunca suda bırakırsan,
+    sonrasında ekim için mükemmel, zengin bir toprağa dönüşecektir.&0    
+
+crop:
+  lore:
+    grows_in: "Büyüdüğü mevsimler: {seasons}"
+    any_season: "&7Herhangi bir mevsimde büyür"
+    greenhouse_light: "&8Yeraltı serası: ışık {light}+"
+
+farming:
+  compost:
+    raw_name: "&aHam kompost"
+    raw_lore_1: "&7Toprak ve organik artıkların ıslak karışımı."
+    raw_lore_2: "&7Onu 2 gün boyunca suyun yanında bırak."
+    ready_name: "&2Zengin, verimli toprak"
+    ready_lore_1: "&7Buradaki ekinler &ax2 &7daha hızlı büyür."
+    ready_lore_2: "&7Üzerinde yürümek tarlayı bozmaz."
+    ready_message: "&aKompostun zengin, verimli toprağa dönüştü."
+
+villager:
+  lazy_tag: "&7[&6Tembel&7]"
+
+
+greenhouse_debug_protected: Bu mahsul sera tarafından korunmaktadır (%season%).
+greenhouse_debug_not_protected: Bu mahsul sera tarafından KORUNMAMAKTADIR (%season%).
+greenhouse_debug_unclaimed: Bu bloğu kimse talep etmedi.
+
+
+temperature:
+  actionbar:
+    celsius: "&e[ {temp} °C ]"
+    fahrenheit: "&e[ {temp} °F ]"

@@ -1,0 +1,55 @@
+name: AeternumSeasons
+main: Kinkin.aeternum.AeternumSeasonsPlugin
+version: "4.7"
+api-version: '1.21'
+author: [Kinkin, MD (salvador)]
+description: "A completely independent seasons plugin! For more information, visit: https://github.com/KinkinxD12/Aeternum-Seasons"
+
+softdepend:
+  - PlaceholderAPI
+  - WorldGuard
+  - GPFlags
+  - CustomCrops
+  - WorldEdit
+  - Citizens
+  - Geyser-Spigot
+  - floodgate
+
+commands:
+  season:
+    description: Season admin & info
+    usage: /season <info|set|skipday|day|year|reload|hud>
+
+  asevent:
+    description: Control y pruebas de eventos estacionales
+    usage: /asevent <list|info|start|stop>
+    permission: aeternum.command.base
+    permission-message: "&cNo tienes permiso para usar este comando."
+
+  seasonbiomefix:
+    description: Force loaded chunks to SAVANNA to reset spring biome painting (no backups)
+    usage: /seasonbiomefix [all|world] [budgetChunksPerTick]
+    permission: aeternum.command.biomefix
+    permission-message: ""
+
+  seasoncraft:
+    description: SeasonCraft GUI (toggle recipes)
+    usage: "/seasoncraft"
+    permission: aeternum.command.base
+
+  seasonguide:
+    description: "Muestra la guía de Aeternum Seasons"
+    usage: "/seasonguide"
+
+permissions:
+  aeternum.events:            { default: op }
+  aeternum.command.base:      { default: op }
+  aeternum.command.info:      { default: true }
+  aeternum.command.hud:       { default: true }
+  aeternum.command.set:       { default: op }
+  aeternum.command.skip:      { default: op }
+  aeternum.command.day:       { default: op }
+  aeternum.command.year:      { default: op }
+  aeternum.command.reload:    { default: op }
+  aeternum.command.biomefix:  { default: false  }
+  aeternum.command.biomes:    { default: op }

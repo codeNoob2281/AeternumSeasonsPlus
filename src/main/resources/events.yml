@@ -1,0 +1,239 @@
+events:
+  enabled: true                      # Activar eventos / Enable events
+  require_players:
+    enabled: false                   # Requerir jugadores / Require players
+    players: 3                       # Mínimo jugadores / Min players
+  visual_effects:
+    particles_enabled: true          # Partículas eventos / Event particles
+
+
+  blood_moon:
+    enabled: true                    # Luna de sangre / Blood Moon
+    chance_per_night: 0.08           # Probabilidad / Chance
+    min_day: 10                      # Día mínimo / Min day
+    max_times_per_season: 6          # Máx por estación / Max per season
+    world_time_night: false           # Forzar noche / Force night
+    freeze_night: false              # Congelar noche / Freeze night
+
+  heat_wave:
+    enabled: true                    # Ola de calor / Heat wave
+    max_per_summer: 6                # Máx por verano / Max per summer
+    min_duration_days: 1             # Duración mín / Min duration
+    max_duration_days: 4             # Duración máx / Max duration
+    base_chance_per_day: 0.12        # Probabilidad / Chance
+    damage_exposed: true             # Daño por exposición / Exposure damage
+    tick_damage: 0.5                 # Daño por tick / Tick damage
+    apply_weakness: true             # Debilidad / Apply weakness
+    min_armor_protection: 2          # Armadura mínima / Min armor
+
+  winter_freeze:
+    enabled: true                    # Gran helada / Winter freeze
+    max_per_winter: 3                # Máx por invierno / Max per winter
+    min_duration_days: 2             # Duración mín / Min duration
+    max_duration_days: 5             # Duración máx / Max duration
+    base_chance_per_day: 0.15        # Probabilidad / Chance
+    damage_per_tick: 0.5             # Daño por tick / Damage per tick
+    min_armor_pieces: 2              # Piezas armadura / Armor pieces
+    heat_radius_blocks: 5            # Radio calor / Heat radius
+    heat_block_types:                # Bloques de calor / Heat blocks
+      - CAMPFIRE
+      - SOUL_CAMPFIRE
+      - TORCH
+      - SOUL_TORCH
+      - LANTERN
+      - FIRE
+      - FURNACE
+
+  magic_storm:
+    enabled: true                    # Tormenta mágica / Magic storm
+    min_duration_days: 1             # Duración mín / Min duration
+    max_duration_days: 1             # Duración máx / Max duration
+    base_chance_per_day: 0.08        # Probabilidad / Chance
+    allowed_seasons: [ SPRING, SUMMER, AUTUMN, WINTER ]
+    rare_mob_chance: 0.35            # Mobs raros / Rare mob chance
+    extra_loot_chance: 0.40          # Botín extra / Extra loot chance
+
+  festival:
+    enabled: true                    # Festival / Festival event
+    min_duration_days: 1             # Duración mín / Min duration
+    max_duration_days: 2             # Duración máx / Max duration
+    base_chance_per_day: 0.10        # Probabilidad / Chance
+    max_per_season: 3                # Máx por estación / Max per season
+
+  fishing:
+    enabled: true                    # Evento pesca / Fishing event
+    min_duration_days: 1             # Duración mín / Min duration
+    max_duration_days: 2             # Duración máx / Max duration
+    base_chance_per_day: 0.10        # Probabilidad / Chance
+    max_per_year: 48                 # Máx por año / Max per year
+    treasure_chance: 0.35            # Tesoros / Treasure chance
+    double_catch_chance: 0.30        # Doble pesca / Double catch
+
+  mining:
+    enabled: true                    # Evento minería / Mining event
+    min_duration_days: 1             # Duración mín / Min duration
+    max_duration_days: 2             # Duración máx / Max duration
+    base_chance_per_day: 0.12        # Probabilidad / Chance
+    max_per_year: 36                 # Máx por año / Max per year
+    extra_ore_chance: 0.35           # Menas extra / Extra ore chance
+    exp_boost_chance: 0.40           # Bono EXP / EXP boost
+    rare_bonus_chance: 0.08          # Bono raro / Rare bonus
+
+  tornado:
+    enabled: true                    # Tornado / Tornado event
+    base_chance_per_day: 0.05        # Probabilidad / Chance
+    min_duration_days: 1             # Duración mín / Min duration
+    max_duration_days: 1             # Duración máx / Max duration
+    min_duration_minutes: 5          # Minutos mín / Min minutes
+    max_duration_minutes: 10         # Minutos máx / Max minutes
+    targets:
+      max_targets: 5                 # Máx objetivos / Max targets
+      cluster_distance: 64           # Distancia grupo / Cluster dist
+      viewer_distance: 96            # Distancia visión / Viewer dist
+      only_survival_adventure: true  # Solo survival / Survival only
+      per_players: 30                # Jugadores por target / Players per target
+      cooldown_days_per_player: 2    # Cooldown jugador / Player cooldown
+    radius_blocks: 10.0              # Radio bloques / Radius blocks
+    height_blocks: 24.0              # Altura bloques / Height blocks
+    min_spawn_distance: 20.0         # Spawn mín / Min spawn dist
+    max_spawn_distance: 24.0         # Spawn máx / Max spawn dist
+    drift_speed: 0.18                # Velocidad / Drift speed
+    allowed_worlds: []               # Mundos permitidos / Allowed worlds
+    disabled_worlds:                 # Mundos desactivados / Disabled worlds
+      - lobby
+      - aeternum_heat
+
+  restful_sleep:
+    enabled: true                    # Sueño reparador / Restful sleep
+    min_duration_days: 1             # Duración mín / Min duration
+    max_duration_days: 2             # Duración máx / Max duration
+    base_chance_per_day: 0.10        # Probabilidad / Chance
+    health_boost_seconds: 600        # Bono salud (seg) / Health boost (sec)
+
+  holiday:
+    enabled: true                    # Festivos / Holiday events
+    halloween:
+      mob_radius: 24.0               # Radio mobs / Mob radius
+      pumpkin_chance: 1.0            # Prob. calabaza / Pumpkin chance
+      buff_chance: 0.8               # Prob. mejora / Buff chance
+    christmas:
+      gift_radius: 8.0               # Radio regalos / Gift radius
+      heal_radius: 12.0              # Radio cura / Heal radius
+      heal_amount: 0.5               # Cantidad cura / Heal amount
+
+  new_year:
+    enabled: true                    # Año nuevo / New Year
+    weight: 1.0                      # Peso / Weight
+    min_gap_days: 340               # Separación mín / Min gap
+    max_gap_days: 380               # Separación máx / Max gap
+    seasons: [SPRING]                # Estaciones / Seasons
+    fireworks_chance: 0.60           # Prob. fuegos / Fireworks chance
+    fireworks_bursts: 3              # Explosiones / Bursts
+    gift_rockets_min: 12             # Cohetes mín / Min rockets
+    gift_rockets_max: 24             # Cohetes máx / Max rockets
+    gift_gunpowder_min: 6            # Pólvora mín / Min gunpowder
+    gift_gunpowder_max: 12           # Pólvora máx / Max gunpowder
+
+  nether_fishing_derby:
+    enabled: true                    # Pesca en lava / Nether fishing
+    min_duration_days: 1             # Duración mín / Min duration
+    max_duration_days: 1             # Duración máx / Max duration
+    base_chance_per_day: 0.08        # Probabilidad / Chance
+    min_lava_seconds: 2              # Tiempo mín lava / Min lava time
+    cooldown_ms: 1200                # Cooldown (ms) / Cooldown ms
+    reward_chance: 0.85              # Prob. recompensa / Reward chance
+    bite_min_seconds: 2              # Picada mín / Bite min
+    bite_max_seconds: 6              # Picada máx / Bite max
+    bite_window_ms: 4500             # Ventana picada / Bite window
+    keep_hook_on_surface: true       # Anzuelo arriba / Hook on surface
+
+  piglin_market:
+    enabled: true                    # Mercado Piglin / Piglin market
+    min_duration_days: 1             # Duración mín / Min duration
+    max_duration_days: 1             # Duración máx / Max duration
+    base_chance_per_day: 0.08        # Probabilidad / Chance
+    bonus_item_chance: 0.35          # Item bonus / Bonus item chance
+    duplicate_outcome_chance: 0.18   # Prob. duplicar / Duplicate chance
+
+  quartz_rush:
+    enabled: true                    # Fiebre cuarzo / Quartz rush
+    min_duration_days: 1             # Duración mín / Min duration
+    max_duration_days: 2             # Duración máx / Max duration
+    base_chance_per_day: 0.10        # Probabilidad / Chance
+    extra_quartz_chance: 0.55        # Cuarzo extra / Extra quartz chance
+    extra_min: 1                     # Mínimo extra / Extra min
+    extra_max: 2                     # Máximo extra / Extra max
+
+  fungus_bloom:
+    enabled: true                    # Floración hongos / Fungus bloom
+    min_duration_days: 1             # Duración mín / Min duration
+    max_duration_days: 2             # Duración máx / Max duration
+    base_chance_per_day: 0.10        # Probabilidad / Chance
+    extra_drop_chance: 0.55          # Drop extra / Extra drop chance
+
+  blaze_surge:
+    enabled: true                    # Oleada Blaze / Blaze surge
+    min_duration_days: 1             # Duración mín / Min duration
+    max_duration_days: 2             # Duración máx / Max duration
+    base_chance_per_day: 0.08        # Probabilidad / Chance
+    extra_rod_chance: 0.35           # Varas extra / Extra rod chance
+    extra_rod_min: 1                 # Varas mín / Min rods
+    extra_rod_max: 2                 # Varas máx / Max rods
+    buffed_blaze_chance: 0.30        # Blaze mejorado / Buffed blaze
+
+  magma_tides:
+    enabled: true                    # Mareas magma / Magma tides
+    min_duration_days: 1             # Duración mín / Min duration
+    max_duration_days: 2             # Duración máx / Max duration
+    base_chance_per_day: 0.10        # Probabilidad / Chance
+    bigger_cube_chance: 0.30         # Cubos grandes / Bigger cubes
+    extra_cream_chance: 0.40         # Crema extra / Extra cream
+
+  ghast_alert:
+    enabled: true                    # Alerta Ghast / Ghast alert
+    min_duration_days: 1             # Duración mín / Min duration
+    max_duration_days: 1             # Duración máx / Max duration
+    base_chance_per_day: 0.08        # Probabilidad / Chance
+    marked_ghast_chance: 0.25        # Ghast marcado / Marked ghast
+    extra_tear_chance: 0.30          # Lágrima extra / Extra tear
+    extra_spawn_chance: 0.55         # Spawn extra / Extra spawn
+    chunk_cooldown_ms: 15000         # Cooldown chunk / Chunk cooldown
+    max_nearby_ghasts: 6             # Máx ghasts cerca / Max nearby
+    nearby_radius: 48.0              # Radio detección / Detection radius
+
+  wither_loose:
+    enabled: true                    # Wither suelto / Wither loose
+    base_chance_per_day: 0.06        # Probabilidad / Chance
+    min_duration_days: 1             # Duración mín / Min duration
+    max_duration_days: 1             # Duración máx / Max duration
+    targets:
+      min_targets: 1                 # Objetivos mín / Min targets
+      max_targets: 3                 # Objetivos máx / Max targets
+      only_survival_adventure: true  # Solo survival / Survival only
+    spawn_delay_seconds: 60          # Delay spawn / Spawn delay
+    countdown_interval_seconds: 20   # Intervalo cuenta / Countdown int
+    spawn:
+      min_distance: 18               # Distancia mín / Min distance
+      max_distance: 28               # Distancia máx / Max distance
+    wither:
+      max_health: 180.0              # Vida máx / Max health
+      glowing: true                  # Brillante / Glowing
+      idle_kill_seconds: 180         # Matar si inactivo / Idle kill
+      idle_check_seconds: 10         # Check inactivo / Idle check
+    loot:
+      netherite_scrap_chance: 0.30   # Prob. Netherite / Netherite scrap
+      netherite_scrap_min: 1         # Mínimo scraps / Min scrap
+      netherite_scrap_max: 2         # Máximo scraps / Max scrap
+      fire_prot_book_chance: 0.15    # Prob. Libro Prot / Book chance
+      ghast_tear_chance: 0.25        # Prob. Lágrima / Tear chance
+
+  wither_skeleton_swarm:
+    enabled: true                    # Enjambre esqueletos / Wither swarm
+    min_duration_days: 1             # Duración mín / Min duration
+    max_duration_days: 2             # Duración máx / Max duration
+    base_chance_per_day: 0.06        # Probabilidad / Chance
+    buff_chance: 0.75                # Prob. mejora / Buff chance
+    extra_spawn_chance: 0.18         # Spawn extra / Extra spawn
+    chunk_cooldown_ms: 20000         # Cooldown chunk / Chunk cooldown
+    extra_loot_chance: 0.40          # Botín extra / Extra loot
+    extra_skull_chance: 0.04         # Cráneo extra / Extra skull

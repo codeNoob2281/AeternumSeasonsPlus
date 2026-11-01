@@ -1,0 +1,141 @@
+visual_atmosphere:
+  tick_period_ticks: 5               # Suavidad transición / Transition smoothness
+  ease: 0.20                         # Fluidez (0.05-0.5) / Ease (0.05-0.5)
+
+winter_painter:
+  worldguard-respect-regions: true   # Respetar WorldGuard / Respect WG regions
+
+season_guide:
+  give_on_first_join: true           # si está false, NO se entrega el libro/guía al unirse
+                                     # if false, the book/guide is NOT delivered upon joining
+golems:
+  max_per_chunk: 3                   # Límite por chunk / Limit per chunk
+
+villager_type_overrides:
+  show_lazy_tag: true                # Show loaf label to the villager / Show loaf label to the villager
+
+  frostbound:
+    enabled: true                    # Golem gélido / Frostbound golem
+    base_health: 240.0               # Vida base / Base health
+    winter_health_multiplier: 3.0    # Mult. vida invierno / Winter health mult.
+    other_seasons_health_multiplier: 1.4 # Mult. otras estaciones / Other seasons health mult.
+    snowball_damage: 3.0             # Daño bola nieve / Snowball damage
+    snowball_slow_ticks: 80          # Ticks lentitud / Slowness ticks
+    snowball_slow_level: 1           # Nivel lentitud / Slowness level
+
+  guardian:
+    enabled: true                    # Golem guardián / Guardian golem
+    base_health: 260.0               # Vida base / Base health
+    base_damage_multiplier: 1.2      # Mult. daño base / Base damage multiplier
+    winter_health_multiplier: 2.0    # Mult. vida invierno / Winter health mult.
+    winter_damage_multiplier: 1.8    # Mult. daño invierno / Winter damage mult.
+    summer_fire_immunity: true       # Inmune fuego verano / Summer fire immunity
+    summer_fire_ticks_on_hit: 60     # Ticks fuego (golpe) / Fire ticks on hit
+
+features:
+  portals:
+    frost:
+      enabled: true                  # Portal mundo gélido / Frost world portal
+    heat:
+      enabled: true                  # Portal mundo infernal / Heat world portal
+
+worlds:
+  disabled_season_fx:                # Mundos sin efectos / Worlds with no FX
+    - world_the_end
+    - Spawn
+
+SeasonFood: true                     # Deshabilitar las semilla, cultivos y el libro de recetas
+                                     # Disable seeds, crops, and the recipe book
+
+seasoncraft:
+  enabled: true                      # Activar SeasonCraft / Enable SeasonCraft
+  gui_title: "&bSeasonCraft"         # Título del menú / GUI Title
+  recipes:
+    harvest_hoe: true                # Receta: Azada / Recipe: Hoe
+    natural_tree_axe: true           # Receta: Hacha / Recipe: Axe
+    snow_step_boots: true            # Botas de nieve / Snow boots
+    spring_stride_boots: true        # Botas primavera / Spring boots
+    labrador_boots: true             # Botas labrador / Labrador boots
+    solar_torch: true                # Antorcha solar / Solar torch
+    lunar_lantern: true              # Farol lunar / Lunar lantern
+    spring_bell: true                # Campana primavera / Spring bell
+    advanced_composter: true         # Compostador avanzado / Advanced composter
+    golem_cores: true                # Núcleos de golem / Golem cores
+
+heat_loot:
+  enabled: true                      # Loot de calor / Heat loot enabled
+  worlds:                            # Mundos con loot / Worlds with loot
+    - aeternum_heat
+  items_per_chest:                   # Items por cofre / Items per chest
+    min: 3
+    max: 6
+  gear_pool:                         # Lista de objetos / Item pool
+    - DIAMOND_SWORD
+    - DIAMOND_PICKAXE
+    - DIAMOND_AXE
+    - DIAMOND_CHESTPLATE
+    - DIAMOND_LEGGINGS
+    - DIAMOND_HELMET
+    - DIAMOND_BOOTS
+    - NETHERITE_SCRAP
+    - NETHERITE_INGOT
+    - ENCHANTED_GOLDEN_APPLE
+    - BOOK
+  enchants_per_item:                 # Encantos por item / Enchants per item
+    min: 1
+    max: 3
+  enchant_level:                     # Niveles deseados / Desired levels
+    min: 6
+    max: 10
+  book_enchants:                     # Encantos en libros / Book enchants
+    min: 2
+    max: 4
+
+enchants:
+  caps:
+    enabled: true                    # Límites de encanto / Enchant caps
+    default_max: 10                  # Máximo general / General max level
+    clamp_to_vanilla: false          # Forzar nivel vanilla / Clamp to vanilla
+    overrides:                       # Ajustes por encanto / Per enchant overrides
+      minecraft:aqua_affinity: 3
+      minecraft:bane_of_arthropods: 7
+      minecraft:binding_curse: 1
+      minecraft:blast_protection: 6
+      minecraft:breach: 5
+      minecraft:channeling: 1
+      minecraft:density: 7
+      minecraft:depth_strider: 5
+      minecraft:efficiency: 8
+      minecraft:feather_falling: 7
+      minecraft:fire_aspect: 2
+      minecraft:fire_protection: 8
+      minecraft:flame: 1
+      minecraft:fortune: 5
+      minecraft:frost_walker: 5
+      minecraft:impaling: 7
+      minecraft:infinity: 1
+      minecraft:knockback: 5
+      minecraft:looting: 5
+      minecraft:loyalty: 5
+      minecraft:luck_of_the_sea: 5
+      minecraft:lure: 5
+      minecraft:mending: 1
+      minecraft:multishot: 1
+      minecraft:piercing: 5
+      minecraft:power: 7
+      minecraft:projectile_protection: 8
+      minecraft:protection: 8
+      minecraft:punch: 4
+      minecraft:quick_charge: 6
+      minecraft:respiration: 6
+      minecraft:riptide: 6
+      minecraft:sharpness: 8
+      minecraft:silk_touch: 1
+      minecraft:smite: 8
+      minecraft:soul_speed: 5
+      minecraft:sweeping_edge: 5
+      minecraft:swift_sneak: 5
+      minecraft:thorns: 5
+      minecraft:unbreaking: 8
+      minecraft:vanishing_curse: 1
+      minecraft:wind_burst: 5
