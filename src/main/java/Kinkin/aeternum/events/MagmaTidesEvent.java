@@ -17,13 +17,27 @@ import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.inventory.ItemStack;
 
+/**
+ * 岩浆潮汐事件（Magma Tides）。
+ *
+ * <p>当有玩家身处下界时，有一定概率触发本事件。事件期间：
+ * <ul>
+ *     <li>下界自然生成的岩浆怪有概率变大一级；</li>
+ *     <li>玩家击杀岩浆怪时有概率额外掉落岩浆膏。</li>
+ * </ul>
+ */
 public final class MagmaTidesEvent implements SeasonalEvent {
     private final AeternumSeasonsPlugin plugin;
     private boolean enabled;
+    /** 事件最短持续天数。 */
     private int minDur;
+    /** 事件最长持续天数。 */
     private int maxDur;
+    /** 每天触发事件的基础概率。 */
     private double baseChance;
+    /** 岩浆怪变大一级的概率。 */
     private double biggerCubeChance;
+    /** 击杀岩浆怪额外掉落岩浆膏的概率。 */
     private double extraCreamChance;
 
     public MagmaTidesEvent(AeternumSeasonsPlugin plugin) {
@@ -32,14 +46,15 @@ public final class MagmaTidesEvent implements SeasonalEvent {
         this.reloadFromConfig();
     }
 
+    /** 从 events.yml 重新读取本事件的配置项。 */
     private void reloadFromConfig() {
-        FileConfiguration y = YamlEvents.get(this.plugin);
-        this.enabled = y.getBoolean("events.magma_tides.enabled", true);
-        this.minDur = y.getInt("events.magma_tides.min_duration_days", 1);
-        this.maxDur = y.getInt("events.magma_tides.max_duration_days", 2);
-        this.baseChance = y.getDouble("events.magma_tides.base_chance_per_day", 0.1);
-        this.biggerCubeChance = y.getDouble("events.magma_tides.bigger_cube_chance", 0.3);
-        this.extraCreamChance = y.getDouble("events.magma_tides.extra_cream_chance", 0.4);
+        FileConfiguration config = YamlEvents.get(this.plugin);
+        this.enabled = config.getBoolean("events.magma_tides.enabled", true);
+        this.minDur = config.getInt("events.magma_tides.min_duration_days", 1);
+        this.maxDur = config.getInt("events.magma_tides.max_duration_days", 2);
+        this.baseChance = config.getDouble("events.magma_tides.base_chance_per_day", 0.1);
+        this.biggerCubeChance = config.getDouble("events.magma_tides.bigger_cube_chance", 0.3);
+        this.extraCreamChance = config.getDouble("events.magma_tides.extra_cream_chance", 0.4);
     }
 
     public String getId() {
@@ -62,11 +77,12 @@ public final class MagmaTidesEvent implements SeasonalEvent {
         return this.maxDur;
     }
 
-    public boolean canStartToday(CalendarState st, EventContext ctx) {
+    /** 仅当有玩家位于下界、且通过基础概率判定时才允许开始。 */
+    public boolean canStartToday(CalendarState state, EventContext context) {
         if (!this.enabled) {
             return false;
         } else {
-            boolean someoneInNether = Bukkit.getOnlinePlayers().stream().anyMatch((p) -> p.getWorld().getEnvironment() == Environment.NETHER);
+            boolean someoneInNether = Bukkit.getOnlinePlayers().stream().anyMatch((player) -> player.getWorld().getEnvironment() == Environment.NETHER);
             if (!someoneInNether) {
                 return false;
             } else {
@@ -75,53 +91,57 @@ public final class MagmaTidesEvent implements SeasonalEvent {
         }
     }
 
-    public void onStart(CalendarState st, EventContext ctx) {
-        for(Player p : Bukkit.getOnlinePlayers()) {
-            if (p.getWorld().getEnvironment() == Environment.NETHER) {
-                p.sendTitle(this.plugin.lang.tr(p, "event.magma_tides.title"), this.plugin.lang.tr(p, "event.magma_tides.subtitle"), 20, 80, 40);
+    /** 事件开始时向下界玩家发送标题提示。 */
+    public void onStart(CalendarState state, EventContext context) {
+        for(Player player : Bukkit.getOnlinePlayers()) {
+            if (player.getWorld().getEnvironment() == Environment.NETHER) {
+                player.sendTitle(this.plugin.lang.tr(player, "event.magma_tides.title"), this.plugin.lang.tr(player, "event.magma_tides.subtitle"), 20, 80, 40);
             }
         }
 
     }
 
-    public void onEnd(CalendarState st, EventContext ctx) {
-        for(Player p : Bukkit.getOnlinePlayers()) {
-            if (p.getWorld().getEnvironment() == Environment.NETHER) {
-                p.sendMessage(this.plugin.lang.tr(p, "event.magma_tides.end"));
+    /** 事件结束时向下界玩家发送结束提示。 */
+    public void onEnd(CalendarState state, EventContext context) {
+        for(Player player : Bukkit.getOnlinePlayers()) {
+            if (player.getWorld().getEnvironment() == Environment.NETHER) {
+                player.sendMessage(this.plugin.lang.tr(player, "event.magma_tides.end"));
             }
         }
 
     }
 
-    public void onDayTick(CalendarState st, EventContext ctx) {
+    public void onDayTick(CalendarState state, EventContext context) {
     }
 
-    public void onTick(CalendarState st, EventContext ctx) {
+    public void onTick(CalendarState state, EventContext context) {
     }
 
+    /** 监听生物生成：下界岩浆怪按概率变大一级（不超过 4）。 */
     @EventHandler
-    public void onSpawn(CreatureSpawnEvent e) {
-        LivingEntity var3 = e.getEntity();
-        if (var3 instanceof MagmaCube cube) {
+    public void onSpawn(CreatureSpawnEvent event) {
+        LivingEntity entity = event.getEntity();
+        if (entity instanceof MagmaCube cube) {
             if (cube.getWorld().getEnvironment() == Environment.NETHER) {
                 if (!(Math.random() > this.biggerCubeChance)) {
-                    int s = cube.getSize();
-                    cube.setSize(Math.min(4, s + 1));
+                    int size = cube.getSize();
+                    cube.setSize(Math.min(4, size + 1));
                     cube.getWorld().spawnParticle(Particle.LAVA, cube.getLocation().add((double)0.0F, 0.8, (double)0.0F), 10, 0.4, 0.3, 0.4, 0.01);
                 }
             }
         }
     }
 
+    /** 监听岩浆怪死亡：玩家击杀时按概率额外掉落岩浆膏。 */
     @EventHandler
-    public void onDeath(EntityDeathEvent e) {
-        LivingEntity var3 = e.getEntity();
-        if (var3 instanceof MagmaCube cube) {
+    public void onDeath(EntityDeathEvent event) {
+        LivingEntity entity = event.getEntity();
+        if (entity instanceof MagmaCube cube) {
             if (cube.getWorld().getEnvironment() == Environment.NETHER) {
                 if (cube.getKiller() != null) {
                     if (!(Math.random() > this.extraCreamChance)) {
                         int amt = 1 + ThreadLocalRandom.current().nextInt(2);
-                        e.getDrops().add(new ItemStack(Material.MAGMA_CREAM, amt));
+                        event.getDrops().add(new ItemStack(Material.MAGMA_CREAM, amt));
                     }
                 }
             }

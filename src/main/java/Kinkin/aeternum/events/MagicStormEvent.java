@@ -41,20 +41,44 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
+/**
+ * 魔法风暴事件（Magic Storm）。
+ *
+ * <p>在允许的季节按概率触发。事件激活期间，主世界会持续雷暴：
+ * <ul>
+ *     <li>靠近玩家的敌对生物有几率被“风暴化”——发光、获得速度/力量、改名，
+ *         并在事件结束时恢复原始名称与状态；</li>
+ *     <li>玩家击杀敌对生物时有几率额外掉落随机附魔书或附魔装备；</li>
+ *     <li>阻止雷击破坏受保护区域内的方块。</li>
+ * </ul>
+ * 生物状态通过 {@link PersistentDataContainer} 暂存，区块加载时也会清理残留标记。</p>
+ */
 public final class MagicStormEvent implements SeasonalEvent {
     private final AeternumSeasonsPlugin plugin;
     private boolean enabled;
+    /** 是否启用全局粒子特效。 */
     private boolean globalParticlesEnabled;
+    /** 事件最短持续天数。 */
     private int minDur;
+    /** 事件最长持续天数。 */
     private int maxDur;
+    /** 每天触发事件的基础概率。 */
     private double baseChance;
+    /** 允许触发本事件的季节列表。 */
     private List<Season> allowedSeasons;
+    /** 事件当前是否处于激活状态。 */
     private boolean active = false;
+    /** 敌对生物被风暴化的概率。 */
     private double rareMobChance;
+    /** 击杀时额外掉落战利品的概率。 */
     private double extraLootChance;
+    /** 标记生物已被风暴化的键。 */
     private final NamespacedKey kStormMark;
+    /** 暂存生物原有名称的键。 */
     private final NamespacedKey kPrevName;
+    /** 暂存生物原有名称可见性的键。 */
     private final NamespacedKey kPrevNameVisible;
+    /** 内部 tick 计数器，每 40 tick 执行一次附近生物扫描。 */
     private int tickCounter = 0;
     private static final Enchantment[] WEAPON_ENCHANTS;
     private static final Enchantment[] ARMOR_ENCHANTS;
@@ -72,21 +96,22 @@ public final class MagicStormEvent implements SeasonalEvent {
         this.reloadFromConfig();
     }
 
+    /** 从 events.yml 重新读取本事件的配置项（含允许季节清单）。 */
     private void reloadFromConfig() {
-        FileConfiguration y = YamlEvents.get(this.plugin);
-        this.enabled = y.getBoolean("events.magic_storm.enabled", true);
-        this.globalParticlesEnabled = y.getBoolean("events.visual_effects.particles_enabled", true);
-        this.minDur = y.getInt("events.magic_storm.min_duration_days", 1);
-        this.maxDur = y.getInt("events.magic_storm.max_duration_days", 1);
-        this.baseChance = y.getDouble("events.magic_storm.base_chance_per_day", 0.08);
-        this.rareMobChance = y.getDouble("events.magic_storm.rare_mob_chance", 0.35);
-        this.extraLootChance = y.getDouble("events.magic_storm.extra_loot_chance", 0.4);
+        FileConfiguration config = YamlEvents.get(this.plugin);
+        this.enabled = config.getBoolean("events.magic_storm.enabled", true);
+        this.globalParticlesEnabled = config.getBoolean("events.visual_effects.particles_enabled", true);
+        this.minDur = config.getInt("events.magic_storm.min_duration_days", 1);
+        this.maxDur = config.getInt("events.magic_storm.max_duration_days", 1);
+        this.baseChance = config.getDouble("events.magic_storm.base_chance_per_day", 0.08);
+        this.rareMobChance = config.getDouble("events.magic_storm.rare_mob_chance", 0.35);
+        this.extraLootChance = config.getDouble("events.magic_storm.extra_loot_chance", 0.4);
         this.allowedSeasons = new ArrayList();
 
-        for(String s : y.getStringList("events.magic_storm.allowed_seasons")) {
+        for(String seasonName : config.getStringList("events.magic_storm.allowed_seasons")) {
             try {
-                this.allowedSeasons.add(Season.valueOf(s.toUpperCase(Locale.ROOT)));
-            } catch (IllegalArgumentException var5) {
+                this.allowedSeasons.add(Season.valueOf(seasonName.toUpperCase(Locale.ROOT)));
+            } catch (IllegalArgumentException ignored) {
             }
         }
 
@@ -116,43 +141,46 @@ public final class MagicStormEvent implements SeasonalEvent {
         return this.maxDur;
     }
 
-    public boolean canStartToday(CalendarState st, EventContext ctx) {
+    /** 判定是否可开始：已启用、当前季节在允许列表中且通过基础概率。 */
+    public boolean canStartToday(CalendarState state, EventContext context) {
         if (!this.enabled) {
             return false;
-        } else if (!this.allowedSeasons.contains(st.season)) {
+        } else if (!this.allowedSeasons.contains(state.season)) {
             return false;
         } else {
             return Math.random() < this.baseChance;
         }
     }
 
-    public void onStart(CalendarState st, EventContext ctx) {
+    /** 事件开始：置为激活，令主世界进入雷暴并向全服玩家发送标题。 */
+    public void onStart(CalendarState state, EventContext context) {
         this.active = true;
 
-        for(World w : ctx.overworlds()) {
-            w.setStorm(true);
-            w.setThundering(true);
-            w.setWeatherDuration(24000);
-            w.playSound(w.getSpawnLocation(), Sound.ENTITY_WITHER_SPAWN, 0.6F, 0.4F);
+        for(World world : context.overworlds()) {
+            world.setStorm(true);
+            world.setThundering(true);
+            world.setWeatherDuration(24000);
+            world.playSound(world.getSpawnLocation(), Sound.ENTITY_WITHER_SPAWN, 0.6F, 0.4F);
         }
 
-        for(Player p : Bukkit.getOnlinePlayers()) {
-            String title = this.plugin.lang.tr(p, "event.magic_storm.title");
-            String sub = this.plugin.lang.tr(p, "event.magic_storm.subtitle");
-            p.sendTitle(title, sub, 20, 80, 40);
+        for(Player player : Bukkit.getOnlinePlayers()) {
+            String title = this.plugin.lang.tr(player, "event.magic_storm.title");
+            String sub = this.plugin.lang.tr(player, "event.magic_storm.subtitle");
+            player.sendTitle(title, sub, 20, 80, 40);
         }
 
     }
 
-    public void onEnd(CalendarState st, EventContext ctx) {
+    /** 事件结束：取消激活、停止雷暴并清理所有风暴化生物，然后通知玩家。 */
+    public void onEnd(CalendarState state, EventContext context) {
         this.active = false;
 
-        for(World w : ctx.overworlds()) {
-            if (w.getEnvironment() == Environment.NORMAL) {
-                w.setThundering(false);
-                w.setStorm(false);
+        for(World world : context.overworlds()) {
+            if (world.getEnvironment() == Environment.NORMAL) {
+                world.setThundering(false);
+                world.setStorm(false);
 
-                for(Monster mob : w.getEntitiesByClass(Monster.class)) {
+                for(Monster mob : world.getEntitiesByClass(Monster.class)) {
                     PersistentDataContainer pdc = mob.getPersistentDataContainer();
                     if (pdc.has(this.kStormMark, PersistentDataType.BYTE)) {
                         String prevName = (String)pdc.get(this.kPrevName, PersistentDataType.STRING);
@@ -175,27 +203,28 @@ public final class MagicStormEvent implements SeasonalEvent {
             }
         }
 
-        for(Player p : Bukkit.getOnlinePlayers()) {
-            p.sendMessage(this.plugin.lang.tr(p, "event.magic_storm.end"));
+        for(Player player : Bukkit.getOnlinePlayers()) {
+            player.sendMessage(this.plugin.lang.tr(player, "event.magic_storm.end"));
         }
 
     }
 
-    public void onDayTick(CalendarState st, EventContext ctx) {
+    public void onDayTick(CalendarState state, EventContext context) {
     }
 
-    public void onTick(CalendarState st, EventContext ctx) {
+    /** 每 tick 维持雷暴天气并播放粒子；每 40 tick 扫描附近生物将其风暴化。 */
+    public void onTick(CalendarState state, EventContext context) {
         if (this.active) {
-            for(World w : ctx.overworlds()) {
-                if (w.getEnvironment() == Environment.NORMAL && (!w.hasStorm() || !w.isThundering())) {
-                    w.setStorm(true);
-                    w.setThundering(true);
+            for(World world : context.overworlds()) {
+                if (world.getEnvironment() == Environment.NORMAL && (!world.hasStorm() || !world.isThundering())) {
+                    world.setStorm(true);
+                    world.setThundering(true);
                 }
             }
 
-            for(Player p : Bukkit.getOnlinePlayers()) {
-                if (p.getWorld().getEnvironment() == Environment.NORMAL && !p.isDead() && this.globalParticlesEnabled) {
-                    p.getWorld().spawnParticle(Particle.END_ROD, p.getLocation().add((double)0.0F, (double)1.5F, (double)0.0F), 2, 0.3, 0.4, 0.3, 0.01);
+            for(Player player : Bukkit.getOnlinePlayers()) {
+                if (player.getWorld().getEnvironment() == Environment.NORMAL && !player.isDead() && this.globalParticlesEnabled) {
+                    player.getWorld().spawnParticle(Particle.END_ROD, player.getLocation().add((double)0.0F, (double)1.5F, (double)0.0F), 2, 0.3, 0.4, 0.3, 0.01);
                 }
             }
 
@@ -203,14 +232,14 @@ public final class MagicStormEvent implements SeasonalEvent {
             if (this.tickCounter >= 40) {
                 this.tickCounter = 0;
 
-                for(Player p : Bukkit.getOnlinePlayers()) {
-                    if (p.getWorld().getEnvironment() == Environment.NORMAL) {
-                        World w = p.getWorld();
+                for(Player player : Bukkit.getOnlinePlayers()) {
+                    if (player.getWorld().getEnvironment() == Environment.NORMAL) {
+                        World world = player.getWorld();
 
-                        for(Entity e : w.getNearbyEntities(p.getLocation(), (double)24.0F, (double)16.0F, (double)24.0F)) {
-                            if (e instanceof Monster) {
-                                Monster mob = (Monster)e;
-                                this.tryMakeRareMob(mob, p);
+                        for(Entity entity : world.getNearbyEntities(player.getLocation(), (double)24.0F, (double)16.0F, (double)24.0F)) {
+                            if (entity instanceof Monster) {
+                                Monster mob = (Monster)entity;
+                                this.tryMakeRareMob(mob, player);
                             }
                         }
                     }
@@ -220,22 +249,23 @@ public final class MagicStormEvent implements SeasonalEvent {
         }
     }
 
+    /** 监听生物生成：主世界且事件激活时，将离玩家最近的生成生物尝试风暴化。 */
     @EventHandler
-    public void onSpawn(CreatureSpawnEvent e) {
-        LivingEntity var3 = e.getEntity();
-        if (var3 instanceof Monster mob) {
-            World w = e.getLocation().getWorld();
-            if (w != null) {
-                if (w.getEnvironment() == Environment.NORMAL) {
+    public void onSpawn(CreatureSpawnEvent event) {
+        LivingEntity entity = event.getEntity();
+        if (entity instanceof Monster mob) {
+            World world = event.getLocation().getWorld();
+            if (world != null) {
+                if (world.getEnvironment() == Environment.NORMAL) {
                     if (this.active) {
                         Player closest = null;
                         double best = Double.MAX_VALUE;
 
-                        for(Player p : w.getPlayers()) {
-                            double d2 = p.getLocation().distanceSquared(mob.getLocation());
-                            if (d2 < best) {
-                                best = d2;
-                                closest = p;
+                        for(Player player : world.getPlayers()) {
+                            double distanceSq = player.getLocation().distanceSquared(mob.getLocation());
+                            if (distanceSq < best) {
+                                best = distanceSq;
+                                closest = player;
                             }
                         }
 
@@ -246,10 +276,11 @@ public final class MagicStormEvent implements SeasonalEvent {
         }
     }
 
+    /** 尝试把生物转化为“风暴生物”：记录原名、发光、加速加力、改名并定时移除发光。 */
     private void tryMakeRareMob(Monster mob, @Nullable Player viewer) {
         if (!mob.isDead()) {
-            World w = mob.getWorld();
-            if (w.getEnvironment() == Environment.NORMAL) {
+            World world = mob.getWorld();
+            if (world.getEnvironment() == Environment.NORMAL) {
                 if (this.active) {
                     String existingName = mob.getCustomName();
                     if (existingName == null || existingName.isBlank()) {
@@ -279,11 +310,12 @@ public final class MagicStormEvent implements SeasonalEvent {
         }
     }
 
+    /** 监听生物死亡：事件激活时按概率额外掉落随机附魔书或附魔装备。 */
     @EventHandler
-    public void onDeath(EntityDeathEvent e) {
-        if (e.getEntity() instanceof Monster) {
-            World w = e.getEntity().getWorld();
-            if (w.getEnvironment() == Environment.NORMAL) {
+    public void onDeath(EntityDeathEvent event) {
+        if (event.getEntity() instanceof Monster) {
+            World world = event.getEntity().getWorld();
+            if (world.getEnvironment() == Environment.NORMAL) {
                 if (this.active) {
                     if (!(Math.random() > this.extraLootChance)) {
                         ThreadLocalRandom rnd = ThreadLocalRandom.current();
@@ -294,13 +326,14 @@ public final class MagicStormEvent implements SeasonalEvent {
                             reward = this.createRandomEnchantedGear(rnd);
                         }
 
-                        e.getDrops().add(reward);
+                        event.getDrops().add(reward);
                     }
                 }
             }
         }
     }
 
+    /** 生成一本随机附魔的附魔书。 */
     private ItemStack createRandomEnchantedBook(ThreadLocalRandom rnd) {
         ItemStack book = new ItemStack(Material.ENCHANTED_BOOK);
         EnchantmentStorageMeta meta = (EnchantmentStorageMeta)book.getItemMeta();
@@ -315,24 +348,25 @@ public final class MagicStormEvent implements SeasonalEvent {
         }
     }
 
+    /** 生成一件随机附魔的装备（武器/护甲/弓/钓竿/工具）。 */
     private ItemStack createRandomEnchantedGear(ThreadLocalRandom rnd) {
-        double r = rnd.nextDouble();
+        double roll = rnd.nextDouble();
         ItemStack item;
-        if (r < 0.4) {
+        if (roll < 0.4) {
             Material type = rnd.nextBoolean() ? Material.IRON_SWORD : Material.IRON_AXE;
             item = new ItemStack(type);
             Enchantment ench = this.randomFrom(WEAPON_ENCHANTS, rnd);
             this.applyEnchant(item, ench, rnd);
-        } else if (r < 0.7) {
+        } else if (roll < 0.7) {
             Material[] armorTypes = new Material[]{Material.IRON_HELMET, Material.IRON_CHESTPLATE, Material.IRON_LEGGINGS, Material.IRON_BOOTS};
             item = new ItemStack(armorTypes[rnd.nextInt(armorTypes.length)]);
             Enchantment ench = this.randomFrom(ARMOR_ENCHANTS, rnd);
             this.applyEnchant(item, ench, rnd);
-        } else if (r < 0.85) {
+        } else if (roll < 0.85) {
             item = new ItemStack(Material.BOW);
             Enchantment ench = this.randomFrom(BOW_ENCHANTS, rnd);
             this.applyEnchant(item, ench, rnd);
-        } else if (r < 0.95) {
+        } else if (roll < 0.95) {
             item = new ItemStack(Material.FISHING_ROD);
             Enchantment ench = this.randomFrom(FISHING_ENCHANTS, rnd);
             this.applyEnchant(item, ench, rnd);
@@ -346,21 +380,24 @@ public final class MagicStormEvent implements SeasonalEvent {
         return item;
     }
 
+    /** 对物品施加随机等级的附魔，并清除其耐久损耗。 */
     private void applyEnchant(ItemStack item, Enchantment ench, ThreadLocalRandom rnd) {
         int level = this.randomLevelFor(ench, true, rnd);
         item.addUnsafeEnchantment(ench, level);
         ItemMeta meta = item.getItemMeta();
-        if (meta instanceof Damageable dmg) {
-            dmg.setDamage(0);
+        if (meta instanceof Damageable damageable) {
+            damageable.setDamage(0);
             item.setItemMeta(meta);
         }
 
     }
 
+    /** 从给定附魔池中随机取一个附魔。 */
     private Enchantment randomFrom(Enchantment[] pool, ThreadLocalRandom rnd) {
         return pool[rnd.nextInt(pool.length)];
     }
 
+    /** 计算附魔的随机等级（装备上限较小，书上限较大）。 */
     private int randomLevelFor(Enchantment ench, boolean gear, ThreadLocalRandom rnd) {
         int max = ench.getMaxLevel();
         if (gear) {
@@ -373,14 +410,15 @@ public final class MagicStormEvent implements SeasonalEvent {
         return max <= min ? max : rnd.nextInt(min, max + 1);
     }
 
+    /** 事件未激活时清理区块中残留的风暴化标记（例如跨存档残留）。 */
     @EventHandler
-    public void onChunkLoad(ChunkLoadEvent e) {
-        World w = e.getWorld();
-        if (w.getEnvironment() == Environment.NORMAL) {
+    public void onChunkLoad(ChunkLoadEvent event) {
+        World world = event.getWorld();
+        if (world.getEnvironment() == Environment.NORMAL) {
             if (!this.active) {
-                for(Entity ent : e.getChunk().getEntities()) {
-                    if (ent instanceof Monster) {
-                        Monster mob = (Monster)ent;
+                for(Entity entity : event.getChunk().getEntities()) {
+                    if (entity instanceof Monster) {
+                        Monster mob = (Monster)entity;
                         PersistentDataContainer pdc = mob.getPersistentDataContainer();
                         if (pdc.has(this.kStormMark, PersistentDataType.BYTE)) {
                             String prevName = (String)pdc.get(this.kPrevName, PersistentDataType.STRING);
@@ -406,6 +444,7 @@ public final class MagicStormEvent implements SeasonalEvent {
         }
     }
 
+    /** 清除单个风暴化生物的所有影响并移除标记。 */
     private void cleanupStormMob(Monster mob) {
         PersistentDataContainer pdc = mob.getPersistentDataContainer();
         if (pdc.has(this.kStormMark, PersistentDataType.BYTE)) {
@@ -427,17 +466,18 @@ public final class MagicStormEvent implements SeasonalEvent {
         }
     }
 
+    /** 事件激活时拦截会破坏受保护区域的雷击。 */
     @EventHandler(
         ignoreCancelled = true
     )
-    public void onLightningStrike(LightningStrikeEvent e) {
+    public void onLightningStrike(LightningStrikeEvent event) {
         if (this.active) {
-            Location loc = e.getLightning().getLocation();
-            World w = loc.getWorld();
-            if (w != null && w.getEnvironment() == Environment.NORMAL) {
-                Block b = w.getBlockAt(loc);
-                if (!WinterWorldGuardHelper.canModify(b)) {
-                    e.setCancelled(true);
+            Location loc = event.getLightning().getLocation();
+            World world = loc.getWorld();
+            if (world != null && world.getEnvironment() == Environment.NORMAL) {
+                Block block = world.getBlockAt(loc);
+                if (!WinterWorldGuardHelper.canModify(block)) {
+                    event.setCancelled(true);
                 }
 
             }

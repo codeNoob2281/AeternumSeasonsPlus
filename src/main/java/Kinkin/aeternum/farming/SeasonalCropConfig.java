@@ -14,6 +14,13 @@ import org.bukkit.Material;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 
+/**
+ * 季节作物配置。
+ *
+ * <p>负责从 {@code crops.yml} 读取季节性作物相关配置，包括生长速度修正、
+ * 温室识别参数、调试工具以及每种作物允许种植的季节集合。</p>
+ * <p>实例通过 {@link #reload()} 重新读取磁盘配置；其余方法仅暴露读取结果。</p>
+ */
 public final class SeasonalCropConfig {
     private final AeternumSeasonsPlugin plugin;
     private boolean enabled;
@@ -40,16 +47,17 @@ public final class SeasonalCropConfig {
         this.reload();
     }
 
+    /** 从 crops.yml 重新读取全部配置项；文件不存在时会先尝试导出默认资源。 */
     public void reload() {
-        File f = new File(this.plugin.getDataFolder(), "crops.yml");
-        if (!f.exists()) {
+        File file = new File(this.plugin.getDataFolder(), "crops.yml");
+        if (!file.exists()) {
             try {
                 this.plugin.saveResource("crops.yml", false);
-            } catch (IllegalArgumentException var18) {
+            } catch (IllegalArgumentException ignored) {
             }
         }
 
-        YamlConfiguration cfg = YamlConfiguration.loadConfiguration(f);
+        YamlConfiguration cfg = YamlConfiguration.loadConfiguration(file);
         this.enabled = cfg.getBoolean("seasonal_crops.enabled", true);
         this.rainBonus = cfg.getDouble("seasonal_crops.rain_growth_bonus", (double)1.0F);
         this.winterGreenhouseBonus = cfg.getDouble("seasonal_crops.greenhouse.winter_bonus", (double)1.0F);
@@ -66,7 +74,7 @@ public final class SeasonalCropConfig {
 
         try {
             this.greenhouseCoreBlock = Material.valueOf(coreId.toUpperCase(Locale.ROOT));
-        } catch (Exception var17) {
+        } catch (Exception ignored) {
             this.greenhouseCoreBlock = null;
         }
 
@@ -75,7 +83,7 @@ public final class SeasonalCropConfig {
         for(String id : cfg.getStringList("seasonal_crops.greenhouse.block_types")) {
             try {
                 this.greenhouseBlocks.add(Material.valueOf(id.toUpperCase(Locale.ROOT)));
-            } catch (IllegalArgumentException var16) {
+            } catch (IllegalArgumentException ignored) {
             }
         }
 
@@ -84,7 +92,7 @@ public final class SeasonalCropConfig {
 
         try {
             this.debugStickMaterial = Material.valueOf(stickId.toUpperCase(Locale.ROOT));
-        } catch (Exception var15) {
+        } catch (Exception ignored) {
             this.debugStickMaterial = Material.STICK;
         }
 
@@ -100,12 +108,12 @@ public final class SeasonalCropConfig {
                     for(String s : allowed) {
                         try {
                             set.add(Season.valueOf(s.toUpperCase(Locale.ROOT)));
-                        } catch (Exception var14) {
+                        } catch (Exception ignored) {
                         }
                     }
 
                     this.cropSeasons.put(mat, set);
-                } catch (Exception var19) {
+                } catch (Exception ignored) {
                     this.plugin.getLogger().warning("[Crops] Tipo de cultivo no reconocido: " + key);
                 }
             }
@@ -173,10 +181,12 @@ public final class SeasonalCropConfig {
         return this.debugStickMaterial;
     }
 
+    /** 返回指定作物允许的季节集合；若该作物不受管理则返回 null。 */
     public EnumSet<Season> getAllowedSeasons(Material mat) {
         return (EnumSet)this.cropSeasons.get(mat);
     }
 
+    /** 判断指定作物是否受本配置管理。 */
     public boolean isManagedCrop(Material mat) {
         return this.cropSeasons.containsKey(mat);
     }

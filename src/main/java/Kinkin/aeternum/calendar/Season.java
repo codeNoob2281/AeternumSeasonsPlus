@@ -1,5 +1,10 @@
 package Kinkin.aeternum.calendar;
 
+/**
+ * 季节枚举。
+ *
+ * <p>定义一年中的四个季节，并提供面向玩家展示的西班牙语名称。</p>
+ */
 public enum Season {
     SPRING,
     SUMMER,
@@ -9,17 +14,18 @@ public enum Season {
     private Season() {
     }
 
+    /** 返回该季节的展示名称（西班牙语）。 */
     public String display() {
-        String var10000;
+        String displayName;
         switch (this.ordinal()) {
-            case 0 -> var10000 = "Primavera";
-            case 1 -> var10000 = "Verano";
-            case 2 -> var10000 = "Otoño";
-            case 3 -> var10000 = "Invierno";
+            case 0 -> displayName = "Primavera";
+            case 1 -> displayName = "Verano";
+            case 2 -> displayName = "Otoño";
+            case 3 -> displayName = "Invierno";
             default -> throw new MatchException((String)null, (Throwable)null);
         }
 
-        return var10000;
+        return displayName;
     }
 
     // $FF: synthetic method

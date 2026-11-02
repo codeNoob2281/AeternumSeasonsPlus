@@ -36,6 +36,18 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 
+/**
+ * 丰收锄（Harvest Hoe）。
+ *
+ * <p>本类负责注册并维护“丰收锄”自定义物品：
+ * <ul>
+ *     <li>注册由小麦 + 任意锄 + 绿宝石合成的有序配方，并在合成预览时校验材料；</li>
+ *     <li>为合成产物写入名称、描述与持久化标签；</li>
+ *     <li>玩家用丰收锄破坏成熟作物时，会以该方块为中心一次性收割周围 5x5 范围内的成熟作物；</li>
+ *     <li>收割时会尝试消耗玩家背包中的种子自动补种，并消耗锄的耐久。</li>
+ * </ul>
+ * 依赖 {@link AeternumSeasonsPlugin} 与 {@link SeasonFoods} 提供语言文本、自定义作物支持。</p>
+ */
 public final class HarvestHoe implements Listener {
     private final AeternumSeasonsPlugin plugin;
     private final NamespacedKey itemTagKey;
@@ -49,21 +61,24 @@ public final class HarvestHoe implements Listener {
         this.recipeKey = new NamespacedKey(plugin, "harvest_hoe");
     }
 
+    /** 向服务器注册事件监听器与合成配方。 */
     public void register() {
         Bukkit.getPluginManager().registerEvents(this, this.plugin);
         this.registerRecipe();
     }
 
+    /** 注销事件监听器并移除已注册的合成配方。 */
     public void unregister() {
         HandlerList.unregisterAll(this);
         Bukkit.removeRecipe(this.recipeKey);
     }
 
+    /** 注册丰收锄的合成配方：W 小麦、H 任意锄、E 绿宝石。 */
     private void registerRecipe() {
         ItemStack dummy = new ItemStack(Material.IRON_HOE);
         ShapedRecipe recipe = new ShapedRecipe(this.recipeKey, dummy);
         recipe.shape(new String[]{"WWW", "EHE", "EEE"});
-        Material[] hoeMats = (Material[])Arrays.stream(Material.values()).filter(Material::isItem).filter((m) -> m.name().endsWith("_HOE")).toArray((x$0) -> new Material[x$0]);
+        Material[] hoeMats = (Material[])Arrays.stream(Material.values()).filter(Material::isItem).filter((material) -> material.name().endsWith("_HOE")).toArray((length) -> new Material[length]);
         RecipeChoice hoeChoice = new RecipeChoice.MaterialChoice(hoeMats);
         recipe.setIngredient('W', Material.WHEAT);
         recipe.setIngredient('H', hoeChoice);
@@ -71,33 +86,37 @@ public final class HarvestHoe implements Listener {
         Bukkit.addRecipe(recipe);
     }
 
+    /**
+     * 监听合成预览事件：当配方为丰收锄配方时，
+     * 校验摆放的材料（一把锄、至少 1 个小麦与 1 个绿宝石），符合条件才显示产物。
+     */
     @EventHandler
-    public void onPrepareCraft(PrepareItemCraftEvent e) {
-        if (e.getRecipe() != null) {
-            Recipe var3 = e.getRecipe();
-            if (var3 instanceof ShapedRecipe) {
-                ShapedRecipe shaped = (ShapedRecipe)var3;
+    public void onPrepareCraft(PrepareItemCraftEvent event) {
+        if (event.getRecipe() != null) {
+            Recipe recipe = event.getRecipe();
+            if (recipe instanceof ShapedRecipe) {
+                ShapedRecipe shaped = (ShapedRecipe)recipe;
                 if (this.recipeKey.equals(shaped.getKey())) {
-                    ItemStack[] matrix = e.getInventory().getMatrix();
+                    ItemStack[] matrix = event.getInventory().getMatrix();
                     ItemStack foundHoe = null;
                     int wheat = 0;
                     int emerald = 0;
 
                     for(ItemStack stack : matrix) {
                         if (stack != null && stack.getType() != Material.AIR) {
-                            Material t = stack.getType();
-                            if (this.isHoe(t)) {
+                            Material type = stack.getType();
+                            if (this.isHoe(type)) {
                                 if (foundHoe != null) {
-                                    e.getInventory().setResult((ItemStack)null);
+                                    event.getInventory().setResult((ItemStack)null);
                                     return;
                                 }
 
                                 foundHoe = stack;
-                            } else if (t == Material.WHEAT) {
+                            } else if (type == Material.WHEAT) {
                                 wheat += stack.getAmount();
                             } else {
-                                if (t != Material.EMERALD) {
-                                    e.getInventory().setResult((ItemStack)null);
+                                if (type != Material.EMERALD) {
+                                    event.getInventory().setResult((ItemStack)null);
                                     return;
                                 }
 
@@ -108,10 +127,10 @@ public final class HarvestHoe implements Listener {
 
                     if (foundHoe != null && wheat >= 1 && emerald >= 1) {
                         Player crafter = null;
-                        HumanEntity var20 = e.getView().getPlayer();
-                        if (var20 instanceof Player) {
-                            Player pl = (Player)var20;
-                            crafter = pl;
+                        HumanEntity viewer = event.getView().getPlayer();
+                        if (viewer instanceof Player) {
+                            Player player = (Player)viewer;
+                            crafter = player;
                         }
 
                         ItemStack result = new ItemStack(foundHoe.getType());
@@ -127,32 +146,34 @@ public final class HarvestHoe implements Listener {
                                 String lore3 = this.plugin.lang.tr(crafter, "item.harvest_hoe.lore3");
                                 meta.setDisplayName(name);
                                 meta.setLore(Arrays.asList(lore1, lore2, lore3));
-                            } catch (Throwable var15) {
+                            } catch (Throwable ignored) {
                             }
 
                             result.setItemMeta(meta);
                         }
 
-                        e.getInventory().setResult(result);
+                        event.getInventory().setResult(result);
                     } else {
-                        e.getInventory().setResult((ItemStack)null);
+                        event.getInventory().setResult((ItemStack)null);
                     }
                 }
             }
         }
     }
 
-    private boolean isHoe(Material m) {
-        if (m == null) {
+    /** 判断给定材料是否为任意锄（含原版与自定义命名空间）。 */
+    private boolean isHoe(Material material) {
+        if (material == null) {
             return false;
-        } else if (m.name().endsWith("_HOE")) {
+        } else if (material.name().endsWith("_HOE")) {
             return true;
         } else {
-            NamespacedKey k = m.getKey();
-            return k != null && "minecraft".equals(k.getNamespace()) && k.getKey().endsWith("_hoe");
+            NamespacedKey key = material.getKey();
+            return key != null && "minecraft".equals(key.getNamespace()) && key.getKey().endsWith("_hoe");
         }
     }
 
+    /** 判断物品是否为带有丰收锄持久化标签的锄。 */
     private boolean isHarvestHoe(ItemStack stack) {
         if (stack == null) {
             return false;
@@ -169,42 +190,48 @@ public final class HarvestHoe implements Listener {
         }
     }
 
+    /** 监听方块破坏：玩家手持丰收锄破坏成熟作物时，取消原事件并触发范围收割。 */
     @EventHandler(
         ignoreCancelled = true,
         priority = EventPriority.HIGH
     )
-    public void onBlockBreak(BlockBreakEvent e) {
-        Player p = e.getPlayer();
-        if (p != null) {
-            ItemStack hoe = p.getInventory().getItemInMainHand();
+    public void onBlockBreak(BlockBreakEvent event) {
+        Player player = event.getPlayer();
+        if (player != null) {
+            ItemStack hoe = player.getInventory().getItemInMainHand();
             if (this.isHarvestHoe(hoe)) {
-                Block center = e.getBlock();
-                BlockData var6 = center.getBlockData();
-                if (var6 instanceof Ageable) {
-                    Ageable ageableCenter = (Ageable)var6;
+                Block center = event.getBlock();
+                BlockData blockData = center.getBlockData();
+                if (blockData instanceof Ageable) {
+                    Ageable ageableCenter = (Ageable)blockData;
                     if (this.isMature(ageableCenter)) {
-                        e.setCancelled(true);
-                        this.harvestArea(p, hoe, center);
+                        event.setCancelled(true);
+                        this.harvestArea(player, hoe, center);
                     }
                 }
             }
         }
     }
 
+    /** 判断可生长方块是否已达到最大成熟度。 */
     private boolean isMature(Ageable data) {
         return data.getAge() >= data.getMaximumAge();
     }
 
-    private void harvestArea(Player p, ItemStack hoe, Block center) {
-        World w = center.getWorld();
+    /**
+     * 以指定方块为中心，一次性收割周围范围内的成熟作物，
+     * 并在种子充足时自动补种、扣除锄的耐久。
+     */
+    private void harvestArea(Player player, ItemStack hoe, Block center) {
+        World world = center.getWorld();
         List<HarvestTarget> targets = new ArrayList();
         this.addIfMature(targets, center);
 
         for(int dx = -2; dx <= 2; ++dx) {
             for(int dz = -2; dz <= 2; ++dz) {
                 if (dx != 0 || dz != 0) {
-                    Block b = w.getBlockAt(center.getX() + dx, center.getY(), center.getZ() + dz);
-                    this.addIfMature(targets, b);
+                    Block block = world.getBlockAt(center.getX() + dx, center.getY(), center.getZ() + dz);
+                    this.addIfMature(targets, block);
                 }
             }
         }
@@ -212,99 +239,101 @@ public final class HarvestHoe implements Listener {
         if (!targets.isEmpty()) {
             Map<SeedKey, Integer> need = new HashMap();
 
-            for(HarvestTarget t : targets) {
-                if (t.canReplant) {
-                    need.merge(t.seed, 1, Integer::sum);
+            for(HarvestTarget target : targets) {
+                if (target.canReplant) {
+                    need.merge(target.seed, 1, Integer::sum);
                 }
             }
 
             Map<SeedKey, Integer> availableForPlant = new HashMap();
 
-            for(Map.Entry<SeedKey, Integer> e : need.entrySet()) {
-                SeedKey seed = (SeedKey)e.getKey();
-                int required = (Integer)e.getValue();
-                int removed = this.removeUpToFromPlayer(p, seed, required);
+            for(Map.Entry<SeedKey, Integer> entry : need.entrySet()) {
+                SeedKey seed = (SeedKey)entry.getKey();
+                int required = (Integer)entry.getValue();
+                int removed = this.removeUpToFromPlayer(player, seed, required);
                 availableForPlant.put(seed, removed);
             }
 
             int harvested = 0;
 
-            for(HarvestTarget t : targets) {
-                Block b = t.block;
-                int seedsLeft = t.canReplant ? (Integer)availableForPlant.getOrDefault(t.seed, 0) : 0;
+            for(HarvestTarget target : targets) {
+                Block block = target.block;
+                int seedsLeft = target.canReplant ? (Integer)availableForPlant.getOrDefault(target.seed, 0) : 0;
                 boolean replant = seedsLeft > 0;
                 SeasonFoods seasonFoods = this.plugin.getSeasonFoods();
                 Collection<ItemStack> drops;
-                if (t.artificialCropId != null && seasonFoods != null) {
-                    ItemStack customDrop = seasonFoods.createArtificialCropDrop(t.artificialCropId, p, 2 + ThreadLocalRandom.current().nextInt(4));
+                if (target.artificialCropId != null && seasonFoods != null) {
+                    ItemStack customDrop = seasonFoods.createArtificialCropDrop(target.artificialCropId, player, 2 + ThreadLocalRandom.current().nextInt(4));
                     drops = customDrop != null ? List.of(customDrop) : List.of();
                 } else {
-                    drops = b.getDrops(hoe, p);
+                    drops = block.getDrops(hoe, player);
                 }
 
-                b.setType(Material.AIR, false);
+                block.setType(Material.AIR, false);
 
                 for(ItemStack drop : drops) {
                     if (drop != null && drop.getType() != Material.AIR && drop.getAmount() > 0) {
-                        w.dropItemNaturally(b.getLocation().add((double)0.5F, 0.2, (double)0.5F), drop);
+                        world.dropItemNaturally(block.getLocation().add((double)0.5F, 0.2, (double)0.5F), drop);
                     }
                 }
 
-                if (t.artificialCropId != null && seasonFoods != null) {
-                    seasonFoods.finishArtificialHarvest(b, t.artificialCropId, replant);
+                if (target.artificialCropId != null && seasonFoods != null) {
+                    seasonFoods.finishArtificialHarvest(block, target.artificialCropId, replant);
                 } else if (replant) {
-                    b.setType(t.cropType, false);
-                    BlockData var30 = b.getBlockData();
-                    if (var30 instanceof Ageable) {
-                        Ageable newAge = (Ageable)var30;
+                    block.setType(target.cropType, false);
+                    BlockData blockData = block.getBlockData();
+                    if (blockData instanceof Ageable) {
+                        Ageable newAge = (Ageable)blockData;
                         newAge.setAge(0);
-                        b.setBlockData(newAge, false);
+                        block.setBlockData(newAge, false);
                     }
                 }
 
                 if (replant) {
-                    availableForPlant.put(t.seed, seedsLeft - 1);
-                    w.spawnParticle(Particle.HAPPY_VILLAGER, b.getLocation().add((double)0.5F, 0.4, (double)0.5F), 4, 0.2, 0.2, 0.2);
+                    availableForPlant.put(target.seed, seedsLeft - 1);
+                    world.spawnParticle(Particle.HAPPY_VILLAGER, block.getLocation().add((double)0.5F, 0.4, (double)0.5F), 4, 0.2, 0.2, 0.2);
                 }
 
                 ++harvested;
             }
 
             if (harvested > 0) {
-                this.damageHoe(p, hoe, harvested);
-                w.playSound(center.getLocation(), Sound.ITEM_HOE_TILL, 0.8F, 1.1F);
+                this.damageHoe(player, hoe, harvested);
+                world.playSound(center.getLocation(), Sound.ITEM_HOE_TILL, 0.8F, 1.1F);
             }
 
         }
     }
 
-    private void addIfMature(List<HarvestTarget> out, Block b) {
-        BlockData var4 = b.getBlockData();
-        if (var4 instanceof Ageable age) {
+    /** 若方块为成熟作物，则将其加入待收割列表，并记录作物类型、种子与能否补种的信息。 */
+    private void addIfMature(List<HarvestTarget> out, Block block) {
+        BlockData blockData = block.getBlockData();
+        if (blockData instanceof Ageable age) {
             if (this.isMature(age)) {
-                Material crop = b.getType();
+                Material crop = block.getType();
                 SeasonFoods seasonFoods = this.plugin.getSeasonFoods();
-                String artificialCropId = seasonFoods != null ? seasonFoods.getArtificialCropId(b) : null;
+                String artificialCropId = seasonFoods != null ? seasonFoods.getArtificialCropId(block) : null;
                 if (artificialCropId != null) {
                     Material seedMaterial = seasonFoods.getArtificialSeedMaterial(artificialCropId);
                     if (seedMaterial != null) {
-                        Block below = b.getRelative(0, -1, 0);
-                        out.add(new HarvestTarget(b, crop, new SeedKey(seedMaterial, artificialCropId), below.getType() == Material.FARMLAND, artificialCropId));
+                        Block below = block.getRelative(0, -1, 0);
+                        out.add(new HarvestTarget(block, crop, new SeedKey(seedMaterial, artificialCropId), below.getType() == Material.FARMLAND, artificialCropId));
                     }
                 } else {
                     Material seed = this.seedForCrop(crop);
                     if (seed == null) {
-                        out.add(new HarvestTarget(b, crop, new SeedKey(Material.AIR, (String)null), false, (String)null));
+                        out.add(new HarvestTarget(block, crop, new SeedKey(Material.AIR, (String)null), false, (String)null));
                     } else {
-                        Block below = b.getRelative(0, -1, 0);
+                        Block below = block.getRelative(0, -1, 0);
                         boolean can = this.canReplantOn(crop, below.getType());
-                        out.add(new HarvestTarget(b, crop, new SeedKey(seed, (String)null), can, (String)null));
+                        out.add(new HarvestTarget(block, crop, new SeedKey(seed, (String)null), can, (String)null));
                     }
                 }
             }
         }
     }
 
+    /** 判断指定作物能否补种在其下方的方块上（下界疣需灵魂沙，其余需耕地）。 */
     private boolean canReplantOn(Material crop, Material below) {
         if (crop == Material.NETHER_WART) {
             return below == Material.SOUL_SAND;
@@ -313,6 +342,7 @@ public final class HarvestHoe implements Listener {
         }
     }
 
+    /** 返回指定作物对应的种子材料；无法识别时返回 null。 */
     private Material seedForCrop(Material crop) {
         switch (crop) {
             case WHEAT -> {
@@ -336,23 +366,26 @@ public final class HarvestHoe implements Listener {
         }
     }
 
-    private int removeUpToFromPlayer(Player p, SeedKey seed, int amount) {
+    /**
+     * 从玩家背包（含副手）中移除至多指定数量的指定种子，返回实际移除的数量。
+     */
+    private int removeUpToFromPlayer(Player player, SeedKey seed, int amount) {
         if (amount <= 0) {
             return 0;
         } else {
-            PlayerInventory inv = p.getInventory();
+            PlayerInventory inv = player.getInventory();
             int removed = 0;
             ItemStack[] storage = inv.getStorageContents();
             boolean changed = false;
 
             for(int i = 0; i < storage.length && removed < amount; ++i) {
-                ItemStack s = storage[i];
-                if (this.matchesSeed(s, seed)) {
-                    int take = Math.min(s.getAmount(), amount - removed);
-                    s.setAmount(s.getAmount() - take);
+                ItemStack stack = storage[i];
+                if (this.matchesSeed(stack, seed)) {
+                    int take = Math.min(stack.getAmount(), amount - removed);
+                    stack.setAmount(stack.getAmount() - take);
                     removed += take;
                     changed = true;
-                    if (s.getAmount() <= 0) {
+                    if (stack.getAmount() <= 0) {
                         storage[i] = null;
                     }
                 }
@@ -363,15 +396,15 @@ public final class HarvestHoe implements Listener {
             }
 
             if (removed < amount) {
-                ItemStack off = inv.getItemInOffHand();
-                if (this.matchesSeed(off, seed)) {
-                    int take = Math.min(off.getAmount(), amount - removed);
-                    off.setAmount(off.getAmount() - take);
+                ItemStack offHand = inv.getItemInOffHand();
+                if (this.matchesSeed(offHand, seed)) {
+                    int take = Math.min(offHand.getAmount(), amount - removed);
+                    offHand.setAmount(offHand.getAmount() - take);
                     removed += take;
-                    if (off.getAmount() <= 0) {
+                    if (offHand.getAmount() <= 0) {
                         inv.setItemInOffHand((ItemStack)null);
                     } else {
-                        inv.setItemInOffHand(off);
+                        inv.setItemInOffHand(offHand);
                     }
                 }
             }
@@ -380,6 +413,7 @@ public final class HarvestHoe implements Listener {
         }
     }
 
+    /** 判断物品是否与指定种子标识匹配（区分自定义作物种子与普通种子）。 */
     private boolean matchesSeed(ItemStack stack, SeedKey seed) {
         if (stack != null && stack.getType() == seed.material) {
             SeasonFoods seasonFoods = this.plugin.getSeasonFoods();
@@ -393,7 +427,8 @@ public final class HarvestHoe implements Listener {
         }
     }
 
-    private void damageHoe(Player p, ItemStack hoe, int harvestedBlocks) {
+    /** 依据本次收割的方块数扣除锄的耐久；耐久耗尽则移除手中物品并播放损坏音效。 */
+    private void damageHoe(Player player, ItemStack hoe, int harvestedBlocks) {
         if (hoe != null) {
             ItemMeta meta = hoe.getItemMeta();
             if (meta instanceof Damageable) {
@@ -403,22 +438,24 @@ public final class HarvestHoe implements Listener {
                 int newDamage = damage + toAdd;
                 short max = hoe.getType().getMaxDurability();
                 if (newDamage >= max) {
-                    p.getWorld().playSound(p.getLocation(), Sound.ENTITY_ITEM_BREAK, 1.0F, 1.0F);
-                    p.getInventory().setItemInMainHand((ItemStack)null);
+                    player.getWorld().playSound(player.getLocation(), Sound.ENTITY_ITEM_BREAK, 1.0F, 1.0F);
+                    player.getInventory().setItemInMainHand((ItemStack)null);
                 } else {
                     dmg.setDamage(newDamage);
                     hoe.setItemMeta(dmg);
-                    p.getInventory().setItemInMainHand(hoe);
+                    player.getInventory().setItemInMainHand(hoe);
                 }
             }
         }
     }
 
+    /** 种子标识：作物对应的种子材料，以及可选的（自定义）作物 id。 */
     private static record SeedKey(Material material, String artificialCropId) {
         private SeedKey {
         }
     }
 
+    /** 单个待收割方块的上下文：方块本体、作物类型、种子标识、能否补种、自定义作物 id。 */
     private static record HarvestTarget(Block block, Material cropType, SeedKey seed, boolean canReplant, String artificialCropId) {
         private HarvestTarget {
         }

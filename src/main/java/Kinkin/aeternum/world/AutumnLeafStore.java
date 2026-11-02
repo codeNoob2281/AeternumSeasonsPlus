@@ -15,6 +15,16 @@ import java.util.Map;
 import org.bukkit.Material;
 import org.bukkit.plugin.java.JavaPlugin;
 
+/**
+ * 秋季树叶存储（AutumnLeafStore）。
+ *
+ * <p>负责把“方块位置的原始树叶材质”记录持久化到插件数据目录下的
+ * {@code autumn-leaves.dat} 二进制文件，供秋季染色后还原原始树叶类型使用。
+ * 文件以魔数 {@link #MAGIC} 开头，随后是条目数，再逐条写入“位置字符串 + 材质名”。
+ * 读写均做了容错：读取失败仅记录警告并返回已读到的部分，保存失败记录严重日志。</p>
+ *
+ * <p>依赖 Bukkit 的 {@link JavaPlugin} 以定位数据目录与日志器。</p>
+ */
 final class AutumnLeafStore {
     private static final int MAGIC = 1095517745;
 
@@ -22,6 +32,14 @@ final class AutumnLeafStore {
         super();
     }
 
+    /**
+     * 从数据目录读取秋季树叶映射。
+     *
+     * <p>文件不存在时返回空映射；解析过程中出现异常只会记录警告，并返回已成功读取的条目。</p>
+     *
+     * @param plugin 用于定位数据目录与日志的插件实例
+     * @return 位置字符串到原始树叶材质的映射
+     */
     static Map<String, Material> load(JavaPlugin plugin) {
         Map<String, Material> leaves = new HashMap();
         Path file = plugin.getDataFolder().toPath().resolve("autumn-leaves.dat");
@@ -32,18 +50,18 @@ final class AutumnLeafStore {
                 DataInputStream input = new DataInputStream(new BufferedInputStream(Files.newInputStream(file)));
 
                 try {
-                    label55: {
+                    readEntriesBlock: {
                         if (input.readInt() != 1095517745) {
                             throw new IOException("Invalid leaf store header");
                         }
 
                         int count = input.readInt();
                         if (count >= 0 && count <= 10000000) {
-                            int i = 0;
+                            int index = 0;
 
                             while(true) {
-                                if (i >= count) {
-                                    break label55;
+                                if (index >= count) {
+                                    break readEntriesBlock;
                                 }
 
                                 String location = input.readUTF();
@@ -52,20 +70,20 @@ final class AutumnLeafStore {
                                     leaves.put(location, original);
                                 }
 
-                                ++i;
+                                ++index;
                             }
                         }
 
                         throw new IOException("Invalid leaf count");
                     }
-                } catch (Throwable var9) {
+                } catch (Throwable readFailure) {
                     try {
                         input.close();
-                    } catch (Throwable var8) {
-                        var9.addSuppressed(var8);
+                    } catch (Throwable closeFailure) {
+                        readFailure.addSuppressed(closeFailure);
                     }
 
-                    throw var9;
+                    throw readFailure;
                 }
 
                 input.close();
@@ -77,6 +95,15 @@ final class AutumnLeafStore {
         }
     }
 
+    /**
+     * 把秋季树叶映射写入数据目录。
+     *
+     * <p>先写入同目录的临时文件，再原子移动到目标文件（不支持原子移动时回退为普通替换），
+     * 以避免写入中断破坏已有文件。写入失败记录严重日志。</p>
+     *
+     * @param plugin 用于定位数据目录与日志的插件实例
+     * @param leaves 待保存的位置字符串到原始树叶材质的映射
+     */
     static void save(JavaPlugin plugin, Map<String, Material> leaves) {
         Path file = plugin.getDataFolder().toPath().resolve("autumn-leaves.dat");
         Path temp = file.resolveSibling("autumn-leaves.dat.tmp");
@@ -93,21 +120,21 @@ final class AutumnLeafStore {
                     output.writeUTF((String)entry.getKey());
                     output.writeUTF(((Material)entry.getValue()).name());
                 }
-            } catch (Throwable var9) {
+            } catch (Throwable writeFailure) {
                 try {
                     output.close();
-                } catch (Throwable var7) {
-                    var9.addSuppressed(var7);
+                } catch (Throwable closeFailure) {
+                    writeFailure.addSuppressed(closeFailure);
                 }
 
-                throw var9;
+                throw writeFailure;
             }
 
             output.close();
 
             try {
                 Files.move(temp, file, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
-            } catch (AtomicMoveNotSupportedException var8) {
+            } catch (AtomicMoveNotSupportedException atomicMoveUnsupported) {
                 Files.move(temp, file, StandardCopyOption.REPLACE_EXISTING);
             }
         } catch (IOException error) {

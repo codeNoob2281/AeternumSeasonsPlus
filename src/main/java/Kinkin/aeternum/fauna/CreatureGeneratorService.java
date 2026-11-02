@@ -60,6 +60,20 @@ import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.io.BukkitObjectInputStream;
 import org.bukkit.util.io.BukkitObjectOutputStream;
 
+/**
+ * 生物生成器（Creature Generator）服务。
+ *
+ * <p>以刷怪笼方块作为“生物陷阱/生成器”：玩家用刷怪笼物品放置后，生成器会在有玩家靠近时
+ * 按周期随机产出普通刷怪蛋并存入其 3 个内部格位，同时消耗使用次数；次数耗尽后生成器碎裂。
+ * 主要行为与依赖：
+ * <ul>
+ *     <li>注册生成器物品的合成配方，并用持久化标记区分普通刷怪笼；</li>
+ *     <li>监听放置/破坏/交互/背包事件，维护生成器状态与 GUI；</li>
+ *     <li>通过区块加载与周期扫描发现并处理生成器，内部存储以字节数组序列化；</li>
+ *     <li>依赖 {@link AeternumSeasonsPlugin} 提供配置、语言与调度器。</li>
+ * </ul>
+ * 生成器以 {@link TrapKey}（世界 UUID + 坐标）唯一标识。</p>
+ */
 public final class CreatureGeneratorService implements Listener {
     private static final int STORAGE_SLOTS = 3;
     private final AeternumSeasonsPlugin plugin;
@@ -90,6 +104,9 @@ public final class CreatureGeneratorService implements Listener {
         this.eggUidKey = new NamespacedKey(plugin, "trap_egg_uid");
     }
 
+    /**
+     * 加载配置、注册事件监听与配方、启动任务并扫描已加载区块中的生成器。
+     */
     public void register() {
         this.loadFauna();
         Bukkit.getPluginManager().registerEvents(this, this.plugin);
@@ -98,6 +115,9 @@ public final class CreatureGeneratorService implements Listener {
         this.enqueueLoadedChunks();
     }
 
+    /**
+     * 停止任务、注销监听并清空所有队列与已知生成器缓存。
+     */
     public void unregister() {
         this.stopTask();
         HandlerList.unregisterAll(this);
@@ -108,6 +128,9 @@ public final class CreatureGeneratorService implements Listener {
         this.queuedChunks.clear();
     }
 
+    /**
+     * 重新加载配置、重新注册配方并重启任务与区块扫描。
+     */
     public void reload() {
         this.loadFauna();
         this.registerRecipes();
@@ -115,6 +138,9 @@ public final class CreatureGeneratorService implements Listener {
         this.enqueueLoadedChunks();
     }
 
+    /**
+     * 加载 fauna.yml，并重建加权生物类型列表。
+     */
     private void loadFauna() {
         if (!this.plugin.getDataFolder().exists()) {
             this.plugin.getDataFolder().mkdirs();
@@ -124,10 +150,10 @@ public final class CreatureGeneratorService implements Listener {
         if (!this.faunaFile.exists()) {
             try {
                 this.plugin.saveResource("fauna.yml", false);
-            } catch (IllegalArgumentException var4) {
+            } catch (IllegalArgumentException ignored) {
                 try {
                     this.faunaFile.createNewFile();
-                } catch (IOException var3) {
+                } catch (IOException ignoredToo) {
                 }
             }
         }
@@ -136,26 +162,44 @@ public final class CreatureGeneratorService implements Listener {
         this.rebuildWeightedTypes();
     }
 
+    /**
+     * 生成器功能是否启用。
+     */
     private boolean enabled() {
         return this.fauna.getBoolean("creature_generator.enabled", true);
     }
 
+    /**
+     * 默认使用次数（至少 1）。
+     */
     private int defaultUses() {
         return Math.max(1, this.fauna.getInt("creature_generator.uses", 10));
     }
 
+    /**
+     * 生成周期（秒，至少 5）。
+     */
     private int tickSeconds() {
         return Math.max(5, this.fauna.getInt("creature_generator.tick_seconds", 180));
     }
 
+    /**
+     * 生成时是否需要有玩家在附近。
+     */
     private boolean requirePlayerNearby() {
         return this.fauna.getBoolean("creature_generator.require_player_nearby", true);
     }
 
+    /**
+     * 玩家有效范围（格，至少 1）。
+     */
     private int playerRange() {
         return Math.max(1, this.fauna.getInt("creature_generator.player_range", 26));
     }
 
+    /**
+     * 读取允许生成的可存活生物类型列表（排除凋灵/末影龙）。
+     */
     private List<EntityType> allowedTypes() {
         List<String> raw = this.fauna.getStringList("creature_generator.allowed");
         if (raw != null && !raw.isEmpty()) {
@@ -168,7 +212,7 @@ public final class CreatureGeneratorService implements Listener {
                         if (t.isAlive() && t != EntityType.WITHER && t != EntityType.ENDER_DRAGON) {
                             out.add(t);
                         }
-                    } catch (Exception var6) {
+                    } catch (Exception ignored) {
                     }
                 }
             }
@@ -183,6 +227,9 @@ public final class CreatureGeneratorService implements Listener {
         }
     }
 
+    /**
+     * 注册生成器物品的合成配方（先移除旧配方避免重复）。
+     */
     private void registerRecipes() {
         if (this.enabled()) {
             if (this.fauna.getBoolean("creature_generator.crafting.generator", true)) {
@@ -190,7 +237,7 @@ public final class CreatureGeneratorService implements Listener {
 
                 try {
                     Bukkit.removeRecipe(key);
-                } catch (Throwable var4) {
+                } catch (Throwable ignored) {
                 }
 
                 ItemStack result = this.createTrapItem(this.defaultUses());
@@ -204,14 +251,17 @@ public final class CreatureGeneratorService implements Listener {
         }
     }
 
+    /**
+     * 按权重随机挑选一种生成类型；无权重配置时退回普通随机。
+     */
     private EntityType pickWeightedType() {
         if (!this.weightedTypes.isEmpty() && this.weightedTotal > 0) {
-            int r = ThreadLocalRandom.current().nextInt(this.weightedTotal);
+            int roll = ThreadLocalRandom.current().nextInt(this.weightedTotal);
             int acc = 0;
 
             for(WeightedType entry : this.weightedTypes) {
                 acc += entry.weight();
-                if (r < acc) {
+                if (roll < acc) {
                     return entry.type();
                 }
             }
@@ -223,6 +273,9 @@ public final class CreatureGeneratorService implements Listener {
         }
     }
 
+    /**
+     * 从配置的 allowed_weighted 段重建加权类型列表与总权重。
+     */
     private void rebuildWeightedTypes() {
         ConfigurationSection section = this.fauna.getConfigurationSection("creature_generator.allowed_weighted");
         if (section == null) {
@@ -236,7 +289,7 @@ public final class CreatureGeneratorService implements Listener {
                 EntityType type;
                 try {
                     type = EntityType.valueOf(key.trim().toUpperCase(Locale.ROOT));
-                } catch (Exception var8) {
+                } catch (Exception ignored) {
                     continue;
                 }
 
@@ -254,6 +307,9 @@ public final class CreatureGeneratorService implements Listener {
         }
     }
 
+    /**
+     * 创建服务端语言版本的生成器物品。
+     */
     public ItemStack createTrapItem(int uses) {
         ItemStack it = new ItemStack(Material.SPAWNER, 1);
         ItemMeta meta = it.getItemMeta();
@@ -273,6 +329,9 @@ public final class CreatureGeneratorService implements Listener {
         }
     }
 
+    /**
+     * 判断物品是否为生成器（刷怪笼且带生成器标记）。
+     */
     private boolean isTrapItem(ItemStack it) {
         if (it != null && it.getType() == Material.SPAWNER) {
             ItemMeta meta = it.getItemMeta();
@@ -282,6 +341,9 @@ public final class CreatureGeneratorService implements Listener {
         }
     }
 
+    /**
+     * 放置监听：将合法的生成器物品写入刷怪笼方块并登记为已知生成器。
+     */
     @EventHandler(
         priority = EventPriority.HIGHEST,
         ignoreCancelled = true
@@ -313,7 +375,7 @@ public final class CreatureGeneratorService implements Listener {
 
                             try {
                                 sp.setSpawnedType(EntityType.AREA_EFFECT_CLOUD);
-                            } catch (Exception var10) {
+                            } catch (Exception ignored) {
                                 sp.setSpawnedType(EntityType.BAT);
                             }
 
@@ -335,27 +397,33 @@ public final class CreatureGeneratorService implements Listener {
         }
     }
 
+    /**
+     * 合成结果监听：把生成器物品结果替换为按玩家语言本地化的物品。
+     */
     @EventHandler(
         priority = EventPriority.HIGHEST,
         ignoreCancelled = true
     )
     public void onPrepareCraft(PrepareItemCraftEvent e) {
-        CraftingInventory var3 = e.getInventory();
-        if (var3 instanceof CraftingInventory) {
-            CraftingInventory ci = var3;
-            ItemStack var6 = var3.getResult();
-            if (this.isTrapItem(var6)) {
+        CraftingInventory inventory = e.getInventory();
+        if (inventory instanceof CraftingInventory) {
+            CraftingInventory ci = inventory;
+            ItemStack result = inventory.getResult();
+            if (this.isTrapItem(result)) {
                 if (!ci.getViewers().isEmpty()) {
-                    Object var5 = ci.getViewers().get(0);
-                    if (var5 instanceof Player) {
-                        Player p = (Player)var5;
-                        ci.setResult(this.createTrapItem(this.defaultUses(), p));
+                    Object viewer = ci.getViewers().get(0);
+                    if (viewer instanceof Player) {
+                        Player player = (Player)viewer;
+                        ci.setResult(this.createTrapItem(this.defaultUses(), player));
                     }
                 }
             }
         }
     }
 
+    /**
+     * 创建按指定玩家语言本地化的生成器物品。
+     */
     public ItemStack createTrapItem(int uses, Player p) {
         ItemStack it = new ItemStack(Material.SPAWNER, 1);
         ItemMeta meta = it.getItemMeta();
@@ -375,6 +443,9 @@ public final class CreatureGeneratorService implements Listener {
         }
     }
 
+    /**
+     * 方块经验监听：生成器方块被破坏时不掉落经验。
+     */
     @EventHandler(
         priority = EventPriority.HIGHEST,
         ignoreCancelled = true
@@ -388,6 +459,9 @@ public final class CreatureGeneratorService implements Listener {
         }
     }
 
+    /**
+     * 刷怪笼生成监听：生成器方块自身的刷怪被取消。
+     */
     @EventHandler(
         priority = EventPriority.HIGHEST,
         ignoreCancelled = true
@@ -401,6 +475,9 @@ public final class CreatureGeneratorService implements Listener {
         }
     }
 
+    /**
+     * 破坏监听：回收生成器物品、掉落存储内容并扣减次数。
+     */
     @EventHandler(
         priority = EventPriority.HIGHEST,
         ignoreCancelled = true
@@ -427,6 +504,9 @@ public final class CreatureGeneratorService implements Listener {
         }
     }
 
+    /**
+     * 交互监听：右键生成器打开 GUI；手持刷怪蛋时禁止交互并提示。
+     */
     @EventHandler(
         priority = EventPriority.HIGHEST,
         ignoreCancelled = true
@@ -453,6 +533,9 @@ public final class CreatureGeneratorService implements Listener {
         }
     }
 
+    /**
+     * 打开生成器的 GUI，展示 3 个存储格位并填充剩余位置。
+     */
     private void openGui(Player p, Block b) {
         TileState ts = (TileState)b.getState();
         PersistentDataContainer pdc = ts.getPersistentDataContainer();
@@ -477,6 +560,9 @@ public final class CreatureGeneratorService implements Listener {
         p.openInventory(inv);
     }
 
+    /**
+     * 生成器 GUI 点击监听：限制存储区与非法操作。
+     */
     @EventHandler(
         priority = EventPriority.HIGHEST,
         ignoreCancelled = true
@@ -507,6 +593,9 @@ public final class CreatureGeneratorService implements Listener {
         }
     }
 
+    /**
+     * 生成器 GUI 拖拽监听：禁止拖入物品。
+     */
     @EventHandler(
         ignoreCancelled = true
     )
@@ -522,10 +611,13 @@ public final class CreatureGeneratorService implements Listener {
         }
     }
 
+    /**
+     * 生成器 GUI 关闭监听：把物品写回方块持久化数据。
+     */
     @EventHandler
     public void onGuiClose(InventoryCloseEvent e) {
-        InventoryHolder var3 = e.getInventory().getHolder();
-        if (var3 instanceof TrapHolder h) {
+        InventoryHolder holder = e.getInventory().getHolder();
+        if (holder instanceof TrapHolder h) {
             Block b = h.loc.getBlock();
             if (b.getType() == Material.SPAWNER) {
                 if (this.isTrapBlock(b)) {
@@ -545,6 +637,9 @@ public final class CreatureGeneratorService implements Listener {
         }
     }
 
+    /**
+     * 启动生成周期任务与每 tick 的维护任务。
+     */
     private void startTask() {
         this.stopTask();
         if (this.enabled()) {
@@ -554,6 +649,9 @@ public final class CreatureGeneratorService implements Listener {
         }
     }
 
+    /**
+     * 停止所有任务并清空待处理队列。
+     */
     private void stopTask() {
         if (this.task != null) {
             this.task.cancel();
@@ -571,6 +669,9 @@ public final class CreatureGeneratorService implements Listener {
         this.queuedChunks.clear();
     }
 
+    /**
+     * 生成周期：把全部已知生成器加入待处理队列。
+     */
     private void enqueueGenerationCycle() {
         if (this.enabled()) {
             for(TrapKey key : this.knownTraps) {
@@ -582,6 +683,9 @@ public final class CreatureGeneratorService implements Listener {
         }
     }
 
+    /**
+     * 维护 tick：在时间预算内处理若干生成器与一个区块发现任务。
+     */
     private void maintenanceTick() {
         if (this.enabled()) {
             long deadline = System.nanoTime() + 1500000L;
@@ -601,6 +705,9 @@ public final class CreatureGeneratorService implements Listener {
         }
     }
 
+    /**
+     * 把当前所有已加载区块加入发现队列。
+     */
     private void enqueueLoadedChunks() {
         for(World world : Bukkit.getWorlds()) {
             for(Chunk chunk : world.getLoadedChunks()) {
@@ -610,6 +717,9 @@ public final class CreatureGeneratorService implements Listener {
 
     }
 
+    /**
+     * 区块加载监听：把新加载区块加入发现队列。
+     */
     @EventHandler
     public void onChunkLoad(ChunkLoadEvent event) {
         if (this.enabled()) {
@@ -618,6 +728,9 @@ public final class CreatureGeneratorService implements Listener {
 
     }
 
+    /**
+     * 把单个区块加入去重后的发现队列。
+     */
     private void enqueueChunk(Chunk chunk) {
         ChunkKey key = new ChunkKey(chunk.getWorld().getUID(), chunk.getX(), chunk.getZ());
         if (this.queuedChunks.add(key)) {
@@ -626,6 +739,9 @@ public final class CreatureGeneratorService implements Listener {
 
     }
 
+    /**
+     * 扫描区块内的方块实体，登记带生成器标记的刷怪笼。
+     */
     private void discoverChunk(ChunkKey key) {
         World world = Bukkit.getWorld(key.worldId());
         if (world != null && world.isChunkLoaded(key.chunkX(), key.chunkZ())) {
@@ -643,6 +759,9 @@ public final class CreatureGeneratorService implements Listener {
         }
     }
 
+    /**
+     * 处理单个生成器：校验方块、近玩家条件、剩余次数并产出一枚刷怪蛋。
+     */
     private void processTrap(TrapKey key) {
         World world = Bukkit.getWorld(key.worldId());
         if (world == null) {
@@ -712,6 +831,9 @@ public final class CreatureGeneratorService implements Listener {
         }
     }
 
+    /**
+     * 遍历所有已加载区块中的生成器并逐一处理（备用全量处理入口）。
+     */
     private void tickAllLoadedTraps() {
         if (this.enabled()) {
             List<EntityType> pool = this.allowedTypes();
@@ -778,6 +900,9 @@ public final class CreatureGeneratorService implements Listener {
         }
     }
 
+    /**
+     * 返回 3 个存储格位中的首个空位，无空位返回 -1。
+     */
     private int firstEmpty(ItemStack[] inv) {
         for(int i = 0; i < 3; ++i) {
             ItemStack it = inv[i];
@@ -789,6 +914,9 @@ public final class CreatureGeneratorService implements Listener {
         return -1;
     }
 
+    /**
+     * 创建带唯一 UID 且不堆叠的原版刷怪蛋。
+     */
     private ItemStack createVanillaSpawnEggNoStack(EntityType type) {
         Material mat = Material.matchMaterial(type.name() + "_SPAWN_EGG");
         if (mat == null) {
@@ -806,6 +934,9 @@ public final class CreatureGeneratorService implements Listener {
         }
     }
 
+    /**
+     * 使生成器碎裂：掉落存储内容、播放音效并通知范围内玩家。
+     */
     private void breakTrap(Block b) {
         if (b.getType() == Material.SPAWNER) {
             if (this.isTrapBlock(b)) {
@@ -830,6 +961,9 @@ public final class CreatureGeneratorService implements Listener {
         }
     }
 
+    /**
+     * 在指定位置掉落生成器存储的物品。
+     */
     private void dropStored(Location loc, ItemStack[] inv) {
         World w = loc.getWorld();
         if (w != null && inv != null) {
@@ -845,6 +979,9 @@ public final class CreatureGeneratorService implements Listener {
         }
     }
 
+    /**
+     * 判断方块是否带有生成器标记。
+     */
     private boolean isTrapBlock(Block b) {
         BlockState st = b.getState();
         if (st instanceof TileState ts) {
@@ -854,23 +991,29 @@ public final class CreatureGeneratorService implements Listener {
         }
     }
 
+    /**
+     * 读取生成器剩余使用次数（缺省为默认值）。
+     */
     private int getUses(PersistentDataContainer pdc) {
         Integer v = (Integer)pdc.get(this.usesKey, PersistentDataType.INTEGER);
         return v == null ? this.defaultUses() : Math.max(0, v);
     }
 
+    /**
+     * 从持久化数据反序列化 3 格存储物品。
+     */
     private ItemStack[] loadInv(PersistentDataContainer pdc) {
         byte[] raw = (byte[])pdc.get(this.invKey, PersistentDataType.BYTE_ARRAY);
         if (raw != null && raw.length != 0) {
             try {
                 BukkitObjectInputStream in = new BukkitObjectInputStream(new ByteArrayInputStream(raw));
 
-                label48: {
-                    ItemStack[] var11;
+                readBlock: {
+                    ItemStack[] loaded;
                     try {
                         Object o = in.readObject();
                         if (!(o instanceof ItemStack[])) {
-                            break label48;
+                            break readBlock;
                         }
 
                         ItemStack[] arr = (ItemStack[])o;
@@ -880,23 +1023,23 @@ public final class CreatureGeneratorService implements Listener {
                             fixed[i] = i < arr.length ? arr[i] : null;
                         }
 
-                        var11 = fixed;
-                    } catch (Throwable var9) {
+                        loaded = fixed;
+                    } catch (Throwable readError) {
                         try {
                             in.close();
-                        } catch (Throwable var8) {
-                            var9.addSuppressed(var8);
+                        } catch (Throwable closeError) {
+                            readError.addSuppressed(closeError);
                         }
 
-                        throw var9;
+                        throw readError;
                     }
 
                     in.close();
-                    return var11;
+                    return loaded;
                 }
 
                 in.close();
-            } catch (Exception var10) {
+            } catch (Exception ignored) {
             }
 
             return new ItemStack[3];
@@ -905,6 +1048,9 @@ public final class CreatureGeneratorService implements Listener {
         }
     }
 
+    /**
+     * 把 3 格存储物品序列化写入持久化数据。
+     */
     private void saveInv(PersistentDataContainer pdc, ItemStack[] items) {
         ItemStack[] fixed = new ItemStack[3];
 
@@ -922,25 +1068,25 @@ public final class CreatureGeneratorService implements Listener {
                     out.writeObject(fixed);
                     out.flush();
                     pdc.set(this.invKey, PersistentDataType.BYTE_ARRAY, bout.toByteArray());
-                } catch (Throwable var10) {
+                } catch (Throwable writeError) {
                     try {
                         out.close();
-                    } catch (Throwable var9) {
-                        var10.addSuppressed(var9);
+                    } catch (Throwable outCloseError) {
+                        writeError.addSuppressed(outCloseError);
                     }
 
-                    throw var10;
+                    throw writeError;
                 }
 
                 out.close();
-            } catch (Throwable var11) {
+            } catch (Throwable streamError) {
                 try {
                     bout.close();
-                } catch (Throwable var8) {
-                    var11.addSuppressed(var8);
+                } catch (Throwable boutCloseError) {
+                    streamError.addSuppressed(boutCloseError);
                 }
 
-                throw var11;
+                throw streamError;
             }
 
             bout.close();
@@ -954,6 +1100,9 @@ public final class CreatureGeneratorService implements Listener {
         return ChatColor.translateAlternateColorCodes('&', s == null ? "" : s);
     }
 
+    /**
+     * 生成器 GUI 的背包持有者，携带方块位置以便关闭时回写。
+     */
     private static final class TrapHolder implements InventoryHolder {
         final Location loc;
 
@@ -967,6 +1116,9 @@ public final class CreatureGeneratorService implements Listener {
         }
     }
 
+    /**
+     * 生成器的唯一键：世界 UUID 与方块坐标。
+     */
     private static record TrapKey(UUID worldId, int x, int y, int z) {
         private TrapKey {
         }
@@ -976,11 +1128,17 @@ public final class CreatureGeneratorService implements Listener {
         }
     }
 
+    /**
+     * 区块键：世界 UUID 与区块坐标。
+     */
     private static record ChunkKey(UUID worldId, int chunkX, int chunkZ) {
         private ChunkKey {
         }
     }
 
+    /**
+     * 带权重的生成类型条目。
+     */
     private static record WeightedType(EntityType type, int weight) {
         private WeightedType {
         }

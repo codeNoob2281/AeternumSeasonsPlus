@@ -16,6 +16,14 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
 
+/**
+ * 永霜世界环境监听器与循环任务。
+ *
+ * <p>实现 {@link Runnable}，由定时任务每 2 秒对 {@code aeternum_frost} 世界中的所有玩家执行：
+ * 生成口中呼出的寒气粒子，并根据是否暴露在户外、是否穿戴足够护甲、手持/附近是否有热源、
+ * 以及是否处于暴风雪等因素施加冻结、减速/挖掘疲劳乃至失明与少量伤害；在室内或有保暖条件时
+ * 则逐步解冻。依赖 {@link AeternumSeasonsPlugin} 完成事件注册与任务调度。</p>
+ */
 public final class FrostEnvironmentListener implements Listener, Runnable {
     private final AeternumSeasonsPlugin plugin;
     private BukkitTask task;
@@ -43,57 +51,64 @@ public final class FrostEnvironmentListener implements Listener, Runnable {
         HandlerList.unregisterAll(this);
     }
 
+    /**
+     * 每周期遍历永霜世界的在线玩家，生成寒气并为每人结算寒冷效果。
+     */
     public void run() {
-        World w = Bukkit.getWorld("aeternum_frost");
-        if (w != null) {
-            boolean storm = w.hasStorm();
+        World world = Bukkit.getWorld("aeternum_frost");
+        if (world != null) {
+            boolean storm = world.hasStorm();
 
-            for(Player p : w.getPlayers()) {
-                this.spawnColdBreath(p);
-                this.applyCold(p, storm);
+            for(Player player : world.getPlayers()) {
+                this.spawnColdBreath(player);
+                this.applyCold(player, storm);
             }
 
         }
     }
 
-    private void applyCold(Player p, boolean storm) {
-        Location loc = p.getLocation();
-        World w = loc.getWorld();
-        if (w != null) {
+    /**
+     * 结算单个玩家的寒冷状态：户外且缺乏保暖时施加冻结、减速、挖掘疲劳，
+     * 暴风雪下再叠加失明与少量伤害；否则逐步解冻。
+     */
+    private void applyCold(Player player, boolean storm) {
+        Location loc = player.getLocation();
+        World world = loc.getWorld();
+        if (world != null) {
             boolean outside = this.isOutside(loc);
             if (!outside) {
-                if (p.getFreezeTicks() > 0) {
-                    p.setFreezeTicks(Math.max(0, p.getFreezeTicks() - 20));
+                if (player.getFreezeTicks() > 0) {
+                    player.setFreezeTicks(Math.max(0, player.getFreezeTicks() - 20));
                 }
 
             } else {
-                int armorPieces = this.countArmorPieces(p);
-                boolean hasHotItem = this.isHotItem(p.getInventory().getItemInMainHand().getType()) || this.isHotItem(p.getInventory().getItemInOffHand().getType());
+                int armorPieces = this.countArmorPieces(player);
+                boolean hasHotItem = this.isHotItem(player.getInventory().getItemInMainHand().getType()) || this.isHotItem(player.getInventory().getItemInOffHand().getType());
                 boolean nearHeat = this.isNearHeatSource(loc, 3);
-                long time = w.getTime();
+                long time = world.getTime();
                 boolean isNight = time >= 13000L && time < 23000L;
                 int requiredArmorPieces = isNight ? 4 : 2;
                 boolean coldProtected = armorPieces >= requiredArmorPieces || hasHotItem || nearHeat;
                 if (!coldProtected) {
                     int freezeStep = storm ? 80 : 40;
-                    p.setFreezeTicks(Math.min(p.getFreezeTicks() + freezeStep, 200));
+                    player.setFreezeTicks(Math.min(player.getFreezeTicks() + freezeStep, 200));
                     int slowAmp = storm ? 1 : 0;
-                    p.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 80, slowAmp, true, true, true));
-                    p.addPotionEffect(new PotionEffect(PotionEffectType.MINING_FATIGUE, 80, slowAmp, true, true, true));
+                    player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 80, slowAmp, true, true, true));
+                    player.addPotionEffect(new PotionEffect(PotionEffectType.MINING_FATIGUE, 80, slowAmp, true, true, true));
                     if (storm && !hasHotItem) {
-                        p.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 80, 0, true, true, true));
+                        player.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 80, 0, true, true, true));
                     }
 
-                    if (storm && p.getHealth() > (double)1.0F) {
-                        p.damage((double)1.0F);
+                    if (storm && player.getHealth() > (double)1.0F) {
+                        player.damage((double)1.0F);
                     }
                 } else {
-                    if (p.getFreezeTicks() > 0) {
-                        p.setFreezeTicks(Math.max(0, p.getFreezeTicks() - 20));
+                    if (player.getFreezeTicks() > 0) {
+                        player.setFreezeTicks(Math.max(0, player.getFreezeTicks() - 20));
                     }
 
                     if (storm && !hasHotItem) {
-                        p.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 80, 0, true, true, true));
+                        player.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 80, 0, true, true, true));
                     }
                 }
 
@@ -101,42 +116,51 @@ public final class FrostEnvironmentListener implements Listener, Runnable {
         }
     }
 
+    /**
+     * 判断玩家是否处于户外（其脚部 y 不低于该列地表高度减一）。
+     */
     private boolean isOutside(Location loc) {
-        World w = loc.getWorld();
-        if (w == null) {
+        World world = loc.getWorld();
+        if (world == null) {
             return false;
         } else {
             int x = loc.getBlockX();
             int z = loc.getBlockZ();
-            int surfaceY = w.getHighestBlockYAt(x, z);
+            int surfaceY = world.getHighestBlockYAt(x, z);
             return loc.getBlockY() >= surfaceY - 1;
         }
     }
 
-    private int countArmorPieces(Player p) {
+    /**
+     * 统计玩家当前穿戴的护甲件数。
+     */
+    private int countArmorPieces(Player player) {
         int count = 0;
-        if (p.getInventory().getHelmet() != null) {
+        if (player.getInventory().getHelmet() != null) {
             ++count;
         }
 
-        if (p.getInventory().getChestplate() != null) {
+        if (player.getInventory().getChestplate() != null) {
             ++count;
         }
 
-        if (p.getInventory().getLeggings() != null) {
+        if (player.getInventory().getLeggings() != null) {
             ++count;
         }
 
-        if (p.getInventory().getBoots() != null) {
+        if (player.getInventory().getBoots() != null) {
             ++count;
         }
 
         return count;
     }
 
-    private boolean isHotItem(Material m) {
-        boolean var10000;
-        switch (m) {
+    /**
+     * 判断手持物品是否属于可提供保暖的“热源”物品。
+     */
+    private boolean isHotItem(Material material) {
+        boolean isHot;
+        switch (material) {
             case TORCH:
             case SOUL_TORCH:
             case REDSTONE_TORCH:
@@ -148,18 +172,21 @@ public final class FrostEnvironmentListener implements Listener, Runnable {
             case LAVA_BUCKET:
             case FIRE_CHARGE:
             case BLAZE_ROD:
-                var10000 = true;
+                isHot = true;
                 break;
             default:
-                var10000 = false;
+                isHot = false;
         }
 
-        return var10000;
+        return isHot;
     }
 
+    /**
+     * 在给定半径内扫描是否存在热源方块。
+     */
     private boolean isNearHeatSource(Location loc, int radius) {
-        World w = loc.getWorld();
-        if (w == null) {
+        World world = loc.getWorld();
+        if (world == null) {
             return false;
         } else {
             int baseX = loc.getBlockX();
@@ -169,8 +196,8 @@ public final class FrostEnvironmentListener implements Listener, Runnable {
             for(int x = baseX - radius; x <= baseX + radius; ++x) {
                 for(int y = baseY - radius; y <= baseY + radius; ++y) {
                     for(int z = baseZ - radius; z <= baseZ + radius; ++z) {
-                        Block b = w.getBlockAt(x, y, z);
-                        if (this.isHotBlock(b.getType())) {
+                        Block block = world.getBlockAt(x, y, z);
+                        if (this.isHotBlock(block.getType())) {
                             return true;
                         }
                     }
@@ -181,9 +208,12 @@ public final class FrostEnvironmentListener implements Listener, Runnable {
         }
     }
 
-    private boolean isHotBlock(Material m) {
-        boolean var10000;
-        switch (m) {
+    /**
+     * 判断方块是否为可产生热量的方块（火把、营火、岩浆、熔炉等）。
+     */
+    private boolean isHotBlock(Material material) {
+        boolean isHot;
+        switch (material) {
             case TORCH:
             case SOUL_TORCH:
             case REDSTONE_TORCH:
@@ -198,28 +228,31 @@ public final class FrostEnvironmentListener implements Listener, Runnable {
             case FURNACE:
             case BLAST_FURNACE:
             case SMOKER:
-                var10000 = true;
+                isHot = true;
                 break;
             case LAVA_BUCKET:
             case FIRE_CHARGE:
             case BLAZE_ROD:
             default:
-                var10000 = false;
+                isHot = false;
         }
 
-        return var10000;
+        return isHot;
     }
 
-    private void spawnColdBreath(Player p) {
-        Location eye = p.getEyeLocation().clone();
-        World w = eye.getWorld();
-        if (w != null) {
+    /**
+     * 在玩家视线前方生成一小段寒气雪花粒子。
+     */
+    private void spawnColdBreath(Player player) {
+        Location eye = player.getEyeLocation().clone();
+        World world = eye.getWorld();
+        if (world != null) {
             Vector dir = eye.getDirection().normalize().multiply((double)0.25F);
             Location pos = eye.clone();
 
             for(int i = 0; i < 6; ++i) {
                 pos.add(dir);
-                w.spawnParticle(Particle.SNOWFLAKE, pos.getX(), pos.getY(), pos.getZ(), 1, 0.03, 0.03, 0.03, (double)0.0F);
+                world.spawnParticle(Particle.SNOWFLAKE, pos.getX(), pos.getY(), pos.getZ(), 1, 0.03, 0.03, 0.03, (double)0.0F);
             }
 
         }

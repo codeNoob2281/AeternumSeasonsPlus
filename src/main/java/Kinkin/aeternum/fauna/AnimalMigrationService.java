@@ -47,6 +47,20 @@ import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.scheduler.BukkitTask;
 
+/**
+ * 动物季节性迁徙服务。
+ *
+ * <p>本服务让被管理的动物随季节“迁徙”到更适宜的群系，并在必要时进行软移除与补偿生成。
+ * 主要行为与依赖：
+ * <ul>
+ *     <li>监听生物自然生成，按季节/群系概率额外补充同种动物，并在冬季清理寒冷群系中的暖气候动物；</li>
+ *     <li>周期任务按预算扫描玩家附近的受管动物，执行春/夏/秋/冬及水生、下界的迁徙逻辑；</li>
+ *     <li>当某区域动物数量不足时，按群系与季节权重“补偿生成”；</li>
+ *     <li>区分玩家保护/已驯服/围栏内的动物，避免误迁或被清理。</li>
+ * </ul>
+ * 依赖 {@link SeasonService} 提供季节状态、{@link BiomeSpoofAdapter} 与
+ * {@link BiomeSpoofSpawnGuard} 获取“原始群系”信息。</p>
+ */
 public final class AnimalMigrationService implements Listener, Runnable {
     private final AeternumSeasonsPlugin plugin;
     private final SeasonService seasons;
@@ -99,6 +113,9 @@ public final class AnimalMigrationService implements Listener, Runnable {
         this.reloadFromConfig();
     }
 
+    /**
+     * 初始化各分类的生物类型集合与季节加成集合。
+     */
     private void initSets() {
         this.farmFauna.addAll(Arrays.asList(EntityType.COW, EntityType.SHEEP, EntityType.PIG, EntityType.CHICKEN, EntityType.RABBIT, EntityType.HORSE, EntityType.DONKEY, EntityType.LLAMA, EntityType.MOOSHROOM, EntityType.GOAT, EntityType.BEE));
         this.forestFauna.addAll(Arrays.asList(EntityType.WOLF, EntityType.FOX, EntityType.OCELOT, EntityType.PARROT, EntityType.PANDA, EntityType.GOAT, EntityType.POLAR_BEAR));
@@ -119,6 +136,9 @@ public final class AnimalMigrationService implements Listener, Runnable {
         this.winterBoost.addAll(Arrays.asList(EntityType.WOLF, EntityType.FOX, EntityType.GOAT, EntityType.POLAR_BEAR, EntityType.RABBIT, EntityType.COD, EntityType.SALMON, EntityType.SQUID, EntityType.GLOW_SQUID, EntityType.STRIDER));
     }
 
+    /**
+     * 从 climate 配置读取迁徙、补偿与冬季清理相关参数。
+     */
     private void reloadFromConfig() {
         FileConfiguration y = this.plugin.cfg.climate;
         this.enabled = y.getBoolean("migration.enabled", true);
@@ -144,6 +164,9 @@ public final class AnimalMigrationService implements Listener, Runnable {
         this.outOfSeasonSpawnMultiplier = this.clamp01(y.getDouble("migration.compensation.out_of_season_multiplier", 0.16));
     }
 
+    /**
+     * 注册事件监听，并在启用时启动周期迁徙任务。
+     */
     public void register() {
         Bukkit.getPluginManager().registerEvents(this, this.plugin);
         if (this.task != null) {
@@ -155,6 +178,9 @@ public final class AnimalMigrationService implements Listener, Runnable {
         }
     }
 
+    /**
+     * 取消周期任务、注销事件监听并清空区域冷却记录。
+     */
     public void unregister() {
         if (this.task != null) {
             this.task.cancel();
@@ -164,6 +190,9 @@ public final class AnimalMigrationService implements Listener, Runnable {
         this.areaCooldowns.clear();
     }
 
+    /**
+     * 生物生成监听：记录玩家主动生成的生物；对自然/区块生成/增援的受管动物按季节概率补充生成，并在冬季清理寒冷群系中的暖气候动物。
+     */
     @EventHandler(
         priority = EventPriority.HIGHEST,
         ignoreCancelled = true
@@ -197,17 +226,20 @@ public final class AnimalMigrationService implements Listener, Runnable {
         }
     }
 
+    /**
+     * 计算指定群系/季节下额外生成的触发概率；下界生物与非当季生物会按比例缩减。
+     */
     private double getExtraSpawnChance(Season season, EntityType type, Biome biome, World.Environment env) {
-        double var10000;
+        double seasonChance;
         switch (season) {
-            case SPRING -> var10000 = this.springSpawnBoostChance;
-            case SUMMER -> var10000 = this.summerSpawnBoostChance;
-            case AUTUMN -> var10000 = this.autumnSpawnBoostChance;
-            case WINTER -> var10000 = this.winterSpawnBoostChance;
+            case SPRING -> seasonChance = this.springSpawnBoostChance;
+            case SUMMER -> seasonChance = this.summerSpawnBoostChance;
+            case AUTUMN -> seasonChance = this.autumnSpawnBoostChance;
+            case WINTER -> seasonChance = this.winterSpawnBoostChance;
             default -> throw new MatchException((String)null, (Throwable)null);
         }
 
-        double base = var10000;
+        double base = seasonChance;
         if (env == Environment.NETHER) {
             if (!this.netherFauna.contains(type)) {
                 return (double)0.0F;
@@ -215,16 +247,16 @@ public final class AnimalMigrationService implements Listener, Runnable {
                 return season == Season.WINTER && type == EntityType.STRIDER ? base : base * 0.35;
             }
         } else {
-            EnumSet var8;
+            EnumSet boostSet;
             switch (season) {
-                case SPRING -> var8 = this.springBoost;
-                case SUMMER -> var8 = this.summerBoost;
-                case AUTUMN -> var8 = this.autumnBoost;
-                case WINTER -> var8 = this.winterBoost;
+                case SPRING -> boostSet = this.springBoost;
+                case SUMMER -> boostSet = this.summerBoost;
+                case AUTUMN -> boostSet = this.autumnBoost;
+                case WINTER -> boostSet = this.winterBoost;
                 default -> throw new MatchException((String)null, (Throwable)null);
             }
 
-            EnumSet<EntityType> seasonalSet = var8;
+            EnumSet<EntityType> seasonalSet = boostSet;
             if (seasonalSet.contains(type)) {
                 return base;
             } else {
@@ -233,6 +265,9 @@ public final class AnimalMigrationService implements Listener, Runnable {
         }
     }
 
+    /**
+     * 按概率在生成点附近寻找合适位置并额外生成一只同种动物。
+     */
     private void handleBoost(CreatureSpawnEvent e, double chance) {
         if (!(this.random.nextDouble() >= chance)) {
             Location loc = e.getLocation();
@@ -243,10 +278,16 @@ public final class AnimalMigrationService implements Listener, Runnable {
         }
     }
 
+    /**
+     * 返回 [-max, max] 范围内的随机偏移。
+     */
     private double randomOffset(int max) {
         return (this.random.nextDouble() * (double)2.0F - (double)1.0F) * (double)max;
     }
 
+    /**
+     * 周期任务：执行冬季清理、玩家附近动物迁徙与补偿生成（受每 tick 预算约束）。
+     */
     public void run() {
         if (this.enabled) {
             ++this.cycleCounter;
@@ -293,6 +334,9 @@ public final class AnimalMigrationService implements Listener, Runnable {
         }
     }
 
+    /**
+     * 扫描玩家附近受管动物并逐个执行迁徙；返回剩余预算。
+     */
     private int processNearbyFauna(Player player, CalendarState st, Set<UUID> visited, int budget) {
         if (budget <= 0) {
             return 0;
@@ -317,6 +361,9 @@ public final class AnimalMigrationService implements Listener, Runnable {
         }
     }
 
+    /**
+     * 冬季前期清理寒冷群系中的暖气候动物（随天数扩大半径）。
+     */
     private void performWinterCleanup(CalendarState st) {
         int dayIndex = Math.max(1, Math.min(st.day, this.winterCleanupMaxDays));
         int radius = this.winterCleanupBaseRadius + (dayIndex - 1) * this.winterCleanupRadiusStep;
@@ -360,6 +407,9 @@ public final class AnimalMigrationService implements Listener, Runnable {
         }
     }
 
+    /**
+     * 当玩家周围动物数量不足时，按群系/季节权重补偿生成；返回剩余预算。
+     */
     private int compensateNearPlayer(Player player, CalendarState st, int budget) {
         if (budget <= 0) {
             return 0;
@@ -438,6 +488,9 @@ public final class AnimalMigrationService implements Listener, Runnable {
         }
     }
 
+    /**
+     * 从对应群系与季节的加权池中随机挑选一种补偿动物。
+     */
     private EntityType pickCompensationType(Location center, Season season, boolean aquaticZone) {
         List<EntityType> pool = new ArrayList(96);
         Biome biome = this.biomeAt(center);
@@ -450,6 +503,9 @@ public final class AnimalMigrationService implements Listener, Runnable {
         return pool.isEmpty() ? null : (EntityType)pool.get(this.random.nextInt(pool.size()));
     }
 
+    /**
+     * 按陆地群系构建补偿动物的加权池。
+     */
     private void buildLandPool(List<EntityType> pool, Biome biome, Season season) {
         if (this.isMushroomBiome(biome)) {
             this.addWeighted(pool, EntityType.MOOSHROOM, this.seasonWeight(season, Season.SPRING, 8, 4));
@@ -512,11 +568,14 @@ public final class AnimalMigrationService implements Listener, Runnable {
         }
     }
 
+    /**
+     * 判断该生成原因是否属于玩家主动生成（应受保护、不被迁徙）。
+     */
     private boolean isPlayerProtectedSpawnReason(CreatureSpawnEvent.SpawnReason reason) {
         if (reason.name().contains("BUCKET")) {
             return true;
         } else {
-            boolean var10000;
+            boolean protectedReason;
             switch (reason) {
                 case BREEDING:
                 case SPAWNER_EGG:
@@ -525,16 +584,19 @@ public final class AnimalMigrationService implements Listener, Runnable {
                 case COMMAND:
                 case BEEHIVE:
                 case OCELOT_BABY:
-                    var10000 = true;
+                    protectedReason = true;
                     break;
                 default:
-                    var10000 = false;
+                    protectedReason = false;
             }
 
-            return var10000;
+            return protectedReason;
         }
     }
 
+    /**
+     * 按水域群系构建补偿动物的加权池。
+     */
     private void buildAquaticPool(List<EntityType> pool, Biome biome, Season season) {
         if (this.isLushCavesBiome(biome)) {
             this.addWeighted(pool, EntityType.AXOLOTL, this.seasonWeight(season, Season.SUMMER, 8, 4));
@@ -568,6 +630,9 @@ public final class AnimalMigrationService implements Listener, Runnable {
         }
     }
 
+    /**
+     * 当季返回当季权重，否则返回非当季权重。
+     */
     private int seasonWeight(Season current, Season dominant, int inSeason, int outOfSeason) {
         return current == dominant ? inSeason : outOfSeason;
     }
@@ -579,8 +644,11 @@ public final class AnimalMigrationService implements Listener, Runnable {
 
     }
 
+    /**
+     * 返回单一类型在局部区域内的数量上限。
+     */
     private int typeLocalCap(EntityType type) {
-        byte var10000;
+        byte cap;
         switch (type) {
             case POLAR_BEAR:
             case PANDA:
@@ -591,7 +659,7 @@ public final class AnimalMigrationService implements Listener, Runnable {
             case LLAMA:
             case MOOSHROOM:
             case ARMADILLO:
-                var10000 = 2;
+                cap = 2;
                 break;
             case DOLPHIN:
             case TURTLE:
@@ -601,7 +669,7 @@ public final class AnimalMigrationService implements Listener, Runnable {
             case FOX:
             case OCELOT:
             case PARROT:
-                var10000 = 3;
+                cap = 3;
                 break;
             case TROPICAL_FISH:
             case COD:
@@ -609,20 +677,26 @@ public final class AnimalMigrationService implements Listener, Runnable {
             case PUFFERFISH:
             case SQUID:
             case GLOW_SQUID:
-                var10000 = 8;
+                cap = 8;
                 break;
             default:
-                var10000 = 4;
+                cap = 4;
         }
 
-        return var10000;
+        return cap;
     }
 
+    /**
+     * 清理已过期的区域补偿冷却记录。
+     */
     private void trimCooldowns() {
         long cutoff = this.cycleCounter - (long)this.compensationZoneCooldownCycles * 4L;
-        this.areaCooldowns.entrySet().removeIf((e) -> (Long)e.getValue() < cutoff);
+        this.areaCooldowns.entrySet().removeIf((entry) -> (Long)entry.getValue() < cutoff);
     }
 
+    /**
+     * 将位置映射为 32x32 区块的区域键，用于冷却记录。
+     */
     private long zoneKey(Location loc) {
         long worldBits = loc.getWorld().getUID().getLeastSignificantBits();
         long gx = (long)(loc.getBlockX() >> 5);
@@ -630,6 +704,9 @@ public final class AnimalMigrationService implements Listener, Runnable {
         return worldBits ^ gx << 32 ^ gz & 4294967295L;
     }
 
+    /**
+     * 判断位置与所有玩家是否都保持安全距离。
+     */
     private boolean isSafeDistanceFromPlayers(Location loc, double minDistance) {
         double minDistSq = minDistance * minDistance;
 
@@ -674,6 +751,9 @@ public final class AnimalMigrationService implements Listener, Runnable {
         }
     }
 
+    /**
+     * 判断该位置周围是否存在栅栏/围墙，视为已圈养。
+     */
     private boolean isLikelyEnclosed(Location location) {
         World world = location.getWorld();
         if (world == null) {
@@ -702,6 +782,9 @@ public final class AnimalMigrationService implements Listener, Runnable {
         return this.managedFauna.contains(t);
     }
 
+    /**
+     * 根据生物类别与当前季节分派到具体的迁徙逻辑。
+     */
     private void handleMigrationFor(CalendarState st, LivingEntity entity) {
         if (entity.isValid() && !entity.isDead()) {
             World world = entity.getWorld();
@@ -733,6 +816,9 @@ public final class AnimalMigrationService implements Listener, Runnable {
         }
     }
 
+    /**
+     * 春季迁徙逻辑。
+     */
     private void migrateSpring(LivingEntity entity, Biome biome, EntityType type) {
         if (!this.farmFauna.contains(type) && type != EntityType.BEE) {
             if (this.coldClimateAnimals.contains(type) && this.random.nextDouble() < 0.04) {
@@ -753,6 +839,9 @@ public final class AnimalMigrationService implements Listener, Runnable {
         }
     }
 
+    /**
+     * 夏季迁徙逻辑。
+     */
     private void migrateSummer(LivingEntity entity, Biome biome, EntityType type) {
         if (!this.warmClimateAnimals.contains(type) && type != EntityType.FROG) {
             if (this.coldClimateAnimals.contains(type) && this.isColdBiome(biome) && this.random.nextDouble() < 0.05) {
@@ -774,9 +863,12 @@ public final class AnimalMigrationService implements Listener, Runnable {
         }
     }
 
+    /**
+     * 秋季迁徙逻辑。
+     */
     private void migrateAutumn(LivingEntity entity, Biome biome, EntityType type) {
         if ((type == EntityType.FOX || type == EntityType.WOLF || type == EntityType.GOAT || type == EntityType.CAT || type == EntityType.OCELOT || type == EntityType.LLAMA || type == EntityType.MULE || type == EntityType.RABBIT) && !this.isTaigaOrMountainBiome(biome) && !this.isForestBiome(biome) && this.random.nextDouble() < 0.08) {
-            Location dst = this.findNearbyLandSpot(entity.getLocation(), this.searchRadiusBlocks, (b) -> this.isTaigaOrMountainBiome(b) || this.isForestBiome(b));
+            Location dst = this.findNearbyLandSpot(entity.getLocation(), this.searchRadiusBlocks, (candidateBiome) -> this.isTaigaOrMountainBiome(candidateBiome) || this.isForestBiome(candidateBiome));
             if (dst != null) {
                 this.teleportWithEffect(entity, dst);
             }
@@ -784,6 +876,9 @@ public final class AnimalMigrationService implements Listener, Runnable {
 
     }
 
+    /**
+     * 冬季迁徙逻辑。
+     */
     private void migrateWinter(LivingEntity entity, Biome biome, EntityType type) {
         if (!this.warmClimateAnimals.contains(type) && type != EntityType.FROG) {
             if (this.coldClimateAnimals.contains(type)) {
@@ -817,6 +912,9 @@ public final class AnimalMigrationService implements Listener, Runnable {
         }
     }
 
+    /**
+     * 水生动物迁徙逻辑。
+     */
     private void migrateAquatic(Season season, LivingEntity entity, Biome biome, EntityType type) {
         Predicate<Biome> target;
         if (type != EntityType.TROPICAL_FISH && type != EntityType.PUFFERFISH && type != EntityType.DOLPHIN && type != EntityType.TURTLE) {
@@ -838,11 +936,14 @@ public final class AnimalMigrationService implements Listener, Runnable {
 
     }
 
+    /**
+     * 下界动物迁徙逻辑。
+     */
     private void migrateNether(LivingEntity entity, Biome biome, EntityType type) {
         if (this.netherFauna.contains(type)) {
             if (type == EntityType.HOGLIN && !this.containsAny(biome, "CRIMSON")) {
                 if (this.random.nextDouble() < 0.08) {
-                    Location dst = this.findNearbyLandSpot(entity.getLocation(), this.searchRadiusBlocks, (b) -> this.containsAny(b, "CRIMSON"));
+                    Location dst = this.findNearbyLandSpot(entity.getLocation(), this.searchRadiusBlocks, (candidateBiome) -> this.containsAny(candidateBiome, "CRIMSON"));
                     if (dst != null) {
                         this.teleportWithEffect(entity, dst);
                     }
@@ -860,6 +961,9 @@ public final class AnimalMigrationService implements Listener, Runnable {
         }
     }
 
+    /**
+     * 获取位置处的（优先原始）群系。
+     */
     private Biome biomeAt(Location loc) {
         World w = loc.getWorld();
         int x = loc.getBlockX();
@@ -879,6 +983,9 @@ public final class AnimalMigrationService implements Listener, Runnable {
         return biome.toString().toUpperCase(Locale.ROOT);
     }
 
+    /**
+     * 判断群系键是否包含任一分词。
+     */
     private boolean containsAny(Biome biome, String... tokens) {
         String key = this.biomeKey(biome);
 
@@ -963,6 +1070,9 @@ public final class AnimalMigrationService implements Listener, Runnable {
         return this.isWarmBiome(biome) || this.isRiverOrSwampBiome(biome) || this.isBeachBiome(biome);
     }
 
+    /**
+     * 判断该位置是否属于水域生态区。
+     */
     private boolean isAquaticZone(Location center) {
         if (center.getBlock().isLiquid()) {
             return true;
@@ -972,6 +1082,9 @@ public final class AnimalMigrationService implements Listener, Runnable {
         }
     }
 
+    /**
+     * 判断位置附近是否存在水方块。
+     */
     private boolean isNearWater(Location center, int radius) {
         World world = center.getWorld();
         int bx = center.getBlockX();
@@ -1000,6 +1113,9 @@ public final class AnimalMigrationService implements Listener, Runnable {
         return false;
     }
 
+    /**
+     * 判断某生物类型是否适合当前群系。
+     */
     private boolean isBiomeSuitableForType(EntityType type, Biome biome) {
         if (this.hasRestrictedOriginalHabitat(type)) {
             return BiomeSpoofSpawnGuard.isOriginalHabitat(type, biome);
@@ -1020,8 +1136,11 @@ public final class AnimalMigrationService implements Listener, Runnable {
         }
     }
 
+    /**
+     * 判断该生物是否只能在特定原始群系中生存。
+     */
     private boolean hasRestrictedOriginalHabitat(EntityType type) {
-        boolean var10000;
+        boolean restricted;
         switch (type) {
             case POLAR_BEAR:
             case PANDA:
@@ -1035,7 +1154,7 @@ public final class AnimalMigrationService implements Listener, Runnable {
             case TROPICAL_FISH:
             case PUFFERFISH:
             case FROG:
-                var10000 = true;
+                restricted = true;
                 break;
             case CAMEL:
             case HORSE:
@@ -1050,12 +1169,15 @@ public final class AnimalMigrationService implements Listener, Runnable {
             case SQUID:
             case GLOW_SQUID:
             default:
-                var10000 = false;
+                restricted = false;
         }
 
-        return var10000;
+        return restricted;
     }
 
+    /**
+     * 为指定生物类型在附近寻找合适的生成位置。
+     */
     private Location findSpawnLocationForType(Location origin, EntityType type, int radius) {
         if (type == EntityType.TURTLE) {
             return this.findNearbyBeachSpot(origin, radius);
@@ -1080,7 +1202,7 @@ public final class AnimalMigrationService implements Listener, Runnable {
             } else if (type == EntityType.ARMADILLO) {
                 return this.findNearbyLandSpot(origin, radius, (biome) -> BiomeSpoofSpawnGuard.isOriginalHabitat(type, biome));
             } else if (type == EntityType.GOAT) {
-                return this.findNearbyLandSpot(origin, radius, (b) -> this.isTaigaOrMountainBiome(b) || this.isColdBiome(b));
+                return this.findNearbyLandSpot(origin, radius, (candidateBiome) -> this.isTaigaOrMountainBiome(candidateBiome) || this.isColdBiome(candidateBiome));
             } else if (type != EntityType.WOLF && type != EntityType.FOX) {
                 return type == EntityType.MOOSHROOM ? this.findNearbyLandSpot(origin, radius, this::isMushroomBiome) : this.findNearbyLandSpot(origin, radius, this::isBiomeSafeForGenericFauna);
             } else {
@@ -1095,6 +1217,9 @@ public final class AnimalMigrationService implements Listener, Runnable {
         return !this.isNetherBiome(biome);
     }
 
+    /**
+     * 在附近随机采样寻找满足群系条件且可站立的陆地位置。
+     */
     private Location findNearbyLandSpot(Location origin, int radius, Predicate<Biome> biomePredicate) {
         World world = origin.getWorld();
         int tries = 24;
@@ -1125,6 +1250,9 @@ public final class AnimalMigrationService implements Listener, Runnable {
         return null;
     }
 
+    /**
+     * 在附近随机采样寻找沙滩/温水海洋的生成位置。
+     */
     private Location findNearbyBeachSpot(Location origin, int radius) {
         World world = origin.getWorld();
         int tries = 24;
@@ -1156,6 +1284,9 @@ public final class AnimalMigrationService implements Listener, Runnable {
         return null;
     }
 
+    /**
+     * 在附近随机采样寻找满足群系条件的水面位置。
+     */
     private Location findNearbyWaterSpot(Location origin, Predicate<Biome> biomePredicate, int radius, int tries) {
         World world = origin.getWorld();
 
@@ -1190,6 +1321,9 @@ public final class AnimalMigrationService implements Listener, Runnable {
         return null;
     }
 
+    /**
+     * 生成一只受管动物（带标记、可能为幼体并播放粒子）。
+     */
     private Entity spawnManaged(Location loc, EntityType type, boolean fromBoost) {
         World world = loc.getWorld();
         if (world == null) {
@@ -1214,13 +1348,16 @@ public final class AnimalMigrationService implements Listener, Runnable {
                     }
 
                     return spawned;
-                } catch (Throwable var8) {
+                } catch (Throwable ignored) {
                     return null;
                 }
             }
         }
     }
 
+    /**
+     * 带粒子与音效地将动物传送到目标位置。
+     */
     private void teleportWithEffect(LivingEntity entity, Location dst) {
         if (entity.isValid() && !entity.isDead()) {
             Location src = entity.getLocation().clone();
@@ -1235,6 +1372,9 @@ public final class AnimalMigrationService implements Listener, Runnable {
         }
     }
 
+    /**
+     * 以烟雾效果“软移除”受管动物（若受保护则不移除）。
+     */
     private boolean softRemove(LivingEntity entity) {
         if (entity.isValid() && !entity.isDead()) {
             if (this.isProtectedFromMigration(entity)) {
@@ -1254,6 +1394,9 @@ public final class AnimalMigrationService implements Listener, Runnable {
         }
     }
 
+    /**
+     * 把数值限制在 [0,1] 区间。
+     */
     private double clamp01(double value) {
         return Math.max((double)0.0F, Math.min((double)1.0F, value));
     }

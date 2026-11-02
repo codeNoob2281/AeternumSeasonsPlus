@@ -21,6 +21,14 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 
+/**
+ * 季节作物物品描述服务。
+ *
+ * <p>为可种植作物物品添加“生长季节/温室光照”等 Lore 信息，并在需要时移除旧 Lore；
+ * 同时为村民交易生成规范化的物品模板。所有标记通过物品持久化数据键
+ * （{@code seasonal_crop_lore*}）记录，以支持重复应用时的去重与回滚。</p>
+ * <p>当服务器安装了 CustomCrops 插件时，为避免冲突会跳过疑似自定义物品。</p>
+ */
 public final class CropLoreService {
     private final AeternumSeasonsPlugin plugin;
     private final SeasonalCropConfig config;
@@ -41,6 +49,13 @@ public final class CropLoreService {
         this.compatibilityMode = Bukkit.getPluginManager().isPluginEnabled("CustomCrops");
     }
 
+    /**
+     * 为物品栈补充季节 Lore（已存在则先移除旧 Lore 再重新写入）。
+     *
+     * @param stack 目标物品栈
+     * @param viewer 语言上下文玩家，可为 null
+     * @return 若成功修改物品则返回 true
+     */
     public boolean apply(ItemStack stack, Player viewer) {
         if (stack != null && !stack.getType().isAir()) {
             ItemMeta meta = stack.getItemMeta();
@@ -62,8 +77,8 @@ public final class CropLoreService {
                                 if (line == null) {
                                     return false;
                                 } else {
-                                    String plain = ChatColor.stripColor(line);
-                                    return prev1 != null && prev1.equals(plain) || prev2 != null && prev2.equals(plain);
+                                    String plainLine = ChatColor.stripColor(line);
+                                    return prev1 != null && prev1.equals(plainLine) || prev2 != null && prev2.equals(plainLine);
                                 }
                             });
                         }
@@ -75,7 +90,7 @@ public final class CropLoreService {
                     if (seasons.size() >= 4) {
                         growsIn = this.trSafe(viewer, "crop.lore.any_season", "&7Grows in any season");
                     } else {
-                        String joined = (String)seasons.stream().map((s) -> this.plugin.lang.tr(viewer, "season." + s.name())).collect(Collectors.joining(", "));
+                        String joined = (String)seasons.stream().map((season) -> this.plugin.lang.tr(viewer, "season." + season.name())).collect(Collectors.joining(", "));
                         growsIn = this.trSafe(viewer, "crop.lore.grows_in", "&7Grows in: {seasons}").replace("{seasons}", joined);
                     }
 
@@ -98,6 +113,13 @@ public final class CropLoreService {
         }
     }
 
+    /**
+     * 生成村民交易用的“原版”物品模板：移除本服务添加的季节 Lore 与标记后，
+     * 再套用该材质的标准模板。
+     *
+     * @param original 原始物品栈
+     * @return 规范化后的物品栈；若不是村民作物或无法规范化则返回 null
+     */
     ItemStack forVillager(ItemStack original) {
         if (original != null && VILLAGER_CROPS.contains(original.getType())) {
             EnumSet<Season> allowed = this.seasonsForItem(original.getType());
@@ -145,6 +167,7 @@ public final class CropLoreService {
         }
     }
 
+    /** 粗略判断物品是否为第三方自定义物品（含自定义模型数据或其它命名空间的 PDC 键）。 */
     private boolean isProbablyCustomItem(ItemMeta meta) {
         if (meta.hasCustomModelData()) {
             return true;
@@ -154,10 +177,10 @@ public final class CropLoreService {
             if (keys != null && !keys.isEmpty()) {
                 String ours = this.KEY_MARK.getNamespace();
 
-                for(NamespacedKey k : keys) {
-                    if (k != null) {
-                        String ns = k.getNamespace();
-                        if (ns != null && !ns.equalsIgnoreCase(ours)) {
+                for(NamespacedKey key : keys) {
+                    if (key != null) {
+                        String namespace = key.getNamespace();
+                        if (namespace != null && !namespace.equalsIgnoreCase(ours)) {
                             return true;
                         }
                     }
@@ -170,6 +193,7 @@ public final class CropLoreService {
         }
     }
 
+    /** 兜底移除所有语言文件中“任意季节/生长季节/温室光照”相关 Lore 行。 */
     private List<String> stripOldLoreFallback(List<String> lore) {
         if (lore != null && !lore.isEmpty()) {
             Set<String> anySeasonLines = this.normalizedFullLinesForKey("crop.lore.any_season");
@@ -192,11 +216,12 @@ public final class CropLoreService {
         }
     }
 
+    /** 判断小写文本是否以给定前缀集合中的任一前缀开头。 */
     private boolean startsWithAny(String plainLower, Set<String> prefixesLower) {
         if (plainLower != null && !plainLower.isEmpty()) {
             if (prefixesLower != null && !prefixesLower.isEmpty()) {
-                for(String p : prefixesLower) {
-                    if (p != null && !p.isEmpty() && plainLower.startsWith(p)) {
+                for(String prefix : prefixesLower) {
+                    if (prefix != null && !prefix.isEmpty() && plainLower.startsWith(prefix)) {
                         return true;
                     }
                 }
@@ -210,25 +235,27 @@ public final class CropLoreService {
         }
     }
 
+    /** 汇集某语言键所有翻译的规范化全文。 */
     private Set<String> normalizedFullLinesForKey(String key) {
         Set<String> out = new HashSet();
 
-        for(String t : this.plugin.lang.getAllTranslations(key)) {
-            if (t != null && !t.isBlank()) {
-                out.add(this.norm(t));
+        for(String translation : this.plugin.lang.getAllTranslations(key)) {
+            if (translation != null && !translation.isBlank()) {
+                out.add(this.norm(translation));
             }
         }
 
         return out;
     }
 
+    /** 汇集某语言键所有翻译中、占位符之前的规范化前缀。 */
     private Set<String> normalizedPrefixesForKey(String key, String placeholderName) {
         Set<String> out = new HashSet();
         String token = "{" + placeholderName.toLowerCase(Locale.ROOT) + "}";
 
-        for(String t : this.plugin.lang.getAllTranslations(key)) {
-            if (t != null && !t.isBlank()) {
-                String plain = ChatColor.stripColor(t);
+        for(String translation : this.plugin.lang.getAllTranslations(key)) {
+            if (translation != null && !translation.isBlank()) {
+                String plain = ChatColor.stripColor(translation);
                 if (plain != null) {
                     String low = plain.toLowerCase(Locale.ROOT);
                     int idx = low.indexOf(token);
@@ -243,38 +270,41 @@ public final class CropLoreService {
         return out;
     }
 
+    /** 去除颜色代码并转为小写、去空白后的规范化文本。 */
     private String norm(String s) {
         return ChatColor.stripColor(s == null ? "" : s).toLowerCase(Locale.ROOT).trim();
     }
 
-    private String trSafe(Player p, String key, String fallback) {
-        String v = this.plugin.lang.tr(p, key);
+    /** 安全翻译：若语言键无对应翻译则使用带颜色代码的兜底文本。 */
+    private String trSafe(Player player, String key, String fallback) {
+        String v = this.plugin.lang.tr(player, key);
         return v != null && !v.equals(key) ? v : ChatColor.translateAlternateColorCodes('&', fallback);
     }
 
+    /** 将种子/物品映射到对应作物方块材质并返回其允许季节；无法映射时返回 null。 */
     private EnumSet<Season> seasonsForItem(Material itemType) {
         if (this.config.isManagedCrop(itemType)) {
             return this.config.getAllowedSeasons(itemType);
         } else {
-            Material var10000;
+            Material cropMaterial;
             switch (itemType) {
-                case WHEAT_SEEDS -> var10000 = Material.WHEAT;
-                case BEETROOT_SEEDS -> var10000 = Material.BEETROOTS;
-                case CARROT -> var10000 = Material.CARROTS;
-                case POTATO -> var10000 = Material.POTATOES;
-                case MELON_SEEDS -> var10000 = Material.MELON_STEM;
-                case PUMPKIN_SEEDS -> var10000 = Material.PUMPKIN_STEM;
-                case NETHER_WART -> var10000 = Material.NETHER_WART;
-                case COCOA_BEANS -> var10000 = Material.COCOA;
-                case SWEET_BERRIES -> var10000 = Material.SWEET_BERRY_BUSH;
-                case BAMBOO -> var10000 = Material.BAMBOO;
-                case SUGAR_CANE -> var10000 = Material.SUGAR_CANE;
-                case CACTUS -> var10000 = Material.CACTUS;
-                case KELP -> var10000 = Material.KELP;
-                default -> var10000 = null;
+                case WHEAT_SEEDS -> cropMaterial = Material.WHEAT;
+                case BEETROOT_SEEDS -> cropMaterial = Material.BEETROOTS;
+                case CARROT -> cropMaterial = Material.CARROTS;
+                case POTATO -> cropMaterial = Material.POTATOES;
+                case MELON_SEEDS -> cropMaterial = Material.MELON_STEM;
+                case PUMPKIN_SEEDS -> cropMaterial = Material.PUMPKIN_STEM;
+                case NETHER_WART -> cropMaterial = Material.NETHER_WART;
+                case COCOA_BEANS -> cropMaterial = Material.COCOA;
+                case SWEET_BERRIES -> cropMaterial = Material.SWEET_BERRY_BUSH;
+                case BAMBOO -> cropMaterial = Material.BAMBOO;
+                case SUGAR_CANE -> cropMaterial = Material.SUGAR_CANE;
+                case CACTUS -> cropMaterial = Material.CACTUS;
+                case KELP -> cropMaterial = Material.KELP;
+                default -> cropMaterial = null;
             }
 
-            Material cropType = var10000;
+            Material cropType = cropMaterial;
             return cropType == null ? null : this.config.getAllowedSeasons(cropType);
         }
     }

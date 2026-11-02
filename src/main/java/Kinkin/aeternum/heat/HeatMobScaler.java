@@ -23,6 +23,13 @@ import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.projectiles.ProjectileSource;
 
+/**
+ * 炎热维度怪物强化器。
+ *
+ * <p>当敌对生物在炎热世界 {@code aeternum_heat} 中生成时，为其打上 {@code heat_mob} 标签，
+ * 并提升其最大生命值与移动速度；被标记的怪物对玩家造成的伤害也会放大。
+ * 标签保证同一生物只强化一次。</p>
+ */
 public final class HeatMobScaler implements Listener {
     private static final String HEAT_WORLD_NAME = "aeternum_heat";
     private final AeternumSeasonsPlugin plugin;
@@ -42,33 +49,36 @@ public final class HeatMobScaler implements Listener {
         HandlerList.unregisterAll(this);
     }
 
-    private boolean inHeatWorld(Entity e) {
-        World w = e.getWorld();
-        return w != null && w.getName().equalsIgnoreCase("aeternum_heat");
+    /** 判断实体是否位于炎热世界。 */
+    private boolean inHeatWorld(Entity entity) {
+        World world = entity.getWorld();
+        return world != null && world.getName().equalsIgnoreCase("aeternum_heat");
     }
 
-    private boolean isHostile(LivingEntity e) {
-        return e instanceof Monster || e instanceof Slime || e instanceof Phantom;
+    /** 判断生物是否为敌对生物（怪物、史莱姆或幻翼）。 */
+    private boolean isHostile(LivingEntity entity) {
+        return entity instanceof Monster || entity instanceof Slime || entity instanceof Phantom;
     }
 
+    /** 监听生物生成：在炎热世界中强化尚未标记的敌对生物。 */
     @EventHandler(
         ignoreCancelled = true,
         priority = EventPriority.NORMAL
     )
-    public void onSpawn(CreatureSpawnEvent e) {
-        LivingEntity le = e.getEntity();
-        if (this.inHeatWorld(le)) {
-            if (this.isHostile(le)) {
-                PersistentDataContainer pdc = le.getPersistentDataContainer();
+    public void onSpawn(CreatureSpawnEvent event) {
+        LivingEntity entity = event.getEntity();
+        if (this.inHeatWorld(entity)) {
+            if (this.isHostile(entity)) {
+                PersistentDataContainer pdc = entity.getPersistentDataContainer();
                 if (!pdc.has(this.TAG_KEY, PersistentDataType.BYTE)) {
                     pdc.set(this.TAG_KEY, PersistentDataType.BYTE, (byte)1);
-                    AttributeInstance maxHp = le.getAttribute(Attribute.MAX_HEALTH);
-                    if (maxHp != null) {
-                        maxHp.setBaseValue(maxHp.getBaseValue() * (double)4.0F);
-                        le.setHealth(maxHp.getBaseValue());
+                    AttributeInstance maxHealth = entity.getAttribute(Attribute.MAX_HEALTH);
+                    if (maxHealth != null) {
+                        maxHealth.setBaseValue(maxHealth.getBaseValue() * (double)4.0F);
+                        entity.setHealth(maxHealth.getBaseValue());
                     }
 
-                    AttributeInstance speed = le.getAttribute(Attribute.MOVEMENT_SPEED);
+                    AttributeInstance speed = entity.getAttribute(Attribute.MOVEMENT_SPEED);
                     if (speed != null) {
                         speed.setBaseValue(speed.getBaseValue() * 1.2);
                     }
@@ -78,33 +88,34 @@ public final class HeatMobScaler implements Listener {
         }
     }
 
+    /** 监听实体伤害：被标记的炎热怪物对玩家造成的伤害放大为四倍。 */
     @EventHandler(
         ignoreCancelled = true,
         priority = EventPriority.NORMAL
     )
-    public void onDamage(EntityDamageByEntityEvent e) {
-        Entity var3 = e.getEntity();
-        if (var3 instanceof Player victim) {
-            LivingEntity var8 = null;
-            Entity var7 = e.getDamager();
-            if (var7 instanceof LivingEntity le) {
-                var8 = le;
+    public void onDamage(EntityDamageByEntityEvent event) {
+        Entity damagedEntity = event.getEntity();
+        if (damagedEntity instanceof Player victim) {
+            LivingEntity attacker = null;
+            Entity damager = event.getDamager();
+            if (damager instanceof LivingEntity livingDamager) {
+                attacker = livingDamager;
             } else {
-                var7 = e.getDamager();
-                if (var7 instanceof Projectile proj) {
-                    ProjectileSource var11 = proj.getShooter();
-                    if (var11 instanceof LivingEntity le2) {
-                        var8 = le2;
+                damager = event.getDamager();
+                if (damager instanceof Projectile projectile) {
+                    ProjectileSource shooter = projectile.getShooter();
+                    if (shooter instanceof LivingEntity shooterLiving) {
+                        attacker = shooterLiving;
                     }
                 }
             }
 
-            if (var8 != null) {
-                if (this.inHeatWorld(var8)) {
-                    if (this.isHostile(var8)) {
-                        PersistentDataContainer pdc = var8.getPersistentDataContainer();
+            if (attacker != null) {
+                if (this.inHeatWorld(attacker)) {
+                    if (this.isHostile(attacker)) {
+                        PersistentDataContainer pdc = attacker.getPersistentDataContainer();
                         if (pdc.has(this.TAG_KEY, PersistentDataType.BYTE)) {
-                            e.setDamage(e.getDamage() * (double)4.0F);
+                            event.setDamage(event.getDamage() * (double)4.0F);
                         }
                     }
                 }

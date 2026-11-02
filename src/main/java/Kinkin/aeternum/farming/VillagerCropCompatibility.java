@@ -25,6 +25,17 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 
+/**
+ * 村民作物兼容处理。
+ *
+ * <p>追踪已加载的村民与掉落物实体，周期性（每 10 tick）在实体所属线程上：
+ * <ul>
+ *     <li>规范化村民交易库存中的作物物品；</li>
+ *     <li>规范化掉落物物品栈，使其回到“原版”外观。</li>
+ * </ul>
+ * 通过反射优先使用 Paper 的实体调度器（{@code Entity#getScheduler}），
+ * 不可用时退回全局调度器，以尽量避免跨线程访问实体。</p>
+ */
 final class VillagerCropCompatibility implements Listener, Runnable {
     private final AeternumSeasonsPlugin plugin;
     private final CropLoreService lore;
@@ -70,6 +81,7 @@ final class VillagerCropCompatibility implements Listener, Runnable {
         this.items.clear();
     }
 
+    /** 根据实体类型登记村民或待处理物品。 */
     private void discover(Entity entity) {
         if (this.active) {
             if (entity instanceof Villager) {
@@ -85,6 +97,7 @@ final class VillagerCropCompatibility implements Listener, Runnable {
         }
     }
 
+    /** 将掉落物加入待规范化队列（去重）。 */
     void queueItem(Item item) {
         if (this.active && this.queuedItems.putIfAbsent(item.getUniqueId(), item) == null) {
             this.items.add(item);
@@ -92,6 +105,7 @@ final class VillagerCropCompatibility implements Listener, Runnable {
 
     }
 
+    /** 监听生物生成，登记新出现的村民或物品实体。 */
     @EventHandler(
         ignoreCancelled = true,
         priority = EventPriority.MONITOR
@@ -100,11 +114,13 @@ final class VillagerCropCompatibility implements Listener, Runnable {
         this.discover(event.getEntity());
     }
 
+    /** 区块实体加载时登记其中的村民与物品。 */
     @EventHandler
     public void onLoad(EntitiesLoadEvent event) {
         event.getEntities().forEach(this::discover);
     }
 
+    /** 区块实体卸载时从跟踪集合中移除对应村民与物品。 */
     @EventHandler
     public void onUnload(EntitiesUnloadEvent event) {
         for(Entity entity : event.getEntities()) {
@@ -119,6 +135,7 @@ final class VillagerCropCompatibility implements Listener, Runnable {
 
     }
 
+    /** 定时任务入口：分批处理村民库存与掉落物的规范化。 */
     public void run() {
         if (this.active && this.plugin.isEnabled()) {
             int visits = Math.min(16, this.villagers.size());
@@ -135,10 +152,10 @@ final class VillagerCropCompatibility implements Listener, Runnable {
                     this.onOwner(villager, () -> {
                         if (this.tracked.get(id) == villager && villager.isValid() && !villager.isDead()) {
                             try {
-                                Inventory var10000 = villager.getInventory();
-                                CropLoreService var10001 = this.lore;
-                                Objects.requireNonNull(var10001);
-                                VillagerCropInventory.normalize(var10000, var10001::forVillager);
+                                Inventory inventory = villager.getInventory();
+                                CropLoreService loreService = this.lore;
+                                Objects.requireNonNull(loreService);
+                                VillagerCropInventory.normalize(inventory, loreService::forVillager);
                             } finally {
                                 if (this.active && this.tracked.get(id) == villager) {
                                     this.villagers.add(villager);
@@ -184,14 +201,22 @@ final class VillagerCropCompatibility implements Listener, Runnable {
         }
     }
 
+    /** 探测 Paper 的实体调度器方法；不存在时返回 null。 */
     private static Method schedulerMethod() {
         try {
             return Entity.class.getMethod("getScheduler");
-        } catch (NoSuchMethodException var1) {
+        } catch (NoSuchMethodException ignored) {
             return null;
         }
     }
 
+    /**
+     * 在实体所属线程上执行动作；无法调度或实体已失效时执行 retired 回退。
+     *
+     * @param entity 目标实体
+     * @param action 需要在实体线程执行的动作
+     * @param retired 放弃处理时的回退动作
+     */
     private void onOwner(Entity entity, Runnable action, Runnable retired) {
         if (this.active && this.plugin.isEnabled()) {
             Runnable guarded = () -> {

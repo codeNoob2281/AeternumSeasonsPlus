@@ -49,6 +49,15 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 
+/**
+ * 堆肥方块服务。
+ *
+ * <p>实现一种可放置的“堆肥方块”系统：玩家用配方制作“生堆肥”，放置后在有水环境下
+ * 经一段时间发酵为“可耕地堆肥”（可提升作物生长速度）；若被水淹没则会变为“水域堆肥”，
+ * 用于在泥土上催生海带或甘蔗。方块状态持久化到 {@code compost-blocks.yml}，
+ * 并以定时任务分批推进发酵与生长。</p>
+ * <p>依赖插件提供的语言翻译与配置，以及 {@link PlatformScheduler} 进行定时/按区块调度。</p>
+ */
 public final class CompostService implements Listener, Runnable {
     private static final long FERMENT_TICKS = 48000L;
     private static final int WATER_RADIUS = 1;
@@ -82,6 +91,7 @@ public final class CompostService implements Listener, Runnable {
         this.storageFile = new File(plugin.getDataFolder(), "compost-blocks.yml");
     }
 
+    /** 注册事件监听、合成配方，加载已保存的方块状态并启动定时任务。 */
     public void register() {
         Bukkit.getPluginManager().registerEvents(this, this.plugin);
         this.registerRecipe();
@@ -93,6 +103,7 @@ public final class CompostService implements Listener, Runnable {
         this.task = PlatformScheduler.runGlobalTimer(this.plugin, this, 100L, 400L);
     }
 
+    /** 取消定时任务、注销监听并保存当前方块状态。 */
     public void unregister() {
         if (this.task != null) {
             this.task.cancel();
@@ -104,15 +115,16 @@ public final class CompostService implements Listener, Runnable {
         this.compostBlocks.clear();
     }
 
+    /** 将当前所有堆肥方块写入 {@code compost-blocks.yml}。 */
     private void saveState() {
         YamlConfiguration y = new YamlConfiguration();
-        int i = 0;
+        int index = 0;
 
         for(Map.Entry<Location, CompostData> entry : this.compostBlocks.entrySet()) {
             Location loc = (Location)entry.getKey();
             CompostData data = (CompostData)entry.getValue();
-            int var10000 = i++;
-            String path = "blocks." + var10000;
+            int currentIndex = index++;
+            String path = "blocks." + currentIndex;
             y.set(path + ".world", loc.getWorld().getName());
             y.set(path + ".x", loc.getBlockX());
             y.set(path + ".y", loc.getBlockY());
@@ -129,6 +141,7 @@ public final class CompostService implements Listener, Runnable {
 
     }
 
+    /** 从 {@code compost-blocks.yml} 读取并恢复堆肥方块状态。 */
     private void loadState() {
         this.compostBlocks.clear();
         if (this.storageFile.exists()) {
@@ -138,11 +151,11 @@ public final class CompostService implements Listener, Runnable {
                 for(String key : sec.getKeys(false)) {
                     String base = "blocks." + key;
                     String worldName = y.getString(base + ".world");
-                    World w = Bukkit.getWorld(worldName);
-                    if (w != null) {
-                        int x = y.getInt(base + ".x");
-                        int yy = y.getInt(base + ".y");
-                        int z = y.getInt(base + ".z");
+                    World world = Bukkit.getWorld(worldName);
+                    if (world != null) {
+                        int posX = y.getInt(base + ".x");
+                        int posY = y.getInt(base + ".y");
+                        int posZ = y.getInt(base + ".z");
                         String stageStr = y.getString(base + ".stage", "RAW");
                         long readyTick = y.getLong(base + ".readyTick", 0L);
                         if ("READY".equalsIgnoreCase(stageStr)) {
@@ -152,11 +165,11 @@ public final class CompostService implements Listener, Runnable {
                         Stage stage;
                         try {
                             stage = CompostService.Stage.valueOf(stageStr);
-                        } catch (IllegalArgumentException var16) {
+                        } catch (IllegalArgumentException ignored) {
                             continue;
                         }
 
-                        Location loc = new Location(w, (double)x, (double)yy, (double)z);
+                        Location loc = new Location(world, (double)posX, (double)posY, (double)posZ);
                         this.compostBlocks.put(loc, new CompostData(stage, readyTick));
                     }
                 }
@@ -165,6 +178,7 @@ public final class CompostService implements Listener, Runnable {
         }
     }
 
+    /** 注册“生堆肥”的合成配方。 */
     private void registerRecipe() {
         ItemStack result = this.createItem(CompostService.Stage.RAW);
         ShapedRecipe recipe = new ShapedRecipe(this.KEY_RECIPE, result);
@@ -180,6 +194,13 @@ public final class CompostService implements Listener, Runnable {
         return this.createItem(stage, (Player)null);
     }
 
+    /**
+     * 创建指定阶段的堆肥物品，并根据查看者设置显示名称与 Lore。
+     *
+     * @param stage 堆肥阶段
+     * @param viewer 语言上下文玩家，可为 null（使用服务端默认语言）
+     * @return 构建出的物品栈
+     */
     private ItemStack createItem(Stage stage, Player viewer) {
         ItemStack item = new ItemStack(Material.ROOTED_DIRT, 1);
         ItemMeta meta = item.getItemMeta();
@@ -214,6 +235,7 @@ public final class CompostService implements Listener, Runnable {
         return item;
     }
 
+    /** 从物品的持久化数据读取堆肥阶段；物品无标签或无法识别时返回 null。 */
     private Stage readStage(ItemStack item) {
         if (item == null) {
             return null;
@@ -229,77 +251,81 @@ public final class CompostService implements Listener, Runnable {
             } else {
                 try {
                     return CompostService.Stage.valueOf(s);
-                } catch (IllegalArgumentException var5) {
+                } catch (IllegalArgumentException ignored) {
                     return null;
                 }
             }
         }
     }
 
+    /** 监听堆肥方块放置，按阶段初始化方块类型并记录状态。 */
     @EventHandler(
         ignoreCancelled = true
     )
-    public void onPlace(BlockPlaceEvent e) {
-        Stage stage = this.readStage(e.getItemInHand());
+    public void onPlace(BlockPlaceEvent event) {
+        Stage stage = this.readStage(event.getItemInHand());
         if (stage != null) {
-            Block b = e.getBlockPlaced();
-            Location key = this.blockKey(b);
+            Block block = event.getBlockPlaced();
+            Location key = this.blockKey(block);
             long ready = 0L;
             if (stage == CompostService.Stage.RAW) {
-                b.setType(Material.ROOTED_DIRT);
-                ready = b.getWorld().getFullTime() + 48000L;
+                block.setType(Material.ROOTED_DIRT);
+                ready = block.getWorld().getFullTime() + 48000L;
             } else if (stage == CompostService.Stage.READY_LAND) {
-                b.setType(Material.FARMLAND);
+                block.setType(Material.FARMLAND);
             } else {
-                b.setType(this.pickReadyWaterMaterial(key));
+                block.setType(this.pickReadyWaterMaterial(key));
             }
 
             this.compostBlocks.put(key, new CompostData(stage, ready));
-            b.getWorld().spawnParticle(Particle.HAPPY_VILLAGER, b.getLocation().add((double)0.5F, 0.6, (double)0.5F), 8, 0.3, 0.3, 0.3, 0.01);
+            block.getWorld().spawnParticle(Particle.HAPPY_VILLAGER, block.getLocation().add((double)0.5F, 0.6, (double)0.5F), 8, 0.3, 0.3, 0.3, 0.01);
         }
     }
 
+    /** 监听堆肥方块被破坏，掉落对应阶段的物品。 */
     @EventHandler(
         ignoreCancelled = true
     )
-    public void onBreak(BlockBreakEvent e) {
-        Block b = e.getBlock();
-        this.landNextBoostAt.remove(this.blockKey(b));
-        Location key = this.blockKey(b);
+    public void onBreak(BlockBreakEvent event) {
+        Block block = event.getBlock();
+        this.landNextBoostAt.remove(this.blockKey(block));
+        Location key = this.blockKey(block);
         CompostData data = (CompostData)this.compostBlocks.remove(key);
         if (data != null) {
-            e.setDropItems(false);
-            ItemStack drop = this.createItem(data.stage, e.getPlayer());
-            b.getWorld().dropItemNaturally(b.getLocation().add((double)0.5F, (double)0.5F, (double)0.5F), drop);
+            event.setDropItems(false);
+            ItemStack drop = this.createItem(data.stage, event.getPlayer());
+            block.getWorld().dropItemNaturally(block.getLocation().add((double)0.5F, (double)0.5F, (double)0.5F), drop);
         }
     }
 
+    /** 监听合成预览，为配方产物生成带玩家语言的堆肥物品。 */
     @EventHandler
-    public void onPrepareCraft(PrepareItemCraftEvent e) {
-        HumanEntity var3 = e.getView().getPlayer();
-        if (var3 instanceof Player p) {
-            Recipe recipe = e.getRecipe();
+    public void onPrepareCraft(PrepareItemCraftEvent event) {
+        HumanEntity viewer = event.getView().getPlayer();
+        if (viewer instanceof Player player) {
+            Recipe recipe = event.getRecipe();
             if (recipe instanceof Keyed keyed) {
                 if (keyed.getKey().equals(this.KEY_RECIPE)) {
-                    CraftingInventory inv = e.getInventory();
-                    inv.setResult(this.createItem(CompostService.Stage.RAW, p));
+                    CraftingInventory inventory = event.getInventory();
+                    inventory.setResult(this.createItem(CompostService.Stage.RAW, player));
                 }
             }
         }
     }
 
+    /** 监听用锄头右键水域堆肥，将其翻为可耕地堆肥。 */
     @EventHandler(
         ignoreCancelled = true,
         priority = EventPriority.HIGHEST
     )
-    public void onHoe(PlayerInteractEvent e) {
-        if (e.getAction() == Action.RIGHT_CLICK_BLOCK) {
-            if (e.getClickedBlock() != null) {
-                if (e.getItem() != null) {
-                    if (e.getHand() == EquipmentSlot.HAND) {
-                        Material tool = e.getItem().getType();
+    public void onHoe(PlayerInteractEvent event) {
+        if (event.getAction() == Action.RIGHT_CLICK_BLOCK) {
+            if (event.getClickedBlock() != null) {
+                if (event.getItem() != null) {
+                    if (event.getHand() == EquipmentSlot.HAND) {
+                        Material tool = event.getItem().getType();
                         if (this.isHoe(tool)) {
-                            Block soil = e.getClickedBlock();
+                            Block soil = event.getClickedBlock();
                             Location key = this.blockKey(soil);
                             CompostData data = (CompostData)this.compostBlocks.get(key);
                             if (data != null) {
@@ -311,7 +337,7 @@ public final class CompostService implements Listener, Runnable {
                                             soil.setType(Material.FARMLAND, false);
                                             soil.getWorld().playSound(soil.getLocation(), Sound.ITEM_HOE_TILL, 1.0F, 1.0F);
                                             soil.getWorld().spawnParticle(Particle.HAPPY_VILLAGER, soil.getLocation().add((double)0.5F, 0.8, (double)0.5F), 10, (double)0.25F, 0.2, (double)0.25F, 0.01);
-                                            e.setCancelled(true);
+                                            event.setCancelled(true);
                                         }
                                     }
                                 }
@@ -323,20 +349,21 @@ public final class CompostService implements Listener, Runnable {
         }
     }
 
+    /** 监听作物生长，在可耕地堆肥上按倍率额外推进生长阶段。 */
     @EventHandler(
         ignoreCancelled = true,
         priority = EventPriority.HIGH
     )
-    public void onGrow(BlockGrowEvent e) {
-        Block crop = e.getBlock();
-        Material newType = e.getNewState().getType();
+    public void onGrow(BlockGrowEvent event) {
+        Block crop = event.getBlock();
+        Material newType = event.getNewState().getType();
         if (LAND_CROPS.contains(newType)) {
             Block farmland = crop.getRelative(BlockFace.DOWN);
             CompostData data = (CompostData)this.compostBlocks.get(this.blockKey(farmland));
             if (data != null && data.stage == CompostService.Stage.READY_LAND) {
-                BlockData bd = e.getNewState().getBlockData();
-                if (bd instanceof Ageable) {
-                    Ageable age = (Ageable)bd;
+                BlockData blockData = event.getNewState().getBlockData();
+                if (blockData instanceof Ageable) {
+                    Ageable age = (Ageable)blockData;
                     double multiplier = this.plugin.getConfig().getDouble("farming.fertilized_soil.growth_multiplier", (double)2.0F);
                     if (!(multiplier <= (double)1.0F)) {
                         int curAge = age.getAge();
@@ -346,7 +373,7 @@ public final class CompostService implements Listener, Runnable {
                             int newAge = Math.min(curAge + extraSteps, max);
                             if (newAge != curAge) {
                                 age.setAge(newAge);
-                                e.getNewState().setBlockData(age);
+                                event.getNewState().setBlockData(age);
                                 if (this.plugin.getConfig().getBoolean("farming.compost.particles.enabled", true)) {
                                     crop.getWorld().spawnParticle(Particle.HAPPY_VILLAGER, crop.getLocation().add((double)0.5F, 0.2, (double)0.5F), 5, 0.2, 0.2, 0.2, 0.02);
                                 }
@@ -359,20 +386,22 @@ public final class CompostService implements Listener, Runnable {
         }
     }
 
+    /** 监听农田被踩踏，保护可耕地堆肥不被破坏。 */
     @EventHandler(
         ignoreCancelled = true
     )
-    public void onTrample(EntityChangeBlockEvent e) {
-        if (e.getBlock().getType() == Material.FARMLAND) {
-            if (e.getTo() == Material.DIRT) {
-                CompostData data = (CompostData)this.compostBlocks.get(this.blockKey(e.getBlock()));
+    public void onTrample(EntityChangeBlockEvent event) {
+        if (event.getBlock().getType() == Material.FARMLAND) {
+            if (event.getTo() == Material.DIRT) {
+                CompostData data = (CompostData)this.compostBlocks.get(this.blockKey(event.getBlock()));
                 if (data != null && data.stage == CompostService.Stage.READY_LAND) {
-                    e.setCancelled(true);
+                    event.setCancelled(true);
                 }
             }
         }
     }
 
+    /** 定时任务入口：按方块所在区块调度每个堆肥方块的推进逻辑。 */
     public void run() {
         if (!this.compostBlocks.isEmpty()) {
             List<Location> locs = new ArrayList(this.compostBlocks.keySet());
@@ -388,23 +417,30 @@ public final class CompostService implements Listener, Runnable {
         }
     }
 
+    /**
+     * 推进单个堆肥方块的状态：处理发酵、耕地/水域转换，以及海带/甘蔗催生。
+     *
+     * @param loc 方块位置
+     * @param kelpBudget 本轮剩余的海带催生次数预算
+     * @param caneBudget 本轮剩余的甘蔗催生次数预算
+     */
     private void tickOne(Location loc, AtomicInteger kelpBudget, AtomicInteger caneBudget) {
         CompostData data = (CompostData)this.compostBlocks.get(loc);
         if (data != null) {
-            World w = loc.getWorld();
-            if (w != null && w.isChunkLoaded(loc.getBlockX() >> 4, loc.getBlockZ() >> 4)) {
-                Block b = w.getBlockAt(loc);
-                if (b.getType() == Material.AIR) {
+            World world = loc.getWorld();
+            if (world != null && world.isChunkLoaded(loc.getBlockX() >> 4, loc.getBlockZ() >> 4)) {
+                Block block = world.getBlockAt(loc);
+                if (block.getType() == Material.AIR) {
                     this.compostBlocks.remove(loc);
                 } else if (data.stage == CompostService.Stage.READY_LAND) {
                     if (this.isFlooded(loc)) {
                         data.stage = CompostService.Stage.READY_WATER;
-                        b.setType(Material.MUD, false);
-                    } else if (b.getType() != Material.FARMLAND) {
+                        block.setType(Material.MUD, false);
+                    } else if (block.getType() != Material.FARMLAND) {
                         data.stage = CompostService.Stage.READY_WATER;
-                        b.setType(this.pickReadyWaterMaterial(loc), false);
+                        block.setType(this.pickReadyWaterMaterial(loc), false);
                     } else {
-                        Block crop = b.getRelative(BlockFace.UP);
+                        Block crop = block.getRelative(BlockFace.UP);
                         if (LAND_CROPS.contains(crop.getType())) {
                             this.tryBoostCrop(crop);
                         }
@@ -412,27 +448,27 @@ public final class CompostService implements Listener, Runnable {
                     }
                 } else if (data.stage == CompostService.Stage.RAW) {
                     if (this.hasWaterNearby(loc)) {
-                        w.spawnParticle(Particle.HAPPY_VILLAGER, b.getLocation().add((double)0.5F, 0.6, (double)0.5F), 6, (double)0.25F, (double)0.25F, (double)0.25F, 0.01);
-                        if (w.getFullTime() >= data.readyTick) {
+                        world.spawnParticle(Particle.HAPPY_VILLAGER, block.getLocation().add((double)0.5F, 0.6, (double)0.5F), 6, (double)0.25F, (double)0.25F, (double)0.25F, 0.01);
+                        if (world.getFullTime() >= data.readyTick) {
                             data.stage = CompostService.Stage.READY_LAND;
-                            b.setType(Material.FARMLAND, false);
-                            w.playSound(b.getLocation(), Sound.BLOCK_COMPOSTER_READY, 1.0F, 1.0F);
+                            block.setType(Material.FARMLAND, false);
+                            world.playSound(block.getLocation(), Sound.BLOCK_COMPOSTER_READY, 1.0F, 1.0F);
                         }
                     }
                 } else {
                     if (data.stage == CompostService.Stage.READY_WATER) {
                         Material want = this.pickReadyWaterMaterial(loc);
-                        if (b.getType() != want) {
-                            b.setType(want, false);
+                        if (block.getType() != want) {
+                            block.setType(want, false);
                         }
 
-                        long now = w.getGameTime();
-                        if (this.isFlooded(loc) && kelpBudget.get() > 0 && now >= data.kelpNextPushAt && this.tryPushKelpOnSoil(b)) {
+                        long now = world.getGameTime();
+                        if (this.isFlooded(loc) && kelpBudget.get() > 0 && now >= data.kelpNextPushAt && this.tryPushKelpOnSoil(block)) {
                             kelpBudget.decrementAndGet();
                             data.kelpNextPushAt = now + 120L;
                         }
 
-                        if (want == Material.MUD && caneBudget.get() > 0 && now >= data.caneNextPushAt && this.tryPushSugarCaneOnSoil(b)) {
+                        if (want == Material.MUD && caneBudget.get() > 0 && now >= data.caneNextPushAt && this.tryPushSugarCaneOnSoil(block)) {
                             caneBudget.decrementAndGet();
                             data.caneNextPushAt = now + 120L;
                         }
@@ -443,11 +479,12 @@ public final class CompostService implements Listener, Runnable {
         }
     }
 
+    /** 在堆肥耕地上按概率额外催熟一次作物。 */
     private void tryBoostCrop(Block crop) {
         if (!(Math.random() > 0.3)) {
-            BlockData bd = crop.getBlockData();
-            if (bd instanceof Ageable) {
-                Ageable age = (Ageable)bd;
+            BlockData blockData = crop.getBlockData();
+            if (blockData instanceof Ageable) {
+                Ageable age = (Ageable)blockData;
                 int max = age.getMaximumAge();
                 if (age.getAge() < max) {
                     age.setAge(age.getAge() + 1);
@@ -459,6 +496,12 @@ public final class CompostService implements Listener, Runnable {
         }
     }
 
+    /**
+     * 尝试在水域堆肥上催生一节甘蔗。
+     *
+     * @param soil 堆肥方块
+     * @return 处理完毕返回 true（不区分是否实际生长）
+     */
     private boolean tryPushSugarCaneOnSoil(Block soil) {
         Block first = soil.getRelative(BlockFace.UP);
         if (first.getType() != Material.SUGAR_CANE) {
@@ -492,10 +535,12 @@ public final class CompostService implements Listener, Runnable {
         }
     }
 
-    private boolean isHoe(Material m) {
-        return m == Material.WOODEN_HOE || m == Material.STONE_HOE || m == Material.IRON_HOE || m == Material.GOLDEN_HOE || m == Material.DIAMOND_HOE || m == Material.NETHERITE_HOE;
+    /** 判断材质是否为锄头。 */
+    private boolean isHoe(Material material) {
+        return material == Material.WOODEN_HOE || material == Material.STONE_HOE || material == Material.IRON_HOE || material == Material.GOLDEN_HOE || material == Material.DIAMOND_HOE || material == Material.NETHERITE_HOE;
     }
 
+    /** 依据是否被水淹没/附近有水，选择水域堆肥应呈现的材质。 */
     private Material pickReadyWaterMaterial(Location soilLoc) {
         if (this.isFlooded(soilLoc)) {
             return Material.MUD;
@@ -504,38 +549,40 @@ public final class CompostService implements Listener, Runnable {
         }
     }
 
+    /** 判断堆肥方块是否被水淹没（正上方为水柱）。 */
     private boolean isFlooded(Location soilLoc) {
-        World w = soilLoc.getWorld();
-        if (w == null) {
+        World world = soilLoc.getWorld();
+        if (world == null) {
             return false;
         } else {
-            Block soil = w.getBlockAt(soilLoc);
+            Block soil = world.getBlockAt(soilLoc);
             Block up = soil.getRelative(BlockFace.UP);
             return this.isWaterColumn(up);
         }
     }
 
+    /** 判断指定位置附近（配置半径内）是否存在水源或含水方块。 */
     private boolean hasWaterNearby(Location loc) {
-        World w = loc.getWorld();
-        if (w == null) {
+        World world = loc.getWorld();
+        if (world == null) {
             return false;
         } else {
-            Block base = w.getBlockAt(loc);
+            Block base = world.getBlockAt(loc);
             int radius = this.plugin.getConfig().getInt("farming.fertilized_soil.water_radius", 4);
 
             for(int dx = -radius; dx <= radius; ++dx) {
                 for(int dz = -radius; dz <= radius; ++dz) {
                     for(int dy = -1; dy <= 1; ++dy) {
-                        Block b = base.getRelative(dx, dy, dz);
-                        Material m = b.getType();
-                        if (m == Material.WATER || m == Material.BUBBLE_COLUMN) {
+                        Block block = base.getRelative(dx, dy, dz);
+                        Material mat = block.getType();
+                        if (mat == Material.WATER || mat == Material.BUBBLE_COLUMN) {
                             return true;
                         }
 
-                        BlockData bd = b.getBlockData();
-                        if (bd instanceof Waterlogged) {
-                            Waterlogged wl = (Waterlogged)bd;
-                            if (wl.isWaterlogged()) {
+                        BlockData blockData = block.getBlockData();
+                        if (blockData instanceof Waterlogged) {
+                            Waterlogged waterlogged = (Waterlogged)blockData;
+                            if (waterlogged.isWaterlogged()) {
                                 return true;
                             }
                         }
@@ -547,23 +594,24 @@ public final class CompostService implements Listener, Runnable {
         }
     }
 
+    /** 判断单个方块是否构成水柱（水、含水植物或含水方块）。 */
     private boolean isWaterColumn(Block b) {
-        Material m = b.getType();
-        if (m != Material.WATER && m != Material.BUBBLE_COLUMN) {
-            if (m != Material.KELP && m != Material.KELP_PLANT) {
-                if (m != Material.SEAGRASS && m != Material.TALL_SEAGRASS) {
-                    BlockData bd = b.getBlockData();
-                    boolean var10000;
-                    if (bd instanceof Waterlogged) {
-                        Waterlogged wl = (Waterlogged)bd;
-                        if (wl.isWaterlogged()) {
-                            var10000 = true;
-                            return var10000;
+        Material material = b.getType();
+        if (material != Material.WATER && material != Material.BUBBLE_COLUMN) {
+            if (material != Material.KELP && material != Material.KELP_PLANT) {
+                if (material != Material.SEAGRASS && material != Material.TALL_SEAGRASS) {
+                    BlockData blockData = b.getBlockData();
+                    boolean isWater;
+                    if (blockData instanceof Waterlogged) {
+                        Waterlogged waterlogged = (Waterlogged)blockData;
+                        if (waterlogged.isWaterlogged()) {
+                            isWater = true;
+                            return isWater;
                         }
                     }
 
-                    var10000 = false;
-                    return var10000;
+                    isWater = false;
+                    return isWater;
                 } else {
                     return true;
                 }
@@ -575,18 +623,26 @@ public final class CompostService implements Listener, Runnable {
         }
     }
 
-    private boolean isKelp(Material m) {
-        return KELP_TYPES.contains(m);
+    /** 判断材质是否为海带类方块。 */
+    private boolean isKelp(Material material) {
+        return KELP_TYPES.contains(material);
     }
 
+    /** 由方块位置生成用于映射/持久化的键。 */
     private Location blockKey(Block b) {
         return new Location(b.getWorld(), (double)b.getX(), (double)b.getY(), (double)b.getZ());
     }
 
+    /**
+     * 尝试在水域堆肥上催生一节海带。
+     *
+     * @param soil 堆肥方块
+     * @return 处理完毕返回 true（不区分是否实际生长）
+     */
     private boolean tryPushKelpOnSoil(Block soil) {
         Block first = soil.getRelative(BlockFace.UP);
-        Material mFirst = first.getType();
-        if (mFirst != Material.KELP && mFirst != Material.KELP_PLANT) {
+        Material firstMaterial = first.getType();
+        if (firstMaterial != Material.KELP && firstMaterial != Material.KELP_PLANT) {
             return false;
         } else {
             Block top = first;
@@ -594,8 +650,8 @@ public final class CompostService implements Listener, Runnable {
 
             do {
                 Block up = top.getRelative(BlockFace.UP);
-                Material mu = up.getType();
-                if (mu != Material.KELP && mu != Material.KELP_PLANT) {
+                Material upMaterial = up.getType();
+                if (upMaterial != Material.KELP && upMaterial != Material.KELP_PLANT) {
                     break;
                 }
 
@@ -634,6 +690,7 @@ public final class CompostService implements Listener, Runnable {
         KELP_TYPES = EnumSet.of(Material.KELP, Material.KELP_PLANT);
     }
 
+    /** 堆肥方块的阶段。 */
     private static enum Stage {
         RAW,
         READY_LAND,
@@ -648,6 +705,7 @@ public final class CompostService implements Listener, Runnable {
         }
     }
 
+    /** 单个堆肥方块的运行时状态。 */
     private static final class CompostData {
         Stage stage;
         long readyTick;

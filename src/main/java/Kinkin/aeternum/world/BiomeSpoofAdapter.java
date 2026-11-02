@@ -53,6 +53,22 @@ import org.bukkit.event.world.ChunkUnloadEvent;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
 
+/**
+ * 生物群系伪装适配器（BiomeSpoofAdapter）。
+ *
+ * <p>核心职责：在玩家周围一定半径的区块内，把服务端真实生物群系“伪装”为当前季节对应的视觉群系
+ * （春季花林、夏季平原、秋季白杨/热带草原、冬季雪原，海洋另有季节配色），并在季节切换或停用时
+ * 还原为原始群系。为避免破坏生态与生成，它还包含：</p>
+ * <ul>
+ *     <li><b>原始备份</b>：应用前用 {@link BiomeBackupStore} 记录原始群系网格，供还原使用；</li>
+ *     <li><b>生态保护</b>：跳过被排除/受保护群系（河流、沼泽水色等），并据原始冷/暖属性决定是否跳过；</li>
+ *     <li><b>生成守卫</b>：拦截依赖水或受群系限制的自然生物生成；</li>
+ *     <li><b>客户端刷新</b>：通过 {@link BiomePacketSender} 发送群系数据包或降级 {@code refreshChunk}，
+ *     并用“轻推”假方块强制客户端重算；</li>
+ *     <li><b>预算调度</b>：以信用额度与时间片把工作分摊到每 tick。</li>
+ * </ul>
+ * 依赖 {@link SeasonService}/{@link CalendarState} 提供季节与日历状态。</p>
+ */
 public final class BiomeSpoofAdapter implements Listener, Runnable {
     private final AeternumSeasonsPlugin plugin;
     private final SeasonService seasons;
@@ -128,18 +144,19 @@ public final class BiomeSpoofAdapter implements Listener, Runnable {
     private final BiomeBackupStore diskBackups;
     private volatile boolean diskBackupEnabled;
 
+    /** 玩家到达/切换后重新同步其扫描范围：清理过期待处理区块并把新视野区块入队。 */
     private void resyncPlayer(Player player) {
         this.playerScanStates.remove(player.getUniqueId());
         if (this.mode != BiomeSpoofAdapter.Mode.OFF) {
             World world = player.getWorld();
             CalendarChannel channel = this.seasons.resolveChannel(world);
             if (world.getEnvironment() == Environment.NORMAL && !this.plugin.isWorldDisabled(world) && channel != null && this.seasons.isChannelEnabled(channel)) {
-                this.pendingChunks.removeIf((workx) -> {
-                    World queuedWorld = Bukkit.getWorld(workx.worldId());
-                    if (queuedWorld != null && this.hasClientViewer(queuedWorld, workx.chunkX(), workx.chunkZ())) {
+                this.pendingChunks.removeIf((work) -> {
+                    World queuedWorld = Bukkit.getWorld(work.worldId());
+                    if (queuedWorld != null && this.hasClientViewer(queuedWorld, work.chunkX(), work.chunkZ())) {
                         return false;
                     } else {
-                        this.queuedChunks.remove(workx);
+                        this.queuedChunks.remove(work);
                         return true;
                     }
                 });
@@ -167,6 +184,7 @@ public final class BiomeSpoofAdapter implements Listener, Runnable {
         }
     }
 
+    /** 返回当前活动实例（未启用时为 null）。 */
     public static BiomeSpoofAdapter instanceOrNull() {
         return INSTANCE;
     }
@@ -207,6 +225,7 @@ public final class BiomeSpoofAdapter implements Listener, Runnable {
         INSTANCE = this;
     }
 
+    /** 从气候配置重新读取伪装开关、季节目标群系、海洋设置、生成守卫与客户端刷新参数。 */
     private void reloadFromConfig() {
         this.seasonTarget.clear();
         this.oceanTarget.clear();
@@ -214,8 +233,8 @@ public final class BiomeSpoofAdapter implements Listener, Runnable {
         if (!enabled) {
             this.mode = BiomeSpoofAdapter.Mode.OFF;
         } else {
-            String m = this.plugin.cfg.climate.getString("biome_spoof.mode", "GLOBAL_RING");
-            if ("OFF".equalsIgnoreCase(m)) {
+            String modeName = this.plugin.cfg.climate.getString("biome_spoof.mode", "GLOBAL_RING");
+            if ("OFF".equalsIgnoreCase(modeName)) {
                 this.mode = BiomeSpoofAdapter.Mode.OFF;
             } else {
                 this.mode = BiomeSpoofAdapter.Mode.GLOBAL_RING;
@@ -261,6 +280,7 @@ public final class BiomeSpoofAdapter implements Listener, Runnable {
         }
     }
 
+    /** 读取配置中的一组群系名并写入目标集合，无法识别的项告警后忽略。 */
     private void readBiomeSet(String path, Set<Biome> destination) {
         for(String raw : this.plugin.cfg.climate.getStringList(path)) {
             if (raw != null && !raw.isBlank()) {
@@ -275,6 +295,7 @@ public final class BiomeSpoofAdapter implements Listener, Runnable {
 
     }
 
+    /** 读取秋季目标群系；配置为 AUTO 时优先解析 {@code dappled_forest}，否则回退热带草原。 */
     private Biome readAutumnBiome(String path) {
         String raw = this.plugin.cfg.climate.getString(path, "AUTO");
         if (raw != null && "AUTO".equalsIgnoreCase(raw.trim())) {
@@ -320,18 +341,22 @@ public final class BiomeSpoofAdapter implements Listener, Runnable {
         return biome != null && NamespacedKey.minecraft(minecraftKey).equals(biome.getKey());
     }
 
+    /** 当前实际使用的秋季目标群系。 */
     public Biome getEffectiveAutumnBiome() {
         return (Biome)this.seasonTarget.get(Season.AUTUMN);
     }
 
+    /** 秋季是否使用热带草原（旧版方案）作为目标群系。 */
     public boolean usesSavannaPlateauForAutumn() {
         return isBiome(this.getEffectiveAutumnBiome(), "savanna_plateau");
     }
 
+    /** 秋季是否使用白杨林作为目标群系。 */
     public boolean usesDappledForestForAutumn() {
         return isBiome(this.getEffectiveAutumnBiome(), "dappled_forest");
     }
 
+    /** 注册事件监听、玩家到达同步与主循环任务。 */
     public void register() {
         Bukkit.getPluginManager().registerEvents(this, this.plugin);
         if (this.arrivalSync != null) {
@@ -346,6 +371,7 @@ public final class BiomeSpoofAdapter implements Listener, Runnable {
         this.task = Bukkit.getScheduler().runTaskTimer(this.plugin, this::runOptimized, 40L, 1L);
     }
 
+    /** 注销任务与监听、还原全部伪装并清理状态。 */
     public void unregister() {
         if (this.arrivalSync != null) {
             this.arrivalSync.close();
@@ -381,30 +407,33 @@ public final class BiomeSpoofAdapter implements Listener, Runnable {
 
     }
 
+    /**
+     * 生成守卫：拦截在伪装区块中出现的、依赖水或受群系限制的自然生成生物，避免生态错乱。
+     */
     @EventHandler(
         ignoreCancelled = true
     )
-    public void onCreatureSpawn(CreatureSpawnEvent e) {
+    public void onCreatureSpawn(CreatureSpawnEvent event) {
         if (this.mode != BiomeSpoofAdapter.Mode.OFF) {
             if (this.spawnGuardEnabled) {
-                CreatureSpawnEvent.SpawnReason reason = e.getSpawnReason();
+                CreatureSpawnEvent.SpawnReason reason = event.getSpawnReason();
                 if (reason == SpawnReason.NATURAL || reason == SpawnReason.CHUNK_GEN) {
-                    Location loc = e.getLocation();
-                    World w = loc.getWorld();
-                    if (w != null) {
+                    Location loc = event.getLocation();
+                    World world = loc.getWorld();
+                    if (world != null) {
                         if (this.spawnGuardOnlySpoofedChunks) {
-                            long ck = this.key(w, loc.getBlockX() >> 4, loc.getBlockZ() >> 4);
-                            if (!this.spoofed.contains(ck)) {
+                            long chunkKey = this.key(world, loc.getBlockX() >> 4, loc.getBlockZ() >> 4);
+                            if (!this.spoofed.contains(chunkKey)) {
                                 return;
                             }
                         }
 
-                        EntityType type = e.getEntityType();
+                        EntityType type = event.getEntityType();
                         if (CAPPED_AQUATIC_MOBS.contains(type) && this.exceedsAquaticCap(loc, type)) {
-                            e.setCancelled(true);
+                            event.setCancelled(true);
                         } else if (WATER_REQUIRED_MOBS.contains(type)) {
                             if (!this.isInWaterLikeBlock(loc)) {
-                                e.setCancelled(true);
+                                event.setCancelled(true);
                             }
 
                         } else {
@@ -413,12 +442,12 @@ public final class BiomeSpoofAdapter implements Listener, Runnable {
                                     return;
                                 }
 
-                                int r = this.spawnGuardNearWaterRadius;
-                                if (r > 0 && this.hasWaterNearby(loc, r)) {
+                                int nearWaterRadius = this.spawnGuardNearWaterRadius;
+                                if (nearWaterRadius > 0 && this.hasWaterNearby(loc, nearWaterRadius)) {
                                     return;
                                 }
 
-                                e.setCancelled(true);
+                                event.setCancelled(true);
                             }
 
                         }
@@ -428,44 +457,47 @@ public final class BiomeSpoofAdapter implements Listener, Runnable {
         }
     }
 
+    /** 判断位置本身或其正下方是否为水/含水方块。 */
     private boolean isInWaterLikeBlock(Location loc) {
-        Block b = loc.getBlock();
-        if (this.isWaterLike(b)) {
+        Block block = loc.getBlock();
+        if (this.isWaterLike(block)) {
             return true;
         } else {
-            Block below = b.getRelative(0, -1, 0);
+            Block below = block.getRelative(0, -1, 0);
             return this.isWaterLike(below);
         }
     }
 
-    private boolean isWaterLike(Block b) {
-        Material t = b.getType();
-        if (t != Material.WATER && t != Material.BUBBLE_COLUMN) {
-            BlockData data = b.getBlockData();
+    /** 判断方块是否为水、气泡柱或含水（waterlogged）方块。 */
+    private boolean isWaterLike(Block block) {
+        Material type = block.getType();
+        if (type != Material.WATER && type != Material.BUBBLE_COLUMN) {
+            BlockData data = block.getBlockData();
             return data instanceof Waterlogged ? ((Waterlogged)data).isWaterlogged() : false;
         } else {
             return true;
         }
     }
 
+    /** 在给定水平半径内查找附近是否存在水/含水方块（含下一层）。 */
     private boolean hasWaterNearby(Location loc, int radius) {
-        World w = loc.getWorld();
-        if (w == null) {
+        World world = loc.getWorld();
+        if (world == null) {
             return false;
         } else {
-            int bx = loc.getBlockX();
-            int by = loc.getBlockY();
-            int bz = loc.getBlockZ();
+            int baseX = loc.getBlockX();
+            int baseY = loc.getBlockY();
+            int baseZ = loc.getBlockZ();
 
             for(int dx = -radius; dx <= radius; ++dx) {
                 for(int dz = -radius; dz <= radius; ++dz) {
                     if (dx != 0 || dz != 0) {
-                        Block b = w.getBlockAt(bx + dx, by, bz + dz);
-                        if (this.isWaterLike(b)) {
+                        Block block = world.getBlockAt(baseX + dx, baseY, baseZ + dz);
+                        if (this.isWaterLike(block)) {
                             return true;
                         }
 
-                        Block below = w.getBlockAt(bx + dx, by - 1, bz + dz);
+                        Block below = world.getBlockAt(baseX + dx, baseY - 1, baseZ + dz);
                         if (this.isWaterLike(below)) {
                             return true;
                         }
@@ -477,9 +509,10 @@ public final class BiomeSpoofAdapter implements Listener, Runnable {
         }
     }
 
+    /** 判断指定位置附近同类水生生物数量是否已达上限。 */
     private boolean exceedsAquaticCap(Location loc, EntityType spawningType) {
-        World w = loc.getWorld();
-        if (w == null) {
+        World world = loc.getWorld();
+        if (world == null) {
             return false;
         } else {
             int max = this.maxAquaticAllowed(spawningType);
@@ -488,7 +521,7 @@ public final class BiomeSpoofAdapter implements Listener, Runnable {
             } else {
                 int count = 0;
 
-                for(Entity entity : w.getNearbyEntities(loc, (double)32.0F, (double)16.0F, (double)32.0F)) {
+                for(Entity entity : world.getNearbyEntities(loc, (double)32.0F, (double)16.0F, (double)32.0F)) {
                     if (entity.getType() == spawningType) {
                         ++count;
                         if (count >= max) {
@@ -502,57 +535,61 @@ public final class BiomeSpoofAdapter implements Listener, Runnable {
         }
     }
 
+    /** 返回某类水生生物在范围内允许的最大数量（海豚 6，其余 48）。 */
     private int maxAquaticAllowed(EntityType type) {
         return type == EntityType.DOLPHIN ? 6 : 48;
     }
 
+    /** 区块加载时清空该区块的缓存与伪装标记，若位于活动玩家范围则重新入队处理。 */
     @EventHandler
-    public void onChunkLoad(ChunkLoadEvent e) {
-        ChunkWork work = new ChunkWork(e.getChunk().getWorld().getUID(), e.getChunk().getX(), e.getChunk().getZ());
+    public void onChunkLoad(ChunkLoadEvent event) {
+        ChunkWork work = new ChunkWork(event.getChunk().getWorld().getUID(), event.getChunk().getX(), event.getChunk().getZ());
         this.backupLookupsPending.remove(work);
         this.backupLookupsCompleted.remove(work);
-        long k = this.key(e.getChunk());
-        this.spoofed.remove(k);
-        this.modifiedBiomeCells.remove(k);
-        this.lastApplied.remove(k);
-        this.familyCache.remove(k);
-        this.warmChunks.remove(k);
-        COLD_CHUNKS.remove(k);
-        this.excludedCache.remove(k);
-        if (this.mode != BiomeSpoofAdapter.Mode.OFF && this.isInsideAnyActivePlayerArea(e.getChunk())) {
-            this.enqueueChunk(e.getChunk().getWorld(), e.getChunk().getX(), e.getChunk().getZ());
+        long key = this.key(event.getChunk());
+        this.spoofed.remove(key);
+        this.modifiedBiomeCells.remove(key);
+        this.lastApplied.remove(key);
+        this.familyCache.remove(key);
+        this.warmChunks.remove(key);
+        COLD_CHUNKS.remove(key);
+        this.excludedCache.remove(key);
+        if (this.mode != BiomeSpoofAdapter.Mode.OFF && this.isInsideAnyActivePlayerArea(event.getChunk())) {
+            this.enqueueChunk(event.getChunk().getWorld(), event.getChunk().getX(), event.getChunk().getZ());
         }
 
     }
 
+    /** 区块卸载时移除相关队列/缓存，并在需要时先还原该区块群系。 */
     @EventHandler
-    public void onChunkUnload(ChunkUnloadEvent e) {
-        Chunk ch = e.getChunk();
-        long k = this.key(ch);
-        ChunkWork work = new ChunkWork(ch.getWorld().getUID(), ch.getX(), ch.getZ());
+    public void onChunkUnload(ChunkUnloadEvent event) {
+        Chunk chunk = event.getChunk();
+        long key = this.key(chunk);
+        ChunkWork work = new ChunkWork(chunk.getWorld().getUID(), chunk.getX(), chunk.getZ());
         this.queuedChunks.remove(work);
         this.queuedClientRefreshes.remove(work);
         this.backupLookupsPending.remove(work);
         this.backupLookupsCompleted.remove(work);
-        if (this.spoofed.remove(k)) {
-            this.revertChunk(ch, false);
+        if (this.spoofed.remove(key)) {
+            this.revertChunk(chunk, false);
         }
 
-        this.backups.remove(k);
-        this.modifiedBiomeCells.remove(k);
-        this.warmChunks.remove(k);
-        COLD_CHUNKS.remove(k);
-        NudgeTarget unloaded = new NudgeTarget(ch.getWorld().getUID(), ch.getX(), ch.getZ());
+        this.backups.remove(key);
+        this.modifiedBiomeCells.remove(key);
+        this.warmChunks.remove(key);
+        COLD_CHUNKS.remove(key);
+        NudgeTarget unloaded = new NudgeTarget(chunk.getWorld().getUID(), chunk.getX(), chunk.getZ());
 
         for(ArrayDeque<NudgeTarget> queue : this.nudgeQueue.values()) {
             queue.remove(unloaded);
         }
 
-        this.excludedCache.remove(k);
+        this.excludedCache.remove(key);
     }
 
+    /** 季节切换时进入过渡窗口（提高处理预算）并清空玩家扫描/客户端刷新队列。 */
     @EventHandler
-    public void onSeasonChange(SeasonUpdateEvent e) {
+    public void onSeasonChange(SeasonUpdateEvent event) {
         if (this.mode != BiomeSpoofAdapter.Mode.OFF) {
             this.seasonTransitionUntil = System.currentTimeMillis() + 5000L;
             this.playerScanStates.clear();
@@ -565,6 +602,7 @@ public final class BiomeSpoofAdapter implements Listener, Runnable {
         }
     }
 
+    /** 优化版主循环：按信用额度与时间片消费待处理区块，并刷新客户端。 */
     private void runOptimized() {
         if (this.mode != BiomeSpoofAdapter.Mode.OFF) {
             ++this.optimizedTickCounter;
@@ -602,6 +640,7 @@ public final class BiomeSpoofAdapter implements Listener, Runnable {
         }
     }
 
+    /** 根据所有在线玩家位置，把他们视野范围内、需要更新的区块入队（增量环状补充）。 */
     private void enqueuePlayerAreas() {
         long cooldownCutoff = System.currentTimeMillis() - 3000L;
         this.nudgeLast.entrySet().removeIf((entry) -> (Long)entry.getValue() < cooldownCutoff);
@@ -661,12 +700,13 @@ public final class BiomeSpoofAdapter implements Listener, Runnable {
         this.preTransitionRateMultiplier = (double)1.0F + maxPreTransition * (double)2.0F;
     }
 
+    /** 取（并缓存）给定半径的区块偏移列表，按距离与平方距离排序。 */
     private List<Offset> offsetsForRadius(int radius) {
-        return (List)this.offsetsByRadius.computeIfAbsent(radius, (value) -> {
-            List<Offset> offsets = new ArrayList((value * 2 + 1) * (value * 2 + 1));
+        return (List)this.offsetsByRadius.computeIfAbsent(radius, (radiusKey) -> {
+            List<Offset> offsets = new ArrayList((radiusKey * 2 + 1) * (radiusKey * 2 + 1));
 
-            for(int dx = -value; dx <= value; ++dx) {
-                for(int dz = -value; dz <= value; ++dz) {
+            for(int dx = -radiusKey; dx <= radiusKey; ++dx) {
+                for(int dz = -radiusKey; dz <= radiusKey; ++dz) {
                     int distance = Math.max(Math.abs(dx), Math.abs(dz));
                     offsets.add(new Offset(dx, dz, distance, (double)0.0F));
                 }
@@ -762,13 +802,14 @@ public final class BiomeSpoofAdapter implements Listener, Runnable {
         }
     }
 
+    /** 按世界分组批量发送群系数据包；任一世界发送失败即返回 false 以便降级。 */
     private boolean sendBiomePacketBatch(List<ChunkWork> batch) {
         Map<UUID, List<Chunk>> chunksByWorld = new LinkedHashMap();
 
         for(ChunkWork work : batch) {
             World world = Bukkit.getWorld(work.worldId());
             if (world != null && world.isChunkLoaded(work.chunkX(), work.chunkZ())) {
-                ((List)chunksByWorld.computeIfAbsent(work.worldId(), (ignored) -> new ArrayList())).add(world.getChunkAt(work.chunkX(), work.chunkZ()));
+                ((List)chunksByWorld.computeIfAbsent(work.worldId(), (ignoredKey) -> new ArrayList())).add(world.getChunkAt(work.chunkX(), work.chunkZ()));
             }
         }
 
@@ -816,6 +857,7 @@ public final class BiomeSpoofAdapter implements Listener, Runnable {
         return this.disabledWorldNames.contains(world.getName().toLowerCase(Locale.ROOT));
     }
 
+    /** 处理单个待处理区块：确保原始备份已加载，判定是否跳过/排除，然后选择目标群系并应用。 */
     private void processQueuedChunk(ChunkWork work) {
         World world = Bukkit.getWorld(work.worldId());
         if (world != null && world.getEnvironment() == Environment.NORMAL && !this.isWorldDisabled(world) && world.isChunkLoaded(work.chunkX(), work.chunkZ())) {
@@ -843,7 +885,7 @@ public final class BiomeSpoofAdapter implements Listener, Runnable {
                         this.lastApplied.remove(chunkKey);
                         this.familyCache.remove(chunkKey);
                     } else {
-                        Family family = (Family)this.familyCache.computeIfAbsent(chunkKey, (ignored) -> this.classifyOriginalFamily(chunk));
+                        Family family = (Family)this.familyCache.computeIfAbsent(chunkKey, (ignoredKey) -> this.classifyOriginalFamily(chunk));
                         Biome target = this.chooseTargetBiomeForChunk(chunkKey, family, currentTarget, nextTarget, currentOceanTarget, nextOceanTarget, preTransitionFactor, chunk, season, nextSeason);
                         if (!this.shouldSkipSpoofForChunk(chunk, season)) {
                             AppliedBiomeState last = (AppliedBiomeState)this.lastApplied.get(chunkKey);
@@ -887,6 +929,7 @@ public final class BiomeSpoofAdapter implements Listener, Runnable {
         }
     }
 
+    /** 确保某区块的原始群系备份已加载：未加载时异步读取磁盘，成功后再入队重试。 */
     private boolean ensureOriginalBackupLoaded(ChunkWork work, World world, long chunkKey) {
         if (!this.backups.containsKey(chunkKey) && !this.backupLookupsCompleted.contains(work)) {
             if (!this.backupLookupsPending.add(work)) {
@@ -912,33 +955,36 @@ public final class BiomeSpoofAdapter implements Listener, Runnable {
         }
     }
 
+    /** {@link Runnable} 入口：委托给优化版主循环。 */
     public void run() {
         this.runOptimized();
     }
 
+    /** 旧版主循环（逐玩家逐区块直接应用），保留作为备用/参考实现。 */
+    /** 旧版主循环（逐玩家逐区块直接应用），保留作为备用/参考实现。 */
     private void runLegacy() {
         if (this.mode != BiomeSpoofAdapter.Mode.OFF) {
             long now = System.currentTimeMillis();
             int baseBudget = this.budgetPerTick;
             int budget = baseBudget;
             if (baseBudget > 0) {
-                for(Player p : Bukkit.getOnlinePlayers()) {
+                for(Player player : Bukkit.getOnlinePlayers()) {
                     if (budget <= 0) {
                         break;
                     }
 
-                    World w = p.getWorld();
-                    if (w.getEnvironment() == Environment.NORMAL) {
+                    World world = player.getWorld();
+                    if (world.getEnvironment() == Environment.NORMAL) {
                         List<String> disabled = this.plugin.getConfig().getStringList("worlds.disabled_season_fx");
-                        if (disabled == null || !disabled.stream().anyMatch((s) -> s != null && s.equalsIgnoreCase(w.getName()))) {
-                            CalendarChannel channel = this.seasons.resolveChannel(w);
+                        if (disabled == null || !disabled.stream().anyMatch((worldName) -> worldName != null && worldName.equalsIgnoreCase(world.getName()))) {
+                            CalendarChannel channel = this.seasons.resolveChannel(world);
                             if (channel != null && this.seasons.isChannelEnabled(channel)) {
-                                boolean permanentWinter = this.seasons.isPermanentWinterWorld(w);
-                                CalendarState st = this.seasons.getStateCopy(w);
-                                Season season = st.season;
-                                int dayInPeriod = this.computeDayInPeriod(channel, st);
-                                double preTransitionFactor = this.preTransitionEnabled && !permanentWinter ? this.computePreTransitionFactor(channel, st, dayInPeriod) : (double)0.0F;
-                                Season nextVisualSeason = permanentWinter ? Season.WINTER : this.resolveNextVisualSeason(channel, st);
+                                boolean permanentWinter = this.seasons.isPermanentWinterWorld(world);
+                                CalendarState state = this.seasons.getStateCopy(world);
+                                Season season = state.season;
+                                int dayInPeriod = this.computeDayInPeriod(channel, state);
+                                double preTransitionFactor = this.preTransitionEnabled && !permanentWinter ? this.computePreTransitionFactor(channel, state, dayInPeriod) : (double)0.0F;
+                                Season nextVisualSeason = permanentWinter ? Season.WINTER : this.resolveNextVisualSeason(channel, state);
                                 Biome currentTarget = (Biome)this.seasonTarget.getOrDefault(season, Biome.PLAINS);
                                 Biome nextTarget = (Biome)this.seasonTarget.getOrDefault(nextVisualSeason, currentTarget);
                                 Biome currentOceanTarget = (Biome)this.oceanTarget.getOrDefault(season, Biome.OCEAN);
@@ -954,7 +1000,7 @@ public final class BiomeSpoofAdapter implements Listener, Runnable {
                                 budget = Math.min(budget, effectiveBudget);
                                 int view = Bukkit.getViewDistance();
                                 int radius = Math.max(this.radiusChunksCfg, view + 1);
-                                Location loc = p.getLocation();
+                                Location loc = player.getLocation();
                                 int pcx = loc.getBlockX() >> 4;
                                 int pcz = loc.getBlockZ() >> 4;
                                 Vector look = loc.getDirection().clone();
@@ -965,8 +1011,8 @@ public final class BiomeSpoofAdapter implements Listener, Runnable {
                                     look.normalize();
                                 }
 
-                                if (w.isChunkLoaded(pcx, pcz) && budget > 0) {
-                                    Chunk center = w.getChunkAt(pcx, pcz);
+                                if (world.isChunkLoaded(pcx, pcz) && budget > 0) {
+                                    Chunk center = world.getChunkAt(pcx, pcz);
                                     long ck = this.key(center);
                                     boolean centerExcluded = this.isChunkExcludedByConfig(center);
                                     if (centerExcluded) {
@@ -977,7 +1023,7 @@ public final class BiomeSpoofAdapter implements Listener, Runnable {
                                         this.lastApplied.remove(ck);
                                         this.familyCache.remove(ck);
                                     } else {
-                                        Family fam = (Family)this.familyCache.computeIfAbsent(ck, (kk) -> this.classifyOriginalFamily(center));
+                                        Family fam = (Family)this.familyCache.computeIfAbsent(ck, (ignoredKey) -> this.classifyOriginalFamily(center));
                                         Biome chunkTarget = this.chooseTargetBiomeForChunk(ck, fam, currentTarget, nextTarget, currentOceanTarget, nextOceanTarget, preTransitionFactor, center, season, nextVisualSeason);
                                         if (this.shouldSkipSpoofForChunk(center, season)) {
                                             AppliedBiomeState last = (AppliedBiomeState)this.lastApplied.get(ck);
@@ -1008,7 +1054,7 @@ public final class BiomeSpoofAdapter implements Listener, Runnable {
                                                     this.rememberModifiedCells(ck, apply);
                                                     this.spoofed.add(ck);
                                                     this.lastApplied.put(ck, new AppliedBiomeState(chunkTarget, season));
-                                                    this.nudgeViewers(w, pcx, pcz);
+                                                    this.nudgeViewers(world, pcx, pcz);
                                                     --budget;
                                                 }
                                             }
@@ -1040,7 +1086,7 @@ public final class BiomeSpoofAdapter implements Listener, Runnable {
                                     }
                                 }
 
-                                offsets.sort(Comparator.comparingInt((Offset o) -> o.dist).thenComparingDouble((Offset o) -> -o.forwardScore));
+                                offsets.sort(Comparator.comparingInt((Offset offset) -> offset.dist).thenComparingDouble((Offset offset) -> -offset.forwardScore));
 
                                 for(Offset off : offsets) {
                                     if (budget <= 0) {
@@ -1049,8 +1095,8 @@ public final class BiomeSpoofAdapter implements Listener, Runnable {
 
                                     int cx = pcx + off.dx;
                                     int cz = pcz + off.dz;
-                                    if (w.isChunkLoaded(cx, cz)) {
-                                        Chunk ch = w.getChunkAt(cx, cz);
+                                    if (world.isChunkLoaded(cx, cz)) {
+                                        Chunk ch = world.getChunkAt(cx, cz);
                                         long k = this.key(ch);
                                         if (this.isChunkExcludedByConfig(ch)) {
                                             if (this.spoofed.remove(k)) {
@@ -1060,7 +1106,7 @@ public final class BiomeSpoofAdapter implements Listener, Runnable {
                                             this.lastApplied.remove(k);
                                             this.familyCache.remove(k);
                                         } else {
-                                            Family fam = (Family)this.familyCache.computeIfAbsent(k, (kk) -> this.classifyOriginalFamily(ch));
+                                            Family fam = (Family)this.familyCache.computeIfAbsent(k, (ignoredKey) -> this.classifyOriginalFamily(ch));
                                             Biome chunkTarget = this.chooseTargetBiomeForChunk(k, fam, currentTarget, nextTarget, currentOceanTarget, nextOceanTarget, preTransitionFactor, ch, season, nextVisualSeason);
                                             if (!this.shouldSkipSpoofForChunk(ch, season)) {
                                                 AppliedBiomeState last = (AppliedBiomeState)this.lastApplied.get(k);
@@ -1079,7 +1125,7 @@ public final class BiomeSpoofAdapter implements Listener, Runnable {
                                                             this.rememberModifiedCells(k, apply);
                                                             this.spoofed.add(k);
                                                             this.lastApplied.put(k, new AppliedBiomeState(chunkTarget, season));
-                                                            this.nudgeViewers(w, cx, cz);
+                                                            this.nudgeViewers(world, cx, cz);
                                                             --budget;
                                                         }
                                                     }
@@ -1108,23 +1154,24 @@ public final class BiomeSpoofAdapter implements Listener, Runnable {
         }
     }
 
-    private boolean isChunkExcludedByConfig(Chunk ch) {
+    /** 判断某区块是否因全部采样群系都受保护/被排除而应整体跳过伪装（带缓存）。 */
+    private boolean isChunkExcludedByConfig(Chunk chunk) {
         if (this.excludedBiomes.isEmpty()) {
             return false;
         } else {
-            long k = this.key(ch);
-            Boolean cached = (Boolean)this.excludedCache.get(k);
+            long key = this.key(chunk);
+            Boolean cached = (Boolean)this.excludedCache.get(key);
             if (cached != null) {
                 return cached;
             } else {
                 boolean result = true;
                 boolean foundBiome = false;
-                Biome[] old = (Biome[])this.backups.get(k);
+                Biome[] old = (Biome[])this.backups.get(key);
                 if (old != null && old.length > 0) {
-                    for(Biome b : old) {
-                        if (b != null) {
+                    for(Biome biome : old) {
+                        if (biome != null) {
                             foundBiome = true;
-                            if (!this.shouldProtectBiomeFromSpoof(b)) {
+                            if (!this.shouldProtectBiomeFromSpoof(biome)) {
                                 result = false;
                                 break;
                             }
@@ -1132,22 +1179,22 @@ public final class BiomeSpoofAdapter implements Listener, Runnable {
                     }
 
                     result = foundBiome && result;
-                    this.excludedCache.put(k, result);
+                    this.excludedCache.put(key, result);
                     return result;
                 } else {
-                    World w = ch.getWorld();
-                    int bx = ch.getX() << 4;
-                    int bz = ch.getZ() << 4;
-                    int minY = w.getMinHeight();
-                    int maxY = w.getMaxHeight();
+                    World world = chunk.getWorld();
+                    int baseX = chunk.getX() << 4;
+                    int baseZ = chunk.getZ() << 4;
+                    int minY = world.getMinHeight();
+                    int maxY = world.getMaxHeight();
 
                     for(int x = 0; x < 16; x += 8) {
                         for(int z = 0; z < 16; z += 8) {
                             for(int y = minY; y < maxY; y += 32) {
-                                Biome b = w.getBiome(bx + x, y, bz + z);
-                                if (b != null) {
+                                Biome biome = world.getBiome(baseX + x, y, baseZ + z);
+                                if (biome != null) {
                                     foundBiome = true;
-                                    if (!this.shouldProtectBiomeFromSpoof(b)) {
+                                    if (!this.shouldProtectBiomeFromSpoof(biome)) {
                                         result = false;
                                     }
                                 }
@@ -1156,7 +1203,7 @@ public final class BiomeSpoofAdapter implements Listener, Runnable {
                     }
 
                     result = foundBiome && result;
-                    this.excludedCache.put(k, result);
+                    this.excludedCache.put(key, result);
                     return result;
                 }
             }
@@ -1185,13 +1232,14 @@ public final class BiomeSpoofAdapter implements Listener, Runnable {
         return name.equals("SWAMP") || name.equals("MANGROVE_SWAMP") || name.equals("RIVER") || name.equals("FROZEN_RIVER");
     }
 
+    /** 读取原始海洋群系的代表值（优先取备份中的海洋群系，否则回退第一个/代表群系）。 */
     private Biome getRepresentativeOriginalOceanBiome(Chunk ch) {
-        long k = this.key(ch);
-        Biome[] old = (Biome[])this.backups.get(k);
+        long key = this.key(ch);
+        Biome[] old = (Biome[])this.backups.get(key);
         if (old != null && old.length > 0) {
-            for(Biome b : old) {
-                if (this.isOceanBiome(b)) {
-                    return b;
+            for(Biome biome : old) {
+                if (this.isOceanBiome(biome)) {
+                    return biome;
                 }
             }
 
@@ -1201,22 +1249,24 @@ public final class BiomeSpoofAdapter implements Listener, Runnable {
         }
     }
 
+    /** 选择给定季节的目标群系（无配置时保留原始群系）。 */
     private Biome chooseTargetFor(Season season, Biome original) {
         Biome global = (Biome)this.seasonTarget.get(season);
         return global == null ? original : global;
     }
 
+    /** 判断指定区块当前所有采样点是否都已是目标群系。 */
     private boolean isChunkAtTarget(Chunk ch, Biome target) {
-        World w = ch.getWorld();
-        int bx = ch.getX() << 4;
-        int bz = ch.getZ() << 4;
-        int minY = w.getMinHeight();
-        int maxY = w.getMaxHeight();
+        World world = ch.getWorld();
+        int baseX = ch.getX() << 4;
+        int baseZ = ch.getZ() << 4;
+        int minY = world.getMinHeight();
+        int maxY = world.getMaxHeight();
 
         for(int x = 0; x < 16; x += 8) {
             for(int z = 0; z < 16; z += 8) {
                 for(int y = minY; y < maxY; y += 32) {
-                    if (w.getBiome(bx + x, y, bz + z) != target) {
+                    if (world.getBiome(baseX + x, y, baseZ + z) != target) {
                         return false;
                     }
                 }
@@ -1226,6 +1276,7 @@ public final class BiomeSpoofAdapter implements Listener, Runnable {
         return true;
     }
 
+    /** 判断群系是否属于寒冷类（雪/冰/冻洋/山峰等），樱花林除外。 */
     private boolean isColdBiome(Biome biome) {
         if (biome == Biome.CHERRY_GROVE) {
             return false;
@@ -1235,42 +1286,46 @@ public final class BiomeSpoofAdapter implements Listener, Runnable {
         }
     }
 
-    private boolean isOceanBiome(Biome b) {
-        return b.name().contains("OCEAN");
+    /** 判断群系是否为海洋类。 */
+    private boolean isOceanBiome(Biome biome) {
+        return biome.name().contains("OCEAN");
     }
 
-    private boolean isDeepOcean(Biome b) {
-        return b.name().contains("DEEP_") && this.isOceanBiome(b);
+    /** 判断群系是否为深海类。 */
+    private boolean isDeepOcean(Biome biome) {
+        return biome.name().contains("DEEP_") && this.isOceanBiome(biome);
     }
 
-    private boolean isShoreBiome(Biome b) {
-        String n = b.name();
-        return n.contains("BEACH") || n.contains("SHORE");
+    /** 判断群系是否为海滩/海岸类。 */
+    private boolean isShoreBiome(Biome biome) {
+        String name = biome.name();
+        return name.contains("BEACH") || name.contains("SHORE");
     }
 
+    /** 判断区块原始群系家族（陆地/海洋），并顺带缓存其冷暖属性。 */
     private Family classifyOriginalFamily(Chunk ch) {
-        long k = this.key(ch);
-        Biome[] old = (Biome[])this.backups.get(k);
+        long key = this.key(ch);
+        Biome[] old = (Biome[])this.backups.get(key);
         if (old != null && old.length > 0) {
-            this.cacheOriginalTemperature(k, Arrays.asList(old));
+            this.cacheOriginalTemperature(key, Arrays.asList(old));
             return this.classifyFamilyFromSamples(Arrays.asList(old));
         } else {
-            World w = ch.getWorld();
-            int bx = ch.getX() << 4;
-            int bz = ch.getZ() << 4;
-            int minY = w.getMinHeight();
-            int maxY = w.getMaxHeight();
+            World world = ch.getWorld();
+            int baseX = ch.getX() << 4;
+            int baseZ = ch.getZ() << 4;
+            int minY = world.getMinHeight();
+            int maxY = world.getMaxHeight();
             List<Biome> samples = new ArrayList(32);
 
             for(int x = 0; x < 16; x += 8) {
                 for(int z = 0; z < 16; z += 8) {
                     for(int y = minY; y < maxY; y += 32) {
-                        samples.add(w.getBiome(bx + x, y, bz + z));
+                        samples.add(world.getBiome(baseX + x, y, baseZ + z));
                     }
                 }
             }
 
-            this.cacheOriginalTemperature(k, samples);
+            this.cacheOriginalTemperature(key, samples);
             return this.classifyFamilyFromSamples(samples);
         }
     }
@@ -1287,16 +1342,17 @@ public final class BiomeSpoofAdapter implements Listener, Runnable {
         this.warmChunks.add(chunkKey);
     }
 
+    /** 根据采样群系统计海洋/海岸/陆地比例，判定该区块的家族。 */
     private Family classifyFamilyFromSamples(Iterable<Biome> samples) {
         int oceanCount = 0;
         int shoreCount = 0;
         int landCount = 0;
 
-        for(Biome b : samples) {
-            if (b != null) {
-                if (this.oceansEnabled && this.isOceanBiome(b)) {
+        for(Biome biome : samples) {
+            if (biome != null) {
+                if (this.oceansEnabled && this.isOceanBiome(biome)) {
                     ++oceanCount;
-                } else if (this.oceansEnabled && this.oceansAffectShores && this.isShoreBiome(b)) {
+                } else if (this.oceansEnabled && this.oceansAffectShores && this.isShoreBiome(biome)) {
                     ++shoreCount;
                 } else {
                     ++landCount;
@@ -1318,22 +1374,23 @@ public final class BiomeSpoofAdapter implements Listener, Runnable {
         return BiomeSpoofAdapter.Family.LAND;
     }
 
+    /** 读取区块原始群系的代表值（备份第一个，或首次采样的最低层群系）。 */
     private Biome getRepresentativeOriginalBiome(Chunk ch) {
-        long k = this.key(ch);
-        Biome[] old = (Biome[])this.backups.get(k);
+        long key = this.key(ch);
+        Biome[] old = (Biome[])this.backups.get(key);
         if (old != null && old.length > 0) {
             return old[0];
         } else {
-            World w = ch.getWorld();
-            int bx = ch.getX() << 4;
-            int bz = ch.getZ() << 4;
-            int minY = w.getMinHeight();
-            int maxY = w.getMaxHeight();
+            World world = ch.getWorld();
+            int baseX = ch.getX() << 4;
+            int baseZ = ch.getZ() << 4;
+            int minY = world.getMinHeight();
+            int maxY = world.getMaxHeight();
 
             for(int x = 0; x < 16; x += 8) {
                 for(int z = 0; z < 16; z += 8) {
                     if (minY < maxY) {
-                        return w.getBiome(bx + x, minY, bz + z);
+                        return world.getBiome(baseX + x, minY, baseZ + z);
                     }
                 }
             }
@@ -1342,6 +1399,7 @@ public final class BiomeSpoofAdapter implements Listener, Runnable {
         }
     }
 
+    /** 按原始海洋是否为深海，对目标海洋群系做深/浅变体适配。 */
     private Biome applyOceanVariant(Biome baseTarget, Biome originalOcean) {
         if (!this.oceansKeepDeepVariants) {
             return baseTarget;
@@ -1354,7 +1412,7 @@ public final class BiomeSpoofAdapter implements Listener, Runnable {
                 } else {
                     try {
                         return Biome.valueOf("DEEP_" + baseName);
-                    } catch (IllegalArgumentException var7) {
+                    } catch (IllegalArgumentException deepNotFound) {
                         return baseTarget;
                     }
                 }
@@ -1363,7 +1421,7 @@ public final class BiomeSpoofAdapter implements Listener, Runnable {
 
                 try {
                     return Biome.valueOf(shallow);
-                } catch (IllegalArgumentException var8) {
+                } catch (IllegalArgumentException shallowNotFound) {
                     return baseTarget;
                 }
             } else {
@@ -1372,6 +1430,7 @@ public final class BiomeSpoofAdapter implements Listener, Runnable {
         }
     }
 
+    /** 综合家族、季节目标与过渡因子，为区块选出最终要伪装成的目标群系。 */
     private Biome chooseTargetBiomeForChunk(long chunkKey, Family family, Biome currentLandTarget, Biome nextLandTarget, Biome currentOceanTarget, Biome nextOceanTarget, double preTransitionFactor, Chunk ch, Season currentSeason, Season nextSeason) {
         if (family == BiomeSpoofAdapter.Family.OCEAN && this.oceansEnabled) {
             Biome origOcean = this.getRepresentativeOriginalOceanBiome(ch);
@@ -1393,16 +1452,17 @@ public final class BiomeSpoofAdapter implements Listener, Runnable {
         }
     }
 
+    /** 采样区块原始群系（首次时记录备份），并把每个采样点替换为目标群系，返回应用结果。 */
     private BiomeApplyResult captureAndApply(Chunk ch, Biome target, Season season) {
         try {
-            World w = ch.getWorld();
-            int bx = ch.getX() << 4;
-            int bz = ch.getZ() << 4;
-            int minY = w.getMinHeight();
-            int maxY = w.getMaxHeight();
-            int seaLevel = w.getSeaLevel();
-            long k = this.key(ch);
-            Biome[] existing = (Biome[])this.backups.get(k);
+            World world = ch.getWorld();
+            int baseX = ch.getX() << 4;
+            int baseZ = ch.getZ() << 4;
+            int minY = world.getMinHeight();
+            int maxY = world.getMaxHeight();
+            int seaLevel = world.getSeaLevel();
+            long key = this.key(ch);
+            Biome[] existing = (Biome[])this.backups.get(key);
             List<Biome> prevs = existing == null ? new ArrayList() : null;
             boolean anyChange = false;
             BitSet modifiedCells = new BitSet();
@@ -1410,9 +1470,9 @@ public final class BiomeSpoofAdapter implements Listener, Runnable {
 
             for(int x = 0; x < 16; x += 4) {
                 for(int z = 0; z < 16; z += 4) {
-                    int wx = bx + x;
-                    int wz = bz + z;
-                    boolean waterColumn = this.protectWaterColorBiomes && this.isWaterSurfaceColumn(w, wx, wz);
+                    int wx = baseX + x;
+                    int wz = baseZ + z;
+                    boolean waterColumn = this.protectWaterColorBiomes && this.isWaterSurfaceColumn(world, wx, wz);
 
                     for(int y = minY; y < maxY; y += 4) {
                         if (prevs == null) {
@@ -1427,13 +1487,13 @@ public final class BiomeSpoofAdapter implements Listener, Runnable {
                                 modifiedCells.set(gridIndex);
                             }
 
-                            Biome current = w.getBiome(wx, y, wz);
+                            Biome current = world.getBiome(wx, y, wz);
                             if (current != desired) {
-                                w.setBiome(wx, y, wz, desired);
+                                world.setBiome(wx, y, wz, desired);
                                 anyChange = true;
                             }
                         } else {
-                            Biome current = w.getBiome(wx, y, wz);
+                            Biome current = world.getBiome(wx, y, wz);
                             prevs.add(current);
                             int gridIndex = sampleIndex++;
                             Biome desired = this.resolveDesiredBiome(current, target, season, waterColumn, y, seaLevel);
@@ -1443,7 +1503,7 @@ public final class BiomeSpoofAdapter implements Listener, Runnable {
 
                             if (current != desired) {
                                 anyChange = true;
-                                w.setBiome(wx, y, wz, desired);
+                                world.setBiome(wx, y, wz, desired);
                             }
                         }
                     }
@@ -1455,28 +1515,28 @@ public final class BiomeSpoofAdapter implements Listener, Runnable {
                 boolean fullyExcluded = true;
                 boolean foundBiome = false;
 
-                for(Biome b : prevs) {
-                    if (b != null) {
+                for(Biome biome : prevs) {
+                    if (biome != null) {
                         foundBiome = true;
-                        if (this.isColdBiome(b)) {
+                        if (this.isColdBiome(biome)) {
                             cold = true;
                         }
 
-                        if (!this.shouldProtectBiomeFromSpoof(b)) {
+                        if (!this.shouldProtectBiomeFromSpoof(biome)) {
                             fullyExcluded = false;
                         }
                     }
                 }
 
                 if (cold) {
-                    COLD_CHUNKS.add(k);
-                    this.warmChunks.remove(k);
+                    COLD_CHUNKS.add(key);
+                    this.warmChunks.remove(key);
                 } else {
-                    this.warmChunks.add(k);
+                    this.warmChunks.add(key);
                 }
 
-                this.excludedCache.put(k, foundBiome && fullyExcluded);
-                this.familyCache.put(k, this.classifyFamilyFromSamples(prevs));
+                this.excludedCache.put(key, foundBiome && fullyExcluded);
+                this.familyCache.put(key, this.classifyFamilyFromSamples(prevs));
             }
 
             if (prevs != null) {
@@ -1489,14 +1549,15 @@ public final class BiomeSpoofAdapter implements Listener, Runnable {
             } else {
                 return new BiomeApplyResult((Biome[])null, modifiedCells, anyChange, true);
             }
-        } catch (Throwable t) {
-            Logger var10000 = this.plugin.getLogger();
-            int var10001 = ch.getX();
-            var10000.warning("[BiomeSpoof] spoof error " + var10001 + "," + ch.getZ() + ": " + t.getMessage());
+        } catch (Throwable failure) {
+            Logger logger = this.plugin.getLogger();
+            int chunkXValue = ch.getX();
+            logger.warning("[BiomeSpoof] spoof error " + chunkXValue + "," + ch.getZ() + ": " + failure.getMessage());
             return new BiomeApplyResult((Biome[])null, (BitSet)null, false, false);
         }
     }
 
+    /** 记录区块被修改过的采样点集合（拷贝后保存）。 */
     private void rememberModifiedCells(long chunkKey, BiomeApplyResult result) {
         BitSet modifiedCells = result.modifiedCells();
         if (modifiedCells != null) {
@@ -1562,10 +1623,16 @@ public final class BiomeSpoofAdapter implements Listener, Runnable {
         }
     }
 
+    /** 按备份把区块还原为原始群系（默认立即刷新客户端）。 */
     private void revertChunk(Chunk ch) {
         this.revertChunk(ch, true);
     }
 
+    /**
+     * 按备份把区块还原为原始群系；仅还原被标记修改过的采样点（无记录时全部还原），返回是否有改动。
+     *
+     * @param refreshClientImmediately 是否立即刷新客户端
+     */
     private boolean revertChunk(Chunk ch, boolean refreshClientImmediately) {
         long k = this.key(ch);
         Biome[] old = (Biome[])this.backups.get(k);
@@ -1581,24 +1648,24 @@ public final class BiomeSpoofAdapter implements Listener, Runnable {
             boolean completed = false;
 
             try {
-                World w = ch.getWorld();
+                World world = ch.getWorld();
                 int bx = ch.getX() << 4;
                 int bz = ch.getZ() << 4;
-                int minY = w.getMinHeight();
-                int maxY = w.getMaxHeight();
+                int minY = world.getMinHeight();
+                int maxY = world.getMaxHeight();
                 int i = 0;
 
-                label65:
+                cellRestoreLoop:
                 for(int x = 0; x < 16; x += 4) {
                     for(int z = 0; z < 16; z += 4) {
                         for(int y = minY; y < maxY; y += 4) {
                             if (i >= old.length) {
-                                break label65;
+                                break cellRestoreLoop;
                             }
 
                             Biome original = old[i];
                             if (restoreAll || modifiedCells.get(i)) {
-                                w.setBiome(bx + x, y, bz + z, original);
+                                world.setBiome(bx + x, y, bz + z, original);
                                 changed = true;
                             }
 
@@ -1609,15 +1676,15 @@ public final class BiomeSpoofAdapter implements Listener, Runnable {
 
                 completed = true;
                 if (changed && refreshClientImmediately) {
-                    w.refreshChunk(ch.getX(), ch.getZ());
+                    world.refreshChunk(ch.getX(), ch.getZ());
                     if (this.clientRefreshNudge) {
-                        this.nudgeViewers(w, ch.getX(), ch.getZ());
+                        this.nudgeViewers(world, ch.getX(), ch.getZ());
                     }
                 }
-            } catch (Throwable t) {
-                Logger var10000 = this.plugin.getLogger();
-                int var10001 = ch.getX();
-                var10000.warning("[BiomeSpoof] revert error " + var10001 + "," + ch.getZ() + ": " + t.getMessage());
+            } catch (Throwable failure) {
+                Logger logger = this.plugin.getLogger();
+                int chunkXValue = ch.getX();
+                logger.warning("[BiomeSpoof] revert error " + chunkXValue + "," + ch.getZ() + ": " + failure.getMessage());
             }
 
             if (completed) {
@@ -1634,20 +1701,23 @@ public final class BiomeSpoofAdapter implements Listener, Runnable {
         return this.key(ch.getWorld(), ch.getX(), ch.getZ());
     }
 
-    private long key(World w, int cx, int cz) {
+    /** 计算世界与区块坐标组合成的稳定键（混入世界 UUID 高低位）。 */
+    private long key(World world, int cx, int cz) {
         long k = ((long)cx & 4294967295L) << 32 | (long)cz & 4294967295L;
-        return k ^ w.getUID().getMostSignificantBits() ^ w.getUID().getLeastSignificantBits();
+        return k ^ world.getUID().getMostSignificantBits() ^ world.getUID().getLeastSignificantBits();
     }
 
-    public static boolean isChunkNaturallySnowy(World w, int cx, int cz) {
+    /** 查询某区块是否被标记为“天然寒冷”（供积雪渲染使用）。 */
+    public static boolean isChunkNaturallySnowy(World world, int cx, int cz) {
         long k = ((long)cx & 4294967295L) << 32 | (long)cz & 4294967295L;
-        k ^= w.getUID().getMostSignificantBits() ^ w.getUID().getLeastSignificantBits();
+        k ^= world.getUID().getMostSignificantBits() ^ world.getUID().getLeastSignificantBits();
         return COLD_CHUNKS.contains(k);
     }
 
+    /** 还原所有世界中已伪装的区块并清空全部缓存。 */
     private void revertAll() {
-        for(World w : Bukkit.getWorlds()) {
-            for(Chunk ch : w.getLoadedChunks()) {
+        for(World world : Bukkit.getWorlds()) {
+            for(Chunk ch : world.getLoadedChunks()) {
                 long k = this.key(ch);
                 if (this.spoofed.contains(k)) {
                     this.revertChunk(ch);
@@ -1665,6 +1735,7 @@ public final class BiomeSpoofAdapter implements Listener, Runnable {
         this.excludedCache.clear();
     }
 
+    /** 判断某区块在当前季节是否应跳过伪装（例如非冬季但原始为天然雪区）。 */
     private boolean shouldSkipSpoofForChunk(Chunk ch, Season currentSeason) {
         if (!this.respectNaturallySnowyBiomes) {
             return false;
@@ -1679,17 +1750,17 @@ public final class BiomeSpoofAdapter implements Listener, Runnable {
             } else if (this.backups.containsKey(k)) {
                 return false;
             } else {
-                World w = ch.getWorld();
-                int bx = ch.getX() << 4;
-                int bz = ch.getZ() << 4;
-                int minY = w.getMinHeight();
-                int maxY = w.getMaxHeight();
+                World world = ch.getWorld();
+                int baseX = ch.getX() << 4;
+                int baseZ = ch.getZ() << 4;
+                int minY = world.getMinHeight();
+                int maxY = world.getMaxHeight();
 
                 for(int x = 0; x < 16; x += 4) {
                     for(int z = 0; z < 16; z += 4) {
                         for(int y = minY; y < maxY; y += 32) {
-                            Biome b = w.getBiome(bx + x, y, bz + z);
-                            if (this.isColdBiome(b)) {
+                            Biome biome = world.getBiome(baseX + x, y, baseZ + z);
+                            if (this.isColdBiome(biome)) {
                                 COLD_CHUNKS.add(k);
                                 return true;
                             }
@@ -1702,68 +1773,72 @@ public final class BiomeSpoofAdapter implements Listener, Runnable {
         }
     }
 
-    private void nudgeViewers(World w, int cx, int cz) {
-        for(Player viewer : w.getPlayers()) {
+    /** 对能“看到”该区块的玩家安排一次轻推刷新。 */
+    private void nudgeViewers(World world, int cx, int cz) {
+        for(Player viewer : world.getPlayers()) {
             int vcx = viewer.getLocation().getBlockX() >> 4;
             int vcz = viewer.getLocation().getBlockZ() >> 4;
             int view = Bukkit.getViewDistance() + 1;
             if (Math.abs(vcx - cx) <= view && Math.abs(vcz - cz) <= view) {
-                this.enqueueNudge(viewer, w, cx, cz);
+                this.enqueueNudge(viewer, world, cx, cz);
             }
         }
 
     }
 
-    private void enqueueNudge(Player p, World w, int cx, int cz) {
-        NudgeTarget target = new NudgeTarget(w.getUID(), cx, cz);
-        NudgeCooldownKey cooldownKey = new NudgeCooldownKey(p.getUniqueId(), target);
+    /** 为一个玩家入队一次轻推目标（带 3 秒冷却去重）。 */
+    private void enqueueNudge(Player player, World world, int cx, int cz) {
+        NudgeTarget target = new NudgeTarget(world.getUID(), cx, cz);
+        NudgeCooldownKey cooldownKey = new NudgeCooldownKey(player.getUniqueId(), target);
         long now = System.currentTimeMillis();
         Long last = (Long)this.nudgeLast.get(cooldownKey);
         if (last == null || now - last >= 3000L) {
             this.nudgeLast.put(cooldownKey, now);
-            ((ArrayDeque)this.nudgeQueue.computeIfAbsent(p.getUniqueId(), (id) -> new ArrayDeque())).add(target);
+            ((ArrayDeque)this.nudgeQueue.computeIfAbsent(player.getUniqueId(), (ignoredKey) -> new ArrayDeque())).add(target);
         }
     }
 
+    /** 每 tick 发送有限数量的“假方块 + 真方块”轻推，强制客户端重算目标区块外观。 */
     private void flushNudges() {
         int sent = 0;
-        Iterator<Map.Entry<UUID, ArrayDeque<NudgeTarget>>> it = this.nudgeQueue.entrySet().iterator();
+        Iterator<Map.Entry<UUID, ArrayDeque<NudgeTarget>>> iterator = this.nudgeQueue.entrySet().iterator();
 
-        while(it.hasNext() && sent < 8) {
-            Map.Entry<UUID, ArrayDeque<NudgeTarget>> e = (Map.Entry)it.next();
-            UUID pid = (UUID)e.getKey();
-            ArrayDeque<NudgeTarget> q = (ArrayDeque)e.getValue();
-            Player p = Bukkit.getPlayer(pid);
-            if (p != null && p.isOnline()) {
-                if (q.isEmpty()) {
-                    it.remove();
+        while(iterator.hasNext() && sent < 8) {
+            Map.Entry<UUID, ArrayDeque<NudgeTarget>> entry = (Map.Entry)iterator.next();
+            UUID playerId = (UUID)entry.getKey();
+            ArrayDeque<NudgeTarget> queue = (ArrayDeque)entry.getValue();
+            Player player = Bukkit.getPlayer(playerId);
+            if (player != null && player.isOnline()) {
+                if (queue.isEmpty()) {
+                    iterator.remove();
                 } else {
-                    NudgeTarget target = (NudgeTarget)q.poll();
+                    NudgeTarget target = (NudgeTarget)queue.poll();
                     ++sent;
-                    World w = Bukkit.getWorld(target.worldId());
-                    if (w != null && p.getWorld() == w && w.isChunkLoaded(target.chunkX(), target.chunkZ())) {
-                        int minY = w.getMinHeight();
-                        Location loc = new Location(w, (double)(target.chunkX() << 4), (double)minY, (double)(target.chunkZ() << 4));
+                    World world = Bukkit.getWorld(target.worldId());
+                    if (world != null && player.getWorld() == world && world.isChunkLoaded(target.chunkX(), target.chunkZ())) {
+                        int minY = world.getMinHeight();
+                        Location loc = new Location(world, (double)(target.chunkX() << 4), (double)minY, (double)(target.chunkZ() << 4));
                         BlockData fake = NUDGE_FAKE.createBlockData();
-                        BlockData real = w.getBlockAt(loc).getBlockData();
-                        p.sendBlockChange(loc, fake);
+                        BlockData real = world.getBlockAt(loc).getBlockData();
+                        player.sendBlockChange(loc, fake);
                         Bukkit.getScheduler().runTask(this.plugin, () -> {
-                            if (p.isOnline()) {
-                                p.sendBlockChange(loc, real);
+                            if (player.isOnline()) {
+                                player.sendBlockChange(loc, real);
                             }
 
                         });
                     }
                 }
             } else {
-                it.remove();
+                iterator.remove();
             }
         }
 
     }
 
+    /** 计算当前在该日历周期内是第几天（受月份长度约束）。 */
     private int computeDayInPeriod(CalendarChannel channel, CalendarState st) {
-        int d = st != null ? st.day : 1;
+        int day = st != null ? st.day : 1;
         int max;
         if (st != null && st.monthsEnabled && st.daysInMonth > 0) {
             max = st.daysInMonth;
@@ -1773,15 +1848,15 @@ public final class BiomeSpoofAdapter implements Listener, Runnable {
             max = 1;
         }
 
-        if (d < 1) {
-            d = 1;
+        if (day < 1) {
+            day = 1;
         }
 
-        if (d > max) {
-            d = max;
+        if (day > max) {
+            day = max;
         }
 
-        return d;
+        return day;
     }
 
     private double computePreTransitionFactor(CalendarChannel channel, CalendarState st, int dayInPeriod) {
@@ -1822,52 +1897,55 @@ public final class BiomeSpoofAdapter implements Listener, Runnable {
         }
     }
 
-    private Season nextSeason(Season s) {
-        Season var10000;
-        switch (s) {
-            case SPRING -> var10000 = Season.SUMMER;
-            case SUMMER -> var10000 = Season.AUTUMN;
-            case AUTUMN -> var10000 = Season.WINTER;
-            case WINTER -> var10000 = Season.SPRING;
+    /** 返回给定季节的下一个季节（循环）。 */
+    private Season nextSeason(Season season) {
+        Season result;
+        switch (season) {
+            case SPRING -> result = Season.SUMMER;
+            case SUMMER -> result = Season.AUTUMN;
+            case AUTUMN -> result = Season.WINTER;
+            case WINTER -> result = Season.SPRING;
             default -> throw new MatchException((String)null, (Throwable)null);
         }
 
-        return var10000;
+        return result;
     }
 
-    public Biome getOriginalBiomeApprox(World w, int x, int y, int z) {
-        Chunk ch = w.getChunkAt(x >> 4, z >> 4);
+    /** 依据备份网格近似查询某坐标的原始群系（无备份时返回当前群系）。 */
+    public Biome getOriginalBiomeApprox(World world, int x, int y, int z) {
+        Chunk ch = world.getChunkAt(x >> 4, z >> 4);
         Biome[] old = (Biome[])this.backups.get(this.key(ch));
         if (old != null && old.length != 0) {
-            int minY = w.getMinHeight();
-            int maxY = w.getMaxHeight();
-            int yy = Math.max(minY, Math.min(maxY - 1, y));
+            int minY = world.getMinHeight();
+            int maxY = world.getMaxHeight();
+            int clampedY = Math.max(minY, Math.min(maxY - 1, y));
             int xCount = 4;
             int zCount = 4;
             int yCount = (maxY - minY) / 4;
             int lx = (x & 15) / 4;
             int lz = (z & 15) / 4;
-            int ly = (yy - minY) / 4;
+            int ly = (clampedY - minY) / 4;
             int idx = (lx * zCount + lz) * yCount + ly;
             return idx >= 0 && idx < old.length ? old[idx] : old[0];
         } else {
-            return w.getBiome(x, y, z);
+            return world.getBiome(x, y, z);
         }
     }
 
-    public Biome getOriginalBiomeApproxOrNull(World w, int x, int y, int z) {
-        Chunk ch = w.getChunkAt(x >> 4, z >> 4);
+    /** 同 {@link #getOriginalBiomeApprox}，但无备份时返回 null。 */
+    public Biome getOriginalBiomeApproxOrNull(World world, int x, int y, int z) {
+        Chunk ch = world.getChunkAt(x >> 4, z >> 4);
         Biome[] old = (Biome[])this.backups.get(this.key(ch));
         if (old != null && old.length != 0) {
-            int minY = w.getMinHeight();
-            int maxY = w.getMaxHeight();
-            int yy = Math.max(minY, Math.min(maxY - 1, y));
+            int minY = world.getMinHeight();
+            int maxY = world.getMaxHeight();
+            int clampedY = Math.max(minY, Math.min(maxY - 1, y));
             int xCount = 4;
             int zCount = 4;
             int yCount = (maxY - minY) / 4;
             int lx = (x & 15) / 4;
             int lz = (z & 15) / 4;
-            int ly = (yy - minY) / 4;
+            int ly = (clampedY - minY) / 4;
             int idx = (lx * zCount + lz) * yCount + ly;
             return idx >= 0 && idx < old.length ? old[idx] : old[0];
         } else {
@@ -1880,9 +1958,9 @@ public final class BiomeSpoofAdapter implements Listener, Runnable {
             if (preTransitionFactor >= (double)1.0F) {
                 return nextTarget;
             } else {
-                long h = chunkKey * 1103515245L + 12345L;
-                h ^= h >>> 16;
-                int bucket = (int)(h & 65535L);
+                long hash = chunkKey * 1103515245L + 12345L;
+                hash ^= hash >>> 16;
+                int bucket = (int)(hash & 65535L);
                 double threshold = preTransitionFactor * (double)65536.0F;
                 return (double)bucket < threshold ? nextTarget : currentTarget;
             }
@@ -1891,6 +1969,7 @@ public final class BiomeSpoofAdapter implements Listener, Runnable {
         }
     }
 
+    /** 通过命令开关伪装：启用时启动主循环任务，停用时取消任务并清空队列。 */
     public synchronized void setEnabled(boolean enabled) {
         if (enabled) {
             this.mode = BiomeSpoofAdapter.Mode.GLOBAL_RING;
@@ -1917,6 +1996,7 @@ public final class BiomeSpoofAdapter implements Listener, Runnable {
 
     }
 
+    /** 解析下一个可视化季节：优先按日历月份顺序，无法解析时回退为自然下一季。 */
     private Season resolveNextVisualSeason(CalendarChannel channel, CalendarState st) {
         if (st == null) {
             return Season.SPRING;
@@ -1952,7 +2032,7 @@ public final class BiomeSpoofAdapter implements Listener, Runnable {
 
                                 try {
                                     return Season.valueOf(raw.trim().toUpperCase(Locale.ROOT));
-                                } catch (IllegalArgumentException var12) {
+                                } catch (IllegalArgumentException invalidSeason) {
                                     return st.season;
                                 }
                             }
@@ -1969,18 +2049,22 @@ public final class BiomeSpoofAdapter implements Listener, Runnable {
         }
     }
 
+    /** 当前是否处于伪装启用状态。 */
     public boolean isEnabled() {
         return this.mode != BiomeSpoofAdapter.Mode.OFF;
     }
 
+    /** 是否启用磁盘备份。 */
     public boolean isDiskBackupEnabled() {
         return this.diskBackupEnabled;
     }
 
+    /** 设置是否启用磁盘备份。 */
     public void setDiskBackupEnabled(boolean enabled) {
         this.diskBackupEnabled = enabled;
     }
 
+    /** 返回底层生物群系备份存储。 */
     public BiomeBackupStore getDiskBackups() {
         return this.diskBackups;
     }
@@ -1992,6 +2076,7 @@ public final class BiomeSpoofAdapter implements Listener, Runnable {
         NUDGE_FAKE = Material.BARRIER;
     }
 
+    /** 伪装工作模式：GLOBAL_RING 全局环状启用，OFF 关闭。 */
     public static enum Mode {
         GLOBAL_RING,
         OFF;
@@ -2005,6 +2090,7 @@ public final class BiomeSpoofAdapter implements Listener, Runnable {
         }
     }
 
+    /** 区块偏移：记录相对偏移、切比雪夫距离与朝向评分。 */
     private static final class Offset {
         final int dx;
         final int dz;
@@ -2020,40 +2106,48 @@ public final class BiomeSpoofAdapter implements Listener, Runnable {
         }
     }
 
+    /** 待处理的区块工作项：世界 UUID 与区块坐标。 */
     private static record ChunkWork(UUID worldId, int chunkX, int chunkZ) {
         private ChunkWork {
         }
     }
 
+    /** 某区块最近一次应用的目标群系与季节，用于判断是否需要重新应用。 */
     private static record AppliedBiomeState(Biome target, Season season) {
         private AppliedBiomeState {
         }
 
+        /** 判断当前状态是否与期望的目标/季节一致。 */
         private boolean matches(Biome expectedTarget, Season expectedSeason) {
             return this.target == expectedTarget && this.season == expectedSeason;
         }
     }
 
+    /** 应用一次伪装的结果：原始网格、修改过的采样点、是否有改动、是否成功。 */
     private static record BiomeApplyResult(Biome[] original, BitSet modifiedCells, boolean changed, boolean successful) {
         private BiomeApplyResult {
         }
     }
 
+    /** 玩家扫描状态：所在区块中心、半径与视觉戳，用于增量补充。 */
     private static record PlayerScanState(UUID worldId, int chunkX, int chunkZ, int radius, long visualStamp) {
         private PlayerScanState {
         }
     }
 
+    /** 轻推目标：世界 UUID 与区块坐标。 */
     private static record NudgeTarget(UUID worldId, int chunkX, int chunkZ) {
         private NudgeTarget {
         }
     }
 
+    /** 轻推冷却键：玩家 UUID 与目标区块。 */
     private static record NudgeCooldownKey(UUID playerId, NudgeTarget target) {
         private NudgeCooldownKey {
         }
     }
 
+    /** 区块原始群系家族：陆地或海洋。 */
     private static enum Family {
         LAND,
         OCEAN;

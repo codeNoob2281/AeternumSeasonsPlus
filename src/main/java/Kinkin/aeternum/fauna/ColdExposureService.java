@@ -30,6 +30,19 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitTask;
 
+/**
+ * 寒冷暴露（冷伤害）清理服务。
+ *
+ * <p>早期版本会给受寒的动物打上“低温”持久化标记、禁止掉落并以缓慢效果作为惩罚；
+ * 现版本已改为在动物出生/交互时即时处理，因此本服务负责清理这些历史遗留状态：
+ * <ul>
+ *     <li>以固定周期分批扫描各主世界中的易受寒动物；</li>
+ *     <li>清除动物身上的低温标记、禁止掉落标记以及缓慢药水效果。</li>
+ * </ul>
+ * 扫描预算由配置决定，逐世界、逐实体推进游标以避免单 tick 开销过大。
+ * 依赖 {@link AeternumSeasonsPlugin} 提供数据目录与调度器，以及 {@link SeasonService}
+ * 作为季节上下文。</p>
+ */
 public final class ColdExposureService implements Listener, Runnable {
     private final AeternumSeasonsPlugin plugin;
     private final SeasonService seasons;
@@ -54,6 +67,7 @@ public final class ColdExposureService implements Listener, Runnable {
         this.KEY_NO_LOOT = new NamespacedKey(plugin, "cold_no_loot");
     }
 
+    /** 加载配置、注册事件监听并在启用时启动周期清理任务，随后立即全量清理一次。 */
     public void register() {
         this.loadFauna();
         this.reloadFromFauna();
@@ -68,6 +82,7 @@ public final class ColdExposureService implements Listener, Runnable {
         }
     }
 
+    /** 取消周期任务、注销事件监听并做一次全量清理。 */
     public void unregister() {
         if (this.task != null) {
             this.task.cancel();
@@ -78,6 +93,7 @@ public final class ColdExposureService implements Listener, Runnable {
         this.cleanupAllTrackedNow();
     }
 
+    /** 重新加载配置并重启周期任务，随后立即全量清理一次。 */
     public void reload() {
         this.loadFauna();
         this.reloadFromFauna();
@@ -93,6 +109,7 @@ public final class ColdExposureService implements Listener, Runnable {
         this.cleanupAllTrackedNow();
     }
 
+    /** 确保数据目录存在，并在 fauna.yml 缺失时尝试落盘默认资源或创建空文件。 */
     private void loadFauna() {
         if (!this.plugin.getDataFolder().exists()) {
             this.plugin.getDataFolder().mkdirs();
@@ -102,10 +119,10 @@ public final class ColdExposureService implements Listener, Runnable {
         if (!this.faunaFile.exists()) {
             try {
                 this.plugin.saveResource("fauna.yml", false);
-            } catch (IllegalArgumentException var4) {
+            } catch (IllegalArgumentException ignored) {
                 try {
                     this.faunaFile.createNewFile();
-                } catch (IOException var3) {
+                } catch (IOException ignoredToo) {
                 }
             }
         }
@@ -113,10 +130,12 @@ public final class ColdExposureService implements Listener, Runnable {
         this.fauna = YamlConfiguration.loadConfiguration(this.faunaFile);
     }
 
+    /** 返回当前加载的 fauna.yml 配置。 */
     private FileConfiguration fauna() {
         return this.fauna;
     }
 
+    /** 从 fauna.yml 读取寒冷暴露相关配置：开关、周期、预算、易受寒类型与被禁世界。 */
     private void reloadFromFauna() {
         this.enabled = this.fauna().getBoolean("cold_exposure.enabled", false);
         this.tickPeriodTicks = Math.max(1, this.fauna().getInt("cold_exposure.tick_period_ticks", 40));
@@ -127,7 +146,7 @@ public final class ColdExposureService implements Listener, Runnable {
             if (s != null && !s.isBlank()) {
                 try {
                     this.vulnerable.add(EntityType.valueOf(s.trim().toUpperCase(Locale.ROOT)));
-                } catch (IllegalArgumentException var4) {
+                } catch (IllegalArgumentException ignored) {
                 }
             }
         }
@@ -153,6 +172,7 @@ public final class ColdExposureService implements Listener, Runnable {
         this.entityIndex = 0;
     }
 
+    /** 周期任务：在预算内按世界/实体游标分批扫描主世界中的易受寒动物并清理其历史冷状态。 */
     public void run() {
         if (this.enabled) {
             List<World> worlds = Bukkit.getWorlds();
@@ -195,6 +215,7 @@ public final class ColdExposureService implements Listener, Runnable {
         }
     }
 
+    /** 立即遍历所有世界的动物并清理其历史冷状态（用于启停与重载时的收敛）。 */
     private void cleanupAllTrackedNow() {
         for(World w : Bukkit.getWorlds()) {
             for(Animals animal : w.getEntitiesByClass(Animals.class)) {
@@ -206,21 +227,25 @@ public final class ColdExposureService implements Listener, Runnable {
 
     }
 
+    /** 清除单个动物的全部历史冷状态（低温标记、禁止掉落标记与缓慢效果）。 */
     private void cleanupEntity(LivingEntity le) {
         this.clearHypothermiaFlags(le);
         this.clearColdPenalty(le);
     }
 
+    /** 移除动物身上残留的缓慢药水效果。 */
     private void clearColdPenalty(LivingEntity le) {
         le.removePotionEffect(PotionEffectType.SLOWNESS);
     }
 
+    /** 移除动物持久化数据中的低温和禁止掉落标记。 */
     private void clearHypothermiaFlags(LivingEntity le) {
         PersistentDataContainer pdc = le.getPersistentDataContainer();
         pdc.remove(this.KEY_HYPOTHERMIA);
         pdc.remove(this.KEY_NO_LOOT);
     }
 
+    /** 判断动物是否仍带有旧版冷状态（低温标记、禁止掉落标记或缓慢效果）。 */
     private boolean hasLegacyColdFlag(LivingEntity le) {
         PersistentDataContainer pdc = le.getPersistentDataContainer();
         Byte hyp = (Byte)pdc.get(this.KEY_HYPOTHERMIA, PersistentDataType.BYTE);
@@ -228,18 +253,20 @@ public final class ColdExposureService implements Listener, Runnable {
         return hyp != null && hyp == 1 || noLoot != null && noLoot == 1 || le.hasPotionEffect(PotionEffectType.SLOWNESS);
     }
 
+    /** 繁殖事件监听：当前不做处理，保留钩子以便未来扩展。 */
     @EventHandler(
         ignoreCancelled = true
     )
     public void onBreed(EntityBreedEvent e) {
     }
 
+    /** 受伤事件监听：若易受寒动物仍带旧版冷状态，则就地清理。 */
     @EventHandler(
         ignoreCancelled = true
     )
     public void onDamage(EntityDamageEvent e) {
-        Entity var3 = e.getEntity();
-        if (var3 instanceof LivingEntity le) {
+        Entity entity = e.getEntity();
+        if (entity instanceof LivingEntity le) {
             if (this.vulnerable.contains(le.getType())) {
                 if (this.hasLegacyColdFlag(le)) {
                     this.cleanupEntity(le);
@@ -248,6 +275,7 @@ public final class ColdExposureService implements Listener, Runnable {
         }
     }
 
+    /** 死亡事件监听：易受寒动物死亡时清理其残留冷状态。 */
     @EventHandler(
         ignoreCancelled = true
     )

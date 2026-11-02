@@ -19,6 +19,15 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.BookMeta;
 import org.bukkit.loot.LootTable;
 
+/**
+ * 食物配方书掉落监听器（Food Recipe Book Loot）。
+ *
+ * <p>监听 {@link LootGenerateEvent}：当战利品表为村庄、废弃矿井、林地府邸或要塞宝箱时，
+ * 按各自概率向战利品中加入一本“食物配方书”。配方书的标题、作者与各页内容均通过
+ * {@link LanguageManager} 按玩家语言本地化，并借助 {@link BookPaginator} 自动分页。</p>
+ *
+ * <p>依赖 {@link SeasonFoods} 所配套的 {@link VillageFoodLoot} 判定村庄宝箱。</p>
+ */
 public final class FoodRecipeBookLoot implements Listener {
     private final AeternumSeasonsPlugin plugin;
     private final LanguageManager lang;
@@ -29,60 +38,74 @@ public final class FoodRecipeBookLoot implements Listener {
         this.lang = lang;
     }
 
+    /** 把本监听器注册到 Bukkit 事件系统。 */
     public void register() {
         Bukkit.getPluginManager().registerEvents(this, this.plugin);
     }
 
+    /** 从 Bukkit 事件系统注销本监听器的全部处理器。 */
     public void unregister() {
         HandlerList.unregisterAll(this);
     }
 
-    private String trPlayerOrServer(Player p, String key) {
-        return p != null ? this.lang.tr(p, key) : this.lang.trServer(key);
+    /** 按玩家语言翻译；玩家为 null 时退回服务端默认语言。 */
+    private String trPlayerOrServer(Player player, String key) {
+        return player != null ? this.lang.tr(player, key) : this.lang.trServer(key);
     }
 
-    private boolean isNullOrEmpty(String s) {
-        return s == null || s.isEmpty();
+    /** 判断字符串是否为 null 或空串。 */
+    private boolean isNullOrEmpty(String text) {
+        return text == null || text.isEmpty();
     }
 
+    /**
+     * 为分页器规整文本：按行拆分，把空白行替换为颜色重置符 {@code §r} 后再拼接，
+     * 避免分页时空行被丢弃。
+     */
     private String normalizeForPaginator(String text) {
         if (text == null) {
             return null;
         } else {
             String[] lines = text.split("\n", -1);
-            StringBuilder sb = new StringBuilder();
+            StringBuilder builder = new StringBuilder();
 
-            for(int i = 0; i < lines.length; ++i) {
-                String line = lines[i];
+            for(int lineIndex = 0; lineIndex < lines.length; ++lineIndex) {
+                String line = lines[lineIndex];
                 if (line.trim().isEmpty()) {
                     line = "§r";
                 }
 
-                sb.append(line);
-                if (i < lines.length - 1) {
-                    sb.append('\n');
+                builder.append(line);
+                if (lineIndex < lines.length - 1) {
+                    builder.append('\n');
                 }
             }
 
-            return sb.toString();
+            return builder.toString();
         }
     }
 
-    private ItemStack buildRecipeBook(Player p) {
+    /**
+     * 按玩家语言构建一本已分页的成书配方书。
+     *
+     * @param player 目标玩家，可为 {@code null}（此时使用服务端默认语言）
+     * @return 构建好的成书；若无法取得书籍 meta 则返回未修改的书本物品
+     */
+    private ItemStack buildRecipeBook(Player player) {
         ItemStack book = new ItemStack(Material.WRITTEN_BOOK);
         BookMeta meta = (BookMeta)book.getItemMeta();
         if (meta == null) {
             return book;
         } else {
             String base = "guide_food.";
-            meta.setTitle(this.trPlayerOrServer(p, base + "title"));
-            meta.setAuthor(this.trPlayerOrServer(p, base + "author"));
+            meta.setTitle(this.trPlayerOrServer(player, base + "title"));
+            meta.setAuthor(this.trPlayerOrServer(player, base + "author"));
             BookPaginator paginator = new BookPaginator();
-            String page1 = this.normalizeForPaginator(this.trPlayerOrServer(p, base + "page1"));
-            String page2 = this.normalizeForPaginator(this.trPlayerOrServer(p, base + "page2"));
-            String page3 = this.normalizeForPaginator(this.trPlayerOrServer(p, base + "page3"));
-            String page4 = this.normalizeForPaginator(this.trPlayerOrServer(p, base + "page4"));
-            String page5 = this.normalizeForPaginator(this.trPlayerOrServer(p, base + "page5"));
+            String page1 = this.normalizeForPaginator(this.trPlayerOrServer(player, base + "page1"));
+            String page2 = this.normalizeForPaginator(this.trPlayerOrServer(player, base + "page2"));
+            String page3 = this.normalizeForPaginator(this.trPlayerOrServer(player, base + "page3"));
+            String page4 = this.normalizeForPaginator(this.trPlayerOrServer(player, base + "page4"));
+            String page5 = this.normalizeForPaginator(this.trPlayerOrServer(player, base + "page5"));
             if (!this.isNullOrEmpty(page1)) {
                 paginator.addText(page1);
                 paginator.newPage();
@@ -117,6 +140,12 @@ public final class FoodRecipeBookLoot implements Listener {
         }
     }
 
+    /**
+     * 监听战利品生成事件：依据战利品表类型决定是否额外加入一本食物配方书。
+     *
+     * <p>村庄、废弃矿井、林地府邸、要塞宝箱各有不同的掉落概率；若开箱者是玩家，
+     * 则用其语言构建书籍内容。</p>
+     */
     @EventHandler
     public void onLootGenerate(LootGenerateEvent e) {
         LootTable table = e.getLootTable();
@@ -125,17 +154,17 @@ public final class FoodRecipeBookLoot implements Listener {
             if (key != null) {
                 String path = key.getKey();
                 List<ItemStack> loot = e.getLoot();
-                Random rnd = ThreadLocalRandom.current();
-                Entity var9 = e.getEntity();
-                Player var10000;
-                if (var9 instanceof Player) {
-                    Player p = (Player)var9;
-                    var10000 = p;
+                Random random = ThreadLocalRandom.current();
+                Entity sourceEntity = e.getEntity();
+                Player playerOrNull;
+                if (sourceEntity instanceof Player) {
+                    Player player = (Player)sourceEntity;
+                    playerOrNull = player;
                 } else {
-                    var10000 = null;
+                    playerOrNull = null;
                 }
 
-                Player looter = var10000;
+                Player looter = playerOrNull;
                 boolean isVillage = VillageFoodLoot.matches(key);
                 boolean isMineshaft = path.equals("chests/abandoned_mineshaft");
                 boolean isMansion = path.equals("chests/woodland_mansion");
@@ -152,7 +181,7 @@ public final class FoodRecipeBookLoot implements Listener {
                         bookChance = 0.4;
                     }
 
-                    if (rnd.nextDouble() < bookChance) {
+                    if (random.nextDouble() < bookChance) {
                         loot.add(this.buildRecipeBook(looter));
                     }
 

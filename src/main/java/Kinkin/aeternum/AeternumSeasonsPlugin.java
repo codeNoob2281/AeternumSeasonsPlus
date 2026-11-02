@@ -90,61 +90,143 @@ import org.bukkit.inventory.Recipe;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
+/**
+ * AeternumSeasons 插件主类。
+ *
+ * <p>本插件为一套围绕“四季”展开的综合性生存玩法扩展，主类负责装配并串联以下子系统：
+ * 日历/季节、HUD、温度、天气、作物生长、季节事件、动物迁徙、经济作物与合成物品、
+ * 霜界（Frost）与热界（Heat）两个自定义维度的环境/怪物/战利品/传送门，以及世界美化绘制器等。</p>
+ *
+ * <p><b>启动流程（{@link #onEnable()}）：</b></p>
+ * <ol>
+ *     <li>调用 {@code saveDefaultConfig()} 并借助 {@link YamlDefaults} 逐份合并 defaults（config、calendar、climate、
+ *     crops、events、fauna、hud、lang、survival、visual 以及各语言文件），确保升级后新增配置键存在；</li>
+ *     <li>创建 {@link Configs} 与 {@link LanguageManager} 并注册语言监听，加载全部配置；</li>
+ *     <li>读取“禁用季节特效世界”列表，初始化 {@link WinterWorldGuardHelper}；读取霜界/热界传送门启用开关；</li>
+ *     <li>构造核心服务与监听器：季节、HUD、冬季绘制、生物群系伪装及其生成守卫、季节天气、作物生长、
+ *     季节事件、秋土/树冠绘制、动物迁徙、霜界与热界各自的监听/管理器、植物、快速落叶、村民覆盖、鱼笼、
+ *     生物生成、牛棚、寒冷暴露、传送门、温度等；</li>
+ *     <li>构造合成物品（靴子、火把、灯笼、铃铛、锄头、斧头、堆肥器、魔像升级等）与 {@link SeasonCraftCommand}，
+ *     并注册各个命令（seasoncraft、season、seasonbiomefix、asevent、seasonguide）及其 Tab 补全；</li>
+ *     <li>统一注册上述服务/监听器；随后按配置决定是否启用霜界、热界、季节食物；</li>
+ *     <li>注册季节钟物品与（若存在）PlaceholderAPI 扩展 {@link AeternumPlaceholders}。</li>
+ * </ol>
+ *
+ * <p><b>关闭流程（{@link #onDisable()}）：</b>逆序注销所有服务与监听器，持久化季节数据、保存全部配置，
+ * 并清理本插件注册的所有合成配方，确保重载/关服后无残留。</p>
+ *
+ * <p><b>依赖：</b>Bukkit/Paper 服务端；可选软依赖 PlaceholderAPI、CustomCrops、Worlds。</p>
+ */
 public final class AeternumSeasonsPlugin extends JavaPlugin {
+    /** 配置访问器，封装 config/calendar/climate 等文件的读取。 */
     public Configs cfg;
+    /** 季节/日历核心服务。 */
     private SeasonService seasons;
+    /** HUD 显示服务。 */
     private HudService hud;
+    /** 多语言管理器。 */
     public LanguageManager lang;
+    /** 冬季地形绘制器。 */
     private WinterWorldPainter winterPainter;
+    /** 生物群系伪装适配器。 */
     private BiomeSpoofAdapter biomeSpoof;
+    /** 雪傀儡生物群系保护。 */
     private SnowGolemBiomeProtection snowGolemProtection;
+    /** 季节天气服务。 */
     private SeasonalWeatherService seasonalWeather;
+    /** 季节作物生长监听器。 */
     private SeasonalCropGrowthListener cropGrowth;
+    /** 季节事件服务。 */
     private SeasonalEventService eventService;
+    /** 秋季土壤绘制器。 */
     private AutumnSoilPainter autumnSoilPainter;
+    /** 树冠积雪绘制器。 */
     private CanopySnowPainter canopySnowPainter;
+    /** 动物迁徙服务。 */
     public AnimalMigrationService migration;
+    /** 雪地靴（合成物品）。 */
     public SnowStepBoots snowStepBoots;
+    /** 拉布拉多靴（合成物品）。 */
     public LabradorBoots labradorBoots;
+    /** 春日疾步靴（合成物品）。 */
     public SpringStrideBoots springStrideBoots;
+    /** 太阳能火把（合成物品）。 */
     public SolarTorch solarTorch;
+    /** 高级堆肥器（合成物品）。 */
     public AdvancedComposter advancedComposter;
+    /** 春铃（合成物品）。 */
     public SpringBell springBell;
+    /** 月亮灯笼（合成物品）。 */
     public LunarLantern lunarLantern;
+    /** 收获锄（合成物品）。 */
     public HarvestHoe harvestHoe;
+    /** 自然之斧（合成物品）。 */
     public NaturalTreeAxe naturalTreeAxe;
+    /** 魔像升级（合成物品）。 */
     private GolemUpgrades golemUpgrades;
+    /** 霜界环境监听器。 */
     private FrostEnvironmentListener frostEnv;
+    /** 霜界主世界传送门。 */
     private FrostOverworldPortals frostOverworldPortals;
+    /** 霜界床铺管理器。 */
     private FrostBedManager frostBedManager;
+    /** 霜界怪物监听器。 */
     private FrostMobListener frostMobListener;
+    /** 霜界 Boss 管理器。 */
     private FrostBossManager frostBossManager;
+    /** 霜界世界指南。 */
     private FrostWorldGuide frostWorldGuide;
+    /** 霜界生物群系修复器。 */
     private FrostBiomeFixer frostBiomeFixer;
+    /** 热界世界指南。 */
     private HeatWorldGuide heatWorldGuide;
+    /** 热界下界传送门。 */
     private HeatNetherPortals heatNetherPortals;
+    /** 原版传送门隔离逻辑。 */
     private VanillaPortalIsolation vanillaPortalIsolation;
+    /** 热界环境监听器。 */
     private HeatEnvironmentListener heatEnvironmentListener;
+    /** 热界怪物强度缩放器。 */
     private HeatMobScaler heatMobScaler;
+    /** 热界战利品监听器。 */
     private HeatLootListener heatLootListener;
+    /** 热界怪物变体监听器。 */
     private HeatVariantListener heatVariantListener;
+    /** 季节食物系统。 */
     private SeasonFoods foods;
+    /** 食物配方书战利品。 */
     private FoodRecipeBookLoot foodRecipeBookLoot;
+    /** 季节植物控制器。 */
     private SeasonalFloraController flora;
+    /** 季节钟物品服务。 */
     private SeasonClockService seasonClock;
+    /** 堆肥服务。 */
     private CompostService compost;
+    /** 快速落叶服务。 */
     private FastLeafDecayService fastLeafDecay;
+    /** 村民类型覆盖。 */
     private VillagerTypeOverrides villagerTypes;
+    /** 禁用季节特效的世界名列表。 */
     private List<String> disabledWorlds = new ArrayList();
+    /** 幻术师生成监听器。 */
     private IllusionerSpawnListener illusionerSpawn;
+    /** 鱼笼服务。 */
     private FishTrapService fishTraps;
+    /** 生物生成服务。 */
     private CreatureGeneratorService creatureGenerator;
+    /** 马厩/牛棚服务。 */
     private StableBarnService stableBarn;
+    /** 寒冷暴露服务。 */
     private ColdExposureService coldExposure;
+    /** 生物群系伪装生成守卫。 */
     private BiomeSpoofSpawnGuard biomeSpoofSpawnGuard;
+    /** 季节合成命令。 */
     private SeasonCraftCommand seasonCraft;
+    /** CustomCrops 是否已成功挂钩。 */
     private boolean customCropsHooked = false;
+    /** 服务端是否安装了 Worlds 插件。 */
     private boolean worldsPluginPresent = false;
+    /** 温度服务。 */
     private ThermoService thermo;
     private static final String HEAT_WORLD_NAME = "aeternum_heat";
     private static final String FROST_WORLD_NAME = "aeternum_frost";
@@ -153,6 +235,9 @@ public final class AeternumSeasonsPlugin extends JavaPlugin {
         super();
     }
 
+    /**
+     * 确保霜界世界 {@code aeternum_frost} 存在：已存在则记录日志，否则用 {@link FrostWorldGenerator} 创建。
+     */
     private void ensureFrostWorld() {
         String name = "aeternum_frost";
         World existing = Bukkit.getWorld(name);
@@ -179,6 +264,10 @@ public final class AeternumSeasonsPlugin extends JavaPlugin {
         return this.frostWorldGuide;
     }
 
+    /**
+     * 确保热界世界 {@code aeternum_heat} 存在：已存在则记录日志，否则以 {@link HeatWorldGenerator}
+     * 创建一个下界类型世界，并关闭其昼夜/天气循环、保持出生点常驻内存。
+     */
     private void setupHeatWorld() {
         String name = "aeternum_heat";
         World existing = Bukkit.getWorld(name);
@@ -204,35 +293,50 @@ public final class AeternumSeasonsPlugin extends JavaPlugin {
         }
     }
 
+    /**
+     * 从主配置读取“禁用季节特效”的世界名列表，并在为空时退化为不可变空列表。
+     */
     private void loadWorldExclusionList() {
         this.disabledWorlds = this.getConfig().getStringList("worlds.disabled_season_fx");
         if (this.disabledWorlds == null) {
             this.disabledWorlds = Collections.emptyList();
         }
 
-        Logger var10000 = this.getLogger();
-        int var10001 = this.disabledWorlds.size();
-        var10000.info("[AeternumSeasons] FX deshabilitados en " + var10001 + " mundos: " + String.valueOf(this.disabledWorlds));
+        Logger logger = this.getLogger();
+        int disabledCount = this.disabledWorlds.size();
+        logger.info("[AeternumSeasons] FX deshabilitados en " + disabledCount + " mundos: " + String.valueOf(this.disabledWorlds));
     }
 
+    /** 判断指定世界是否在“禁用季节特效”名单中（{@code null} 视为禁用）。 */
     public boolean isWorldDisabled(World world) {
         return world == null ? true : this.disabledWorlds.contains(world.getName());
     }
 
+    /**
+     * 判断季节食物功能是否开启。
+     *
+     * <p>同时兼容新版 {@code SeasonFood} 布尔键与旧版 {@code features.season_foods.enabled} 键。</p>
+     */
     private boolean isSeasonFoodEnabled() {
         return this.getConfig().contains("SeasonFood") ? this.getConfig().getBoolean("SeasonFood", true) : this.getConfig().getBoolean("features.season_foods.enabled", true);
     }
 
+    /**
+     * 获取“主世界”世界对象。
+     *
+     * <p>优先返回名为 {@code world} 且不是霜界的普通世界；否则遍历所有世界，返回第一个非霜界的
+     * 普通（{@link Environment#NORMAL}）世界；都不存在时返回 {@code null}。</p>
+     */
     public World getMainOverworld() {
         World byName = Bukkit.getWorld("world");
         if (byName != null && !byName.getName().equalsIgnoreCase("aeternum_frost")) {
             return byName;
         } else {
-            for(World w : Bukkit.getWorlds()) {
-                if (w.getEnvironment() == Environment.NORMAL) {
-                    String name = w.getName();
+            for(World world : Bukkit.getWorlds()) {
+                if (world.getEnvironment() == Environment.NORMAL) {
+                    String name = world.getName();
                     if (!name.equalsIgnoreCase("aeternum_frost")) {
-                        return w;
+                        return world;
                     }
                 }
             }
@@ -241,11 +345,18 @@ public final class AeternumSeasonsPlugin extends JavaPlugin {
         }
     }
 
+    /** 获取主世界名称；主世界不存在时回退为 {@code "world"}。 */
     public String getMainOverworldName() {
-        World w = this.getMainOverworld();
-        return w != null ? w.getName() : "world";
+        World overworld = this.getMainOverworld();
+        return overworld != null ? overworld.getName() : "world";
     }
 
+    /**
+     * 插件启动入口：完成配置初始化、服务装配、监听器/命令注册与世界创建。
+     *
+     * <p>大致步骤见类注释；此处额外说明：霜界/热界相关世界与系统仅在对应传送门配置开启时创建，
+     * 季节食物按配置注册或反注册，PlaceholderAPI 扩展仅在检测到该插件时注册。</p>
+     */
     public void onEnable() {
         this.saveDefaultConfig();
         YamlDefaults.merge(this, "config.yml");
@@ -434,6 +545,11 @@ public final class AeternumSeasonsPlugin extends JavaPlugin {
         this.getLogger().info("AeternumSeasons enabled.");
     }
 
+    /**
+     * 尝试挂钩 CustomCrops 插件（仅在尚未挂钩、季节服务已就绪且 CustomCrops 已启用时执行）。
+     *
+     * <p>挂钩失败只记录警告，不影响插件其余功能。</p>
+     */
     private void hookCustomCrops() {
         if (!this.customCropsHooked) {
             if (this.seasons != null) {
@@ -441,8 +557,8 @@ public final class AeternumSeasonsPlugin extends JavaPlugin {
                     try {
                         CustomCropsSeasonHook.register(this);
                         this.customCropsHooked = true;
-                    } catch (Throwable t) {
-                        this.getLogger().warning("[AeternumSeasons] Failed to hook CustomCrops: " + t.getMessage());
+                    } catch (Throwable exception) {
+                        this.getLogger().warning("[AeternumSeasons] Failed to hook CustomCrops: " + exception.getMessage());
                     }
 
                 }
@@ -450,14 +566,17 @@ public final class AeternumSeasonsPlugin extends JavaPlugin {
         }
     }
 
+    /**
+     * 注册一个监听器，用于在 CustomCrops 稍后启用时（插件加载顺序不确定）补做挂钩。
+     */
     private void registerCustomCropsHookListener() {
         Bukkit.getPluginManager().registerEvents(new Listener() {
             @EventHandler(
                 priority = EventPriority.MONITOR
             )
-            public void onPluginEnable(PluginEnableEvent e) {
-                Plugin p = e.getPlugin();
-                if (p != null && p.getName().equalsIgnoreCase("CustomCrops")) {
+            public void onPluginEnable(PluginEnableEvent event) {
+                Plugin enabledPlugin = event.getPlugin();
+                if (enabledPlugin != null && enabledPlugin.getName().equalsIgnoreCase("CustomCrops")) {
                     AeternumSeasonsPlugin.this.hookCustomCrops();
                 }
 
@@ -465,6 +584,11 @@ public final class AeternumSeasonsPlugin extends JavaPlugin {
         }, this);
     }
 
+    /**
+     * 插件关闭入口：逆序注销所有服务与事件监听器，持久化季节数据与配置，并移除本插件的合成配方。
+     *
+     * <p>每一步都先判空，以容忍启动中途失败或部分系统未初始化的情况。</p>
+     */
     public void onDisable() {
         if (this.hud != null) {
             this.hud.unregister();
@@ -671,6 +795,12 @@ public final class AeternumSeasonsPlugin extends JavaPlugin {
         this.removeAllPluginRecipes();
     }
 
+    /**
+     * 全量重载：先注销所有现有服务/监听器并保存季节数据，再重新读取配置、重建并注册全部子系统。
+     *
+     * <p>与 {@link #onEnable()} 类似，但不会重新创建世界；另外会检测是否运行于 Folia，
+     * 若是则出于线程安全考虑强制关闭生物群系伪装。</p>
+     */
     public synchronized void reloadEverything() {
         this.getLogger().info("[AeternumSeasons] Reload start...");
         if (this.hud != null) {
@@ -895,7 +1025,8 @@ public final class AeternumSeasonsPlugin extends JavaPlugin {
         try {
             Class.forName("io.papermc.paper.threadedregions.RegionizedServer");
             isFolia = true;
-        } catch (Throwable var12) {
+        } catch (Throwable ignored) {
+            // 未找到 Folia 专属类，说明运行在普通 Paper 上。
         }
 
         if (isFolia && biomeSpoofEnabled) {
@@ -1032,25 +1163,30 @@ public final class AeternumSeasonsPlugin extends JavaPlugin {
         this.getLogger().info("[AeternumSeasons] Reload done.");
     }
 
+    /**
+     * 移除本插件命名空间下的所有合成配方，用于重载或关闭时避免旧配方残留重复。
+     *
+     * <p>先收集所有属于本插件命名空间的 {@link NamespacedKey}，再逐个删除并统计数量。</p>
+     */
     private void removeAllPluginRecipes() {
         String ns = this.getName().toLowerCase(Locale.ROOT);
         List<NamespacedKey> keys = new ArrayList();
-        Iterator<Recipe> it = Bukkit.recipeIterator();
+        Iterator<Recipe> iterator = Bukkit.recipeIterator();
 
-        while(it.hasNext()) {
-            Recipe r = (Recipe)it.next();
-            if (r instanceof Keyed keyed) {
-                NamespacedKey k = keyed.getKey();
-                if (k != null && ns.equalsIgnoreCase(k.getNamespace())) {
-                    keys.add(k);
+        while(iterator.hasNext()) {
+            Recipe recipe = (Recipe)iterator.next();
+            if (recipe instanceof Keyed keyed) {
+                NamespacedKey key = keyed.getKey();
+                if (key != null && ns.equalsIgnoreCase(key.getNamespace())) {
+                    keys.add(key);
                 }
             }
         }
 
         int removed = 0;
 
-        for(NamespacedKey k : keys) {
-            if (Bukkit.removeRecipe(k)) {
+        for(NamespacedKey key : keys) {
+            if (Bukkit.removeRecipe(key)) {
                 ++removed;
             }
         }
@@ -1058,30 +1194,37 @@ public final class AeternumSeasonsPlugin extends JavaPlugin {
         this.getLogger().info("[AeternumSeasons] Removed " + removed + " old recipes for namespace '" + ns + "'.");
     }
 
+    /** 获取季节/日历服务。 */
     public SeasonService getSeasons() {
         return this.seasons;
     }
 
+    /** 获取季节事件服务。 */
     public SeasonalEventService getEventService() {
         return this.eventService;
     }
 
+    /** 获取季节食物系统。 */
     public SeasonFoods getSeasonFoods() {
         return this.foods;
     }
 
+    /** 获取季节作物生长监听器。 */
     public SeasonalCropGrowthListener getSeasonalCropGrowthListener() {
         return this.cropGrowth;
     }
 
+    /** 服务端是否安装了 Worlds 插件。 */
     public boolean isWorldsPluginPresent() {
         return this.worldsPluginPresent;
     }
 
+    /** 是否应把传送门处理交给 Worlds 插件（与 {@link #isWorldsPluginPresent()} 一致）。 */
     public boolean shouldLetWorldsHandlePortals() {
         return this.worldsPluginPresent;
     }
 
+    /** 获取温度服务。 */
     public ThermoService getThermo() {
         return this.thermo;
     }

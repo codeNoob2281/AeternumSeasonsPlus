@@ -31,6 +31,20 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.server.ServerCommandEvent;
 
+/**
+ * 季节性天气服务。
+ *
+ * <p>根据当前季节为指定世界安排下雨/雷暴日程：每个季节随机挑选若干“雨天”，
+ * 雨天再按概率决定是否雷暴，并按配置的时长区间维持风暴或晴天。日程按“年+季节”持久化到
+ * {@code data/weather_<year>_<season>.yml}，可跨重启恢复。</p>
+ *
+ * <p>附带两项辅助逻辑：
+ * <ul>
+ *     <li>村民工作窗口保护——在配置的白天时段内强制放晴，避免影响村民工作；</li>
+ *     <li>手动覆盖尊重——当玩家/控制台使用天气指令时，当天不再被自动天气覆盖。</li>
+ * </ul>
+ * 通过 {@link PlatformScheduler} 以全局定时任务驱动，每 40 tick 检查一次日历日期是否变化。</p>
+ */
 public final class SeasonalWeatherService implements Listener {
     private final AeternumSeasonsPlugin plugin;
     private final SeasonService seasons;
@@ -38,6 +52,7 @@ public final class SeasonalWeatherService implements Listener {
     private List<String> worldIds;
     private int rainyDaysPerSeason;
     private PlatformScheduler.TaskHandle clockTask;
+    /** 各季节的雨天数量覆盖值。 */
     private final EnumMap<Season, Integer> rainyDaysOverrides = new EnumMap(Season.class);
     private double thunderChance;
     private int stormMin;
@@ -50,6 +65,7 @@ public final class SeasonalWeatherService implements Listener {
     private int villagerWorkWindowStart;
     private int villagerWorkWindowEnd;
     private static final int BASE_SEASON_LENGTH = 28;
+    /** 当前季节被选为雨天的日期集合。 */
     private final Set<Integer> rainyDays = new HashSet();
     private String lastAppliedCalendarDate = null;
     private volatile boolean manualOverrideToday = false;
@@ -57,6 +73,7 @@ public final class SeasonalWeatherService implements Listener {
     private boolean scheduledThunderToday;
     private int scheduledStormTicks;
     private int scheduledClearTicks;
+    /** 各世界在工作窗口内是否已放晴的标记。 */
     private final Map<UUID, Boolean> clearWorkWindowByWorld = new HashMap();
 
     public SeasonalWeatherService(AeternumSeasonsPlugin plugin, SeasonService seasons) {
@@ -67,6 +84,7 @@ public final class SeasonalWeatherService implements Listener {
         this.loadOrSeedSchedule(seasons.getStateCopy());
     }
 
+    /** 注册事件监听并启动天气应用与时钟轮询任务。 */
     public void register() {
         if (this.enabled) {
             Bukkit.getPluginManager().registerEvents(this, this.plugin);
@@ -79,6 +97,7 @@ public final class SeasonalWeatherService implements Listener {
         }
     }
 
+    /** 注销事件监听并停止时钟轮询任务。 */
     public void unregister() {
         if (this.clockTask != null) {
             this.clockTask.cancel();
@@ -88,6 +107,7 @@ public final class SeasonalWeatherService implements Listener {
         HandlerList.unregisterAll(this);
     }
 
+    /** 从 climate.yml 读取季节性天气的全部配置项。 */
     private void reloadFromConfig() {
         this.enabled = this.plugin.cfg.climate.getBoolean("seasonal_weather.enabled", true);
         this.worldIds = new ArrayList(this.plugin.cfg.climate.getStringList("seasonal_weather.worlds"));
@@ -97,15 +117,15 @@ public final class SeasonalWeatherService implements Listener {
 
         this.rainyDaysPerSeason = Math.max(0, this.plugin.cfg.climate.getInt("seasonal_weather.rainy_days_per_season", 10));
         this.rainyDaysOverrides.clear();
-        ConfigurationSection sec = this.plugin.cfg.climate.getConfigurationSection("seasonal_weather.rainy_days");
-        if (sec != null) {
-            for(Season s : Season.values()) {
-                int v = Math.max(0, sec.getInt(s.name(), this.rainyDaysPerSeason));
-                this.rainyDaysOverrides.put(s, v);
+        ConfigurationSection section = this.plugin.cfg.climate.getConfigurationSection("seasonal_weather.rainy_days");
+        if (section != null) {
+            for(Season season : Season.values()) {
+                int value = Math.max(0, section.getInt(season.name(), this.rainyDaysPerSeason));
+                this.rainyDaysOverrides.put(season, value);
             }
         } else {
-            for(Season s : Season.values()) {
-                this.rainyDaysOverrides.put(s, this.rainyDaysPerSeason);
+            for(Season season : Season.values()) {
+                this.rainyDaysOverrides.put(season, this.rainyDaysPerSeason);
             }
         }
 
@@ -126,14 +146,15 @@ public final class SeasonalWeatherService implements Listener {
 
     }
 
+    /** 季节更新事件：进入新季节第一天时（按配置）重新生成雨天日程并立即应用。 */
     @EventHandler
-    public void onSeasonEvent(SeasonUpdateEvent e) {
+    public void onSeasonEvent(SeasonUpdateEvent event) {
         if (this.enabled) {
             PlatformScheduler.executeGlobal(this.plugin, () -> {
-                CalendarState st = e.getState();
-                if (st.day == 1 && (this.reseedEachSeason || this.rainyDays.isEmpty())) {
-                    this.seedSchedule(st);
-                    this.saveSchedule(st);
+                CalendarState state = event.getState();
+                if (state.day == 1 && (this.reseedEachSeason || this.rainyDays.isEmpty())) {
+                    this.seedSchedule(state);
+                    this.saveSchedule(state);
                 }
 
                 this.manualOverrideToday = false;
@@ -142,6 +163,7 @@ public final class SeasonalWeatherService implements Listener {
         }
     }
 
+    /** 全局时钟轮询：日历日期变化时重新应用天气，否则维持村民工作窗口保护。 */
     private void tickWorldClock() {
         if (this.enabled) {
             CalendarState state = this.seasons.getStateCopy();
@@ -155,25 +177,26 @@ public final class SeasonalWeatherService implements Listener {
         }
     }
 
+    /** 计算并应用“今天”的天气（除非被手动覆盖且需尊重手动指令）。 */
     private void applyForToday() {
         if (this.enabled) {
             CalendarState st = this.seasons.getStateCopy();
             if (!this.respectManual || !this.manualOverrideToday) {
                 this.lastAppliedCalendarDate = this.calendarDateKey(st);
                 this.scheduledRainToday = this.rainyDays.contains(st.day);
-                ThreadLocalRandom r = ThreadLocalRandom.current();
-                this.scheduledThunderToday = this.scheduledRainToday && r.nextDouble() < this.thunderChance;
+                ThreadLocalRandom random = ThreadLocalRandom.current();
+                this.scheduledThunderToday = this.scheduledRainToday && random.nextDouble() < this.thunderChance;
                 this.scheduledStormTicks = this.clampRand(this.stormMin, this.stormMax);
                 this.scheduledClearTicks = this.clampRand(this.clearMin, this.clearMax);
                 this.clearWorkWindowByWorld.clear();
 
-                for(World w : this.worldsToApply()) {
-                    boolean workWindowClear = this.scheduledRainToday && this.isInsideVillagerWorkWindow(w.getTime());
-                    this.clearWorkWindowByWorld.put(w.getUID(), workWindowClear);
+                for(World world : this.worldsToApply()) {
+                    boolean workWindowClear = this.scheduledRainToday && this.isInsideVillagerWorkWindow(world.getTime());
+                    this.clearWorkWindowByWorld.put(world.getUID(), workWindowClear);
                     if (workWindowClear) {
-                        this.applyClearWeather(w, Math.max(24000, this.scheduledClearTicks));
+                        this.applyClearWeather(world, Math.max(24000, this.scheduledClearTicks));
                     } else {
-                        this.applyScheduledWeather(w);
+                        this.applyScheduledWeather(world);
                     }
                 }
 
@@ -181,6 +204,7 @@ public final class SeasonalWeatherService implements Listener {
         }
     }
 
+    /** 维持村民工作窗口保护：世界进入/离开工作窗口时切换晴天/雨天。 */
     private void enforceVillagerWorkWindow() {
         if (this.villagerWorkWindowEnabled && this.scheduledRainToday) {
             if (!this.respectManual || !this.manualOverrideToday) {
@@ -200,6 +224,7 @@ public final class SeasonalWeatherService implements Listener {
         }
     }
 
+    /** 按今日日程设置世界天气：雨天则风暴（可雷暴），否则放晴。 */
     private void applyScheduledWeather(World world) {
         if (this.scheduledRainToday) {
             world.setStorm(true);
@@ -211,6 +236,7 @@ public final class SeasonalWeatherService implements Listener {
         }
     }
 
+    /** 将世界设为晴天并维持指定 tick 数。 */
     private void applyClearWeather(World world, int durationTicks) {
         world.setStorm(false);
         world.setWeatherDuration(Math.max(1, durationTicks));
@@ -218,6 +244,7 @@ public final class SeasonalWeatherService implements Listener {
         world.setThundering(false);
     }
 
+    /** 判断某个世界时间是否落在村民工作窗口内（支持跨午夜区间）。 */
     private boolean isInsideVillagerWorkWindow(long rawWorldTime) {
         if (!this.villagerWorkWindowEnabled) {
             return false;
@@ -231,6 +258,7 @@ public final class SeasonalWeatherService implements Listener {
         }
     }
 
+    /** 把世界时间归一到 {@code [0, 24000)} 区间。 */
     private int normalizeTime(long time) {
         long normalized = time % 24000L;
         if (normalized < 0L) {
@@ -240,48 +268,53 @@ public final class SeasonalWeatherService implements Listener {
         return (int)normalized;
     }
 
+    /** 解析配置中的世界名，返回当前已加载的世界对象列表。 */
     private List<World> worldsToApply() {
         List<World> out = new ArrayList();
 
         for(String id : this.worldIds) {
-            World w = Bukkit.getWorld(id);
-            if (w != null) {
-                out.add(w);
+            World world = Bukkit.getWorld(id);
+            if (world != null) {
+                out.add(world);
             }
         }
 
         return out;
     }
 
+    /** 标记今天已被手动覆盖，后续自动天气不再改动。 */
     public void markManualOverride() {
         this.manualOverrideToday = true;
     }
 
+    /** 监听玩家执行的天气指令：命中手动天气命令时标记手动覆盖。 */
     @EventHandler(
         ignoreCancelled = true,
         priority = EventPriority.MONITOR
     )
-    public void onPlayerWeatherCommand(PlayerCommandPreprocessEvent e) {
+    public void onPlayerWeatherCommand(PlayerCommandPreprocessEvent event) {
         if (this.enabled && this.respectManual) {
-            if (this.isManualWeatherCommand(e.getMessage())) {
+            if (this.isManualWeatherCommand(event.getMessage())) {
                 this.markManualOverride();
             }
 
         }
     }
 
+    /** 监听控制台执行的天气指令：命中手动天气命令时标记手动覆盖。 */
     @EventHandler(
         priority = EventPriority.MONITOR
     )
-    public void onConsoleWeatherCommand(ServerCommandEvent e) {
+    public void onConsoleWeatherCommand(ServerCommandEvent event) {
         if (this.enabled && this.respectManual) {
-            if (this.isManualWeatherCommand(e.getCommand())) {
+            if (this.isManualWeatherCommand(event.getCommand())) {
                 this.markManualOverride();
             }
 
         }
     }
 
+    /** 判断给定指令是否为会改变天气的手动命令（rain/storm/sun/thunder 或 weather 子命令）。 */
     private boolean isManualWeatherCommand(String raw) {
         if (raw == null) {
             return false;
@@ -315,6 +348,7 @@ public final class SeasonalWeatherService implements Listener {
         }
     }
 
+    /** 读取已保存的日程；无有效日程则重新生成并保存。 */
     private void loadOrSeedSchedule(CalendarState st) {
         if (!this.loadSchedule(st)) {
             this.seedSchedule(st);
@@ -323,6 +357,7 @@ public final class SeasonalWeatherService implements Listener {
 
     }
 
+    /** 按季节长度与目标天数，用确定性随机种子生成当季的雨天日期集合。 */
     private void seedSchedule(CalendarState st) {
         this.rainyDays.clear();
         int days = this.seasons.getDaysPerSeason();
@@ -338,61 +373,65 @@ public final class SeasonalWeatherService implements Listener {
 
             int need = Math.min(Math.max(0, target), days);
             long seed = (long)st.year * 1315423911L ^ (long)st.season.ordinal() * 2654435761L;
-            Random rnd = new Random(seed);
+            Random random = new Random(seed);
 
             while(this.rainyDays.size() < need) {
-                int d = 1 + rnd.nextInt(days);
-                this.rainyDays.add(d);
+                int day = 1 + random.nextInt(days);
+                this.rainyDays.add(day);
             }
 
         }
     }
 
+    /** 从磁盘读取当季的雨天日程；文件不存在或无数据时返回 false。 */
     private boolean loadSchedule(CalendarState st) {
         try {
-            File f = this.scheduleFile(st);
-            if (!f.exists()) {
+            File file = this.scheduleFile(st);
+            if (!file.exists()) {
                 return false;
             } else {
-                YamlConfiguration y = YamlConfiguration.loadConfiguration(f);
-                List<Integer> list = y.getIntegerList("rainy_days");
+                YamlConfiguration yaml = YamlConfiguration.loadConfiguration(file);
+                List<Integer> list = yaml.getIntegerList("rainy_days");
                 this.rainyDays.clear();
                 this.rainyDays.addAll(list);
                 return !this.rainyDays.isEmpty();
             }
-        } catch (Throwable var5) {
+        } catch (Throwable failure) {
             return false;
         }
     }
 
+    /** 把当季的雨天日程写入磁盘。 */
     private void saveSchedule(CalendarState st) {
         try {
-            File f = this.scheduleFile(st);
-            if (!f.getParentFile().exists()) {
-                f.getParentFile().mkdirs();
+            File file = this.scheduleFile(st);
+            if (!file.getParentFile().exists()) {
+                file.getParentFile().mkdirs();
             }
 
-            YamlConfiguration y = new YamlConfiguration();
-            y.set("year", st.year);
-            y.set("season", st.season.name());
-            y.set("rainy_days", new ArrayList(this.rainyDays));
-            y.save(f);
-        } catch (IOException var4) {
+            YamlConfiguration yaml = new YamlConfiguration();
+            yaml.set("year", st.year);
+            yaml.set("season", st.season.name());
+            yaml.set("rainy_days", new ArrayList(this.rainyDays));
+            yaml.save(file);
+        } catch (IOException failure) {
         }
 
     }
 
+    /** 生成当季日程文件的路径：{@code data/weather_<year>_<season>.yml}。 */
     private File scheduleFile(CalendarState st) {
-        File var10002 = this.plugin.getDataFolder();
-        int var10003 = st.year;
-        return new File(var10002, "data/weather_" + var10003 + "_" + st.season.name() + ".yml");
+        File dataFolder = this.plugin.getDataFolder();
+        int year = st.year;
+        return new File(dataFolder, "data/weather_" + year + "_" + st.season.name() + ".yml");
     }
 
+    /** 在 [min, max] 区间内取随机 tick 数（自动纠正颠倒区间与非法下界）。 */
     private int clampRand(int min, int max) {
         if (max < min) {
-            int t = min;
+            int temp = min;
             min = max;
-            max = t;
+            max = temp;
         }
 
         if (min < 1) {
@@ -406,9 +445,10 @@ public final class SeasonalWeatherService implements Listener {
         return ThreadLocalRandom.current().nextInt(min, max + 1);
     }
 
+    /** 生成用于比较“是否换了日期”的日历键：年:季:月:日。 */
     private String calendarDateKey(CalendarState state) {
         String month = state.monthsEnabled && state.monthId != null ? state.monthId : "";
-        int var10000 = state.year;
-        return var10000 + ":" + state.season.name() + ":" + month + ":" + state.day;
+        int year = state.year;
+        return year + ":" + state.season.name() + ":" + month + ":" + state.day;
     }
 }

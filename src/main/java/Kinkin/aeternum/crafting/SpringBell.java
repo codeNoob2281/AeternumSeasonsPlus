@@ -49,6 +49,18 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
+/**
+ * 春之铃（Spring Bell）。
+ *
+ * <p>本类负责注册并维护可放置的“春之铃”方块物品：
+ * <ul>
+ *     <li>注册由紫水晶碎片 + 铃铛 + 粉色花瓣合成的有序配方，并在合成预览时校验材料；</li>
+ *     <li>为合成的铃铛写入名称、描述、隐藏标记并打上持久化标签，作为身份识别依据；</li>
+ *     <li>记录玩家放置的春之铃位置（持久化到数据文件），破坏时掉落对应的自定义物品；</li>
+ *     <li>玩家敲响春之铃时（受冷却限制），触发粒子效果、催熟周围作物、并安抚附近蜜蜂/给予幸运。</li>
+ * </ul>
+ * 依赖 {@link AeternumSeasonsPlugin}、{@link SeasonService} 提供语言文本与季节状态。</p>
+ */
 public final class SpringBell implements Listener {
     private final AeternumSeasonsPlugin plugin;
     private final SeasonService seasons;
@@ -71,6 +83,7 @@ public final class SpringBell implements Listener {
         this.loadData();
     }
 
+    /** 从数据文件读取已放置的春之铃位置；若只有旧路径的数据文件，则迁移并保存到新路径。 */
     private void loadData() {
         this.placedBells.clear();
         if (this.dataFile.exists()) {
@@ -89,6 +102,7 @@ public final class SpringBell implements Listener {
         }
     }
 
+    /** 将已放置的春之铃位置写入数据文件。 */
     private void saveData() {
         YamlConfiguration cfg = new YamlConfiguration();
         cfg.set("blocks", new ArrayList(this.placedBells));
@@ -101,16 +115,19 @@ public final class SpringBell implements Listener {
 
     }
 
+    /** 向服务器注册事件监听器与合成配方。 */
     public void register() {
         Bukkit.getPluginManager().registerEvents(this, this.plugin);
         this.registerRecipe();
     }
 
+    /** 注销事件监听器并移除已注册的合成配方。 */
     public void unregister() {
         HandlerList.unregisterAll(this);
         Bukkit.removeRecipe(this.recipeKey);
     }
 
+    /** 注册春之铃的合成配方：B 铃铛、A 紫水晶碎片、F 粉色花瓣。 */
     private void registerRecipe() {
         ItemStack dummy = new ItemStack(Material.BELL);
         ShapedRecipe recipe = new ShapedRecipe(this.recipeKey, dummy);
@@ -121,28 +138,32 @@ public final class SpringBell implements Listener {
         Bukkit.addRecipe(recipe);
     }
 
+    /**
+     * 监听合成预览事件：当配方为春之铃配方时，
+     * 校验摆放的材料（恰好 1 个铃铛、至少 4 个紫水晶碎片与 4 个粉色花瓣），符合条件才显示产物。
+     */
     @EventHandler
-    public void onPrepareCraft(PrepareItemCraftEvent e) {
-        if (e.getRecipe() != null) {
-            Recipe var3 = e.getRecipe();
-            if (var3 instanceof ShapedRecipe) {
-                ShapedRecipe shaped = (ShapedRecipe)var3;
+    public void onPrepareCraft(PrepareItemCraftEvent event) {
+        if (event.getRecipe() != null) {
+            Recipe recipe = event.getRecipe();
+            if (recipe instanceof ShapedRecipe) {
+                ShapedRecipe shaped = (ShapedRecipe)recipe;
                 if (this.recipeKey.equals(shaped.getKey())) {
-                    ItemStack[] matrix = e.getInventory().getMatrix();
+                    ItemStack[] matrix = event.getInventory().getMatrix();
                     int bells = 0;
                     int shards = 0;
                     int petals = 0;
 
                     for(ItemStack stack : matrix) {
                         if (stack != null && stack.getType() != Material.AIR) {
-                            Material t = stack.getType();
-                            if (t == Material.BELL) {
+                            Material type = stack.getType();
+                            if (type == Material.BELL) {
                                 bells += stack.getAmount();
-                            } else if (t == Material.AMETHYST_SHARD) {
+                            } else if (type == Material.AMETHYST_SHARD) {
                                 shards += stack.getAmount();
                             } else {
-                                if (t != Material.PINK_PETALS) {
-                                    e.getInventory().setResult((ItemStack)null);
+                                if (type != Material.PINK_PETALS) {
+                                    event.getInventory().setResult((ItemStack)null);
                                     return;
                                 }
 
@@ -153,10 +174,10 @@ public final class SpringBell implements Listener {
 
                     if (bells == 1 && shards >= 4 && petals >= 4) {
                         Player crafter = null;
-                        HumanEntity var21 = e.getView().getPlayer();
-                        if (var21 instanceof Player) {
-                            Player pl = (Player)var21;
-                            crafter = pl;
+                        HumanEntity viewer = event.getView().getPlayer();
+                        if (viewer instanceof Player) {
+                            Player player = (Player)viewer;
+                            crafter = player;
                         }
 
                         ItemStack result = new ItemStack(Material.BELL);
@@ -174,21 +195,25 @@ public final class SpringBell implements Listener {
                                 finalLore.add(PERSISTENT_LORE_TAG);
                                 meta.setDisplayName(name);
                                 meta.setLore(finalLore);
-                            } catch (Throwable var16) {
+                            } catch (Throwable ignored) {
                             }
 
                             result.setItemMeta(meta);
                         }
 
-                        e.getInventory().setResult(result);
+                        event.getInventory().setResult(result);
                     } else {
-                        e.getInventory().setResult((ItemStack)null);
+                        event.getInventory().setResult((ItemStack)null);
                     }
                 }
             }
         }
     }
 
+    /**
+     * 判断物品是否为春之铃。优先读取持久化标签；若缺失则根据显示名与描述推断，
+     * 命中后补写标签并返回 true。
+     */
     private boolean isSpringBellItem(ItemStack stack) {
         if (stack != null && stack.getType() == Material.BELL) {
             ItemMeta meta = stack.getItemMeta();
@@ -207,9 +232,9 @@ public final class SpringBell implements Listener {
                     if (lore.stream().anyMatch((line) -> line.contains("AET_CUSTOM_SB"))) {
                         looksLikeSpringBell = true;
                     } else if (!display.isEmpty() && !lore.isEmpty()) {
-                        String lore0 = ChatColor.stripColor((String)lore.get(0));
-                        String l0 = lore0.toLowerCase(Locale.ROOT);
-                        if (l0.contains("spring") || l0.contains("primavera")) {
+                        String firstLore = ChatColor.stripColor((String)lore.get(0));
+                        String firstLoreLower = firstLore.toLowerCase(Locale.ROOT);
+                        if (firstLoreLower.contains("spring") || firstLoreLower.contains("primavera")) {
                             looksLikeSpringBell = true;
                         }
                     }
@@ -228,33 +253,35 @@ public final class SpringBell implements Listener {
         }
     }
 
+    /** 监听方块放置：放置的是春之铃时，记录该位置并保存数据。 */
     @EventHandler(
         ignoreCancelled = true
     )
-    public void onPlace(BlockPlaceEvent e) {
-        ItemStack inHand = e.getItemInHand();
+    public void onPlace(BlockPlaceEvent event) {
+        ItemStack inHand = event.getItemInHand();
         if (this.isSpringBellItem(inHand)) {
-            Block b = e.getBlockPlaced();
-            if (b.getType() == Material.BELL) {
-                this.placedBells.add(this.blockKey(b));
+            Block block = event.getBlockPlaced();
+            if (block.getType() == Material.BELL) {
+                this.placedBells.add(this.blockKey(block));
                 this.saveData();
             }
         }
     }
 
+    /** 监听方块破坏：破坏的是已登记的春之铃时，取消原掉落并改为掉落对应的自定义物品。 */
     @EventHandler(
         ignoreCancelled = true,
         priority = EventPriority.HIGHEST
     )
-    public void onBreak(BlockBreakEvent e) {
-        Block b = e.getBlock();
-        if (b.getType() == Material.BELL) {
-            String key = this.blockKey(b);
+    public void onBreak(BlockBreakEvent event) {
+        Block block = event.getBlock();
+        if (block.getType() == Material.BELL) {
+            String key = this.blockKey(block);
             if (this.placedBells.remove(key)) {
                 this.lastRing.remove(key);
                 this.saveData();
-                e.setDropItems(false);
-                Player breaker = e.getPlayer();
+                event.setDropItems(false);
+                Player breaker = event.getPlayer();
                 ItemStack drop = new ItemStack(Material.BELL);
                 ItemMeta meta = drop.getItemMeta();
                 if (meta != null) {
@@ -270,62 +297,70 @@ public final class SpringBell implements Listener {
                         finalLore.add(PERSISTENT_LORE_TAG);
                         meta.setDisplayName(name);
                         meta.setLore(finalLore);
-                    } catch (Throwable var13) {
+                    } catch (Throwable ignored) {
                     }
 
                     drop.setItemMeta(meta);
                 }
 
-                b.getWorld().dropItemNaturally(b.getLocation().add((double)0.5F, 0.1, (double)0.5F), drop);
+                block.getWorld().dropItemNaturally(block.getLocation().add((double)0.5F, 0.1, (double)0.5F), drop);
             }
         }
     }
 
-    private String blockKey(Block b) {
-        String var10000 = b.getWorld().getName();
-        return var10000 + ";" + b.getX() + ";" + b.getY() + ";" + b.getZ();
+    /** 生成方块的位置键：世界名;x;y;z。 */
+    private String blockKey(Block block) {
+        String worldName = block.getWorld().getName();
+        return worldName + ";" + block.getX() + ";" + block.getY() + ";" + block.getZ();
     }
 
-    private boolean isSpringBellBlock(Block b) {
-        return b.getType() == Material.BELL && this.placedBells.contains(this.blockKey(b));
+    /** 判断方块是否为已登记的春之铃。 */
+    private boolean isSpringBellBlock(Block block) {
+        return block.getType() == Material.BELL && this.placedBells.contains(this.blockKey(block));
     }
 
+    /**
+     * 监听铃铛敲响：当被敲响的是已登记的春之铃时，
+     * 冷却期内仅播放粒子；冷却结束后触发粒子、催熟作物并安抚蜜蜂。
+     */
     @EventHandler(
         ignoreCancelled = true
     )
-    public void onBellRing(BellRingEvent e) {
-        Block b = e.getBlock();
-        if (this.isSpringBellBlock(b)) {
-            Entity var4 = e.getEntity();
-            if (var4 instanceof Player) {
-                Player player = (Player)var4;
-                String var10 = this.blockKey(b);
+    public void onBellRing(BellRingEvent event) {
+        Block block = event.getBlock();
+        if (this.isSpringBellBlock(block)) {
+            Entity entity = event.getEntity();
+            if (entity instanceof Player) {
+                Player player = (Player)entity;
+                String key = this.blockKey(block);
                 long now = System.currentTimeMillis();
-                Long last = (Long)this.lastRing.get(var10);
+                Long last = (Long)this.lastRing.get(key);
                 if (last != null && now - last < 20000L) {
-                    b.getWorld().spawnParticle(Particle.HAPPY_VILLAGER, b.getLocation().add((double)0.5F, (double)1.0F, (double)0.5F), 8, 0.3, 0.4, 0.3);
+                    block.getWorld().spawnParticle(Particle.HAPPY_VILLAGER, block.getLocation().add((double)0.5F, (double)1.0F, (double)0.5F), 8, 0.3, 0.4, 0.3);
                 } else {
-                    this.lastRing.put(var10, now);
-                    CalendarState st = this.seasons.getStateCopy(b.getWorld());
-                    boolean isSpring = st.season == Season.SPRING;
-                    this.spawnBellParticles(b, isSpring);
-                    this.bloomCropsAround(b, isSpring);
-                    this.calmBeesAround(b, player, isSpring);
+                    this.lastRing.put(key, now);
+                    CalendarState state = this.seasons.getStateCopy(block.getWorld());
+                    boolean isSpring = state.season == Season.SPRING;
+                    this.spawnBellParticles(block, isSpring);
+                    this.bloomCropsAround(block, isSpring);
+                    this.calmBeesAround(block, player, isSpring);
                 }
             }
         }
     }
 
+    /** 在铃铛周围播放灵魂粒子与花瓣粒子，并播放使用音效（春季时效果更强）。 */
     private void spawnBellParticles(Block bell, boolean isSpring) {
-        World w = bell.getWorld();
+        World world = bell.getWorld();
         Location loc = bell.getLocation().add((double)0.5F, (double)1.0F, (double)0.5F);
-        w.spawnParticle(Particle.SOUL, loc, isSpring ? 20 : 12, (double)0.5F, (double)0.5F, (double)0.5F);
-        w.spawnParticle(Particle.FALLING_SPORE_BLOSSOM, loc, isSpring ? 14 : 8, 0.4, 0.7, 0.4);
-        w.playSound(loc, Sound.BLOCK_BELL_USE, 1.0F, isSpring ? 1.4F : 1.1F);
+        world.spawnParticle(Particle.SOUL, loc, isSpring ? 20 : 12, (double)0.5F, (double)0.5F, (double)0.5F);
+        world.spawnParticle(Particle.FALLING_SPORE_BLOSSOM, loc, isSpring ? 14 : 8, 0.4, 0.7, 0.4);
+        world.playSound(loc, Sound.BLOCK_BELL_USE, 1.0F, isSpring ? 1.4F : 1.1F);
     }
 
+    /** 在铃铛周围随机尝试催熟作物（春季时范围更大、尝试次数更多）。 */
     private void bloomCropsAround(Block bell, boolean isSpring) {
-        World w = bell.getWorld();
+        World world = bell.getWorld();
         int radius = isSpring ? 8 : 5;
         int attempts = isSpring ? 50 : 30;
         int baseY = bell.getY();
@@ -338,15 +373,15 @@ public final class SpringBell implements Listener {
             boolean upgraded = false;
 
             for(int dy = -3; dy <= 1; ++dy) {
-                Block cropBlock = w.getBlockAt(x, baseY + dy, z);
-                BlockData var16 = cropBlock.getBlockData();
-                if (var16 instanceof Ageable ageable) {
+                Block cropBlock = world.getBlockAt(x, baseY + dy, z);
+                BlockData blockData = cropBlock.getBlockData();
+                if (blockData instanceof Ageable ageable) {
                     if (ageable.getAge() < ageable.getMaximumAge()) {
                         int step = isSpring ? (this.rnd.nextBoolean() ? 2 : 1) : 1;
                         int newAge = Math.min(ageable.getAge() + step, ageable.getMaximumAge());
                         ageable.setAge(newAge);
                         cropBlock.setBlockData(ageable, false);
-                        w.spawnParticle(Particle.SOUL, cropBlock.getLocation().add((double)0.5F, 0.4, (double)0.5F), 6, 0.2, 0.3, 0.2);
+                        world.spawnParticle(Particle.SOUL, cropBlock.getLocation().add((double)0.5F, 0.4, (double)0.5F), 6, 0.2, 0.3, 0.2);
                         upgraded = true;
                         break;
                     }
@@ -354,23 +389,24 @@ public final class SpringBell implements Listener {
             }
 
             if (upgraded && this.rnd.nextDouble() < 0.15) {
-                Block floor = w.getBlockAt(x, baseY - 1, z);
-                w.spawnParticle(Particle.FALLING_SPORE_BLOSSOM, floor.getLocation().add((double)0.5F, (double)1.0F, (double)0.5F), 4, 0.2, 0.3, 0.2);
+                Block floor = world.getBlockAt(x, baseY - 1, z);
+                world.spawnParticle(Particle.FALLING_SPORE_BLOSSOM, floor.getLocation().add((double)0.5F, (double)1.0F, (double)0.5F), 4, 0.2, 0.3, 0.2);
             }
         }
 
     }
 
+    /** 安抚铃铛附近的蜜蜂（附加再生与缓降），并给予敲响者幸运（春季时更强）。 */
     private void calmBeesAround(Block bell, Player source, boolean isSpring) {
-        World w = bell.getWorld();
+        World world = bell.getWorld();
         Location center = bell.getLocation().add((double)0.5F, (double)1.0F, (double)0.5F);
         int radius = isSpring ? 12 : 8;
 
-        for(Entity ent : w.getNearbyEntities(center, (double)radius, (double)radius, (double)radius)) {
-            if (ent instanceof Bee bee) {
+        for(Entity entity : world.getNearbyEntities(center, (double)radius, (double)radius, (double)radius)) {
+            if (entity instanceof Bee bee) {
                 bee.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, isSpring ? 120 : 80, 0, true, false, true));
                 bee.addPotionEffect(new PotionEffect(PotionEffectType.SLOW_FALLING, isSpring ? 120 : 80, 0, true, false, true));
-                w.spawnParticle(Particle.SOUL, bee.getLocation().add((double)0.0F, 0.4, (double)0.0F), 6, 0.3, 0.3, 0.3);
+                world.spawnParticle(Particle.SOUL, bee.getLocation().add((double)0.0F, 0.4, (double)0.0F), 6, 0.3, 0.3, 0.3);
             }
         }
 

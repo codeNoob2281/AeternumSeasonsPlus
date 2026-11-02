@@ -21,6 +21,16 @@ import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 
+/**
+ * 生物群系修复命令（/seasonbiomefix）。
+ *
+ * <p>把指定世界（或全部 NORMAL 世界）已加载区块的生物群系强制重绘为 {@link #TARGET}
+ * 目标群系，用于修复季节切换或生物群系伪装后残留的错误群系。命令以 BukkitRunnable
+ * 分帧执行，每 tick 处理有限数量的区块（budget），避免主线程卡顿。</p>
+ *
+ * <p>执行前会关闭 {@link BiomeSpoofAdapter} 并通过反射清空其内部缓存
+ * （COLD_CHUNKS/spoofed/backups 等），结束后按原状恢复启用状态。</p>
+ */
 public final class SeasonBiomeFixSpringJungleCommand implements CommandExecutor, TabCompleter {
     private static final Biome TARGET;
     private static final int STEP_XZ = 4;
@@ -34,6 +44,13 @@ public final class SeasonBiomeFixSpringJungleCommand implements CommandExecutor,
         this.biomeSpoof = biomeSpoof;
     }
 
+    /**
+     * 处理 /seasonbiomefix 命令。
+     *
+     * <p>参数 {@code args[0]} 可为 {@code all}、世界名或数字（每 tick 区块预算）；
+     * {@code args[1]} 可作为额外的预算覆盖。随后收集目标世界的已加载区块，
+     * 逐 tick 重绘生物群系并输出进度。</p>
+     */
     public boolean onCommand(final CommandSender sender, Command cmd, String label, String[] args) {
         if (!sender.hasPermission("aeternum.command.biomefix")) {
             return true;
@@ -42,16 +59,16 @@ public final class SeasonBiomeFixSpringJungleCommand implements CommandExecutor,
             World targetWorld = null;
             int budget = Math.max(1, this.plugin.cfg.climate.getInt("biome_spoof.restore_budget_chunks_per_tick", 6));
             if (args.length >= 1) {
-                String a0 = args[0];
-                Integer maybeBudget = this.tryParseInt(a0);
+                String firstArg = args[0];
+                Integer maybeBudget = this.tryParseInt(firstArg);
                 if (maybeBudget != null) {
                     budget = Math.max(1, maybeBudget);
-                } else if (a0.equalsIgnoreCase("all")) {
+                } else if (firstArg.equalsIgnoreCase("all")) {
                     allWorlds = true;
                 } else {
-                    targetWorld = Bukkit.getWorld(a0);
+                    targetWorld = Bukkit.getWorld(firstArg);
                     if (targetWorld == null) {
-                        sender.sendMessage("§cMundo no encontrado: §f" + a0);
+                        sender.sendMessage("§cMundo no encontrado: §f" + firstArg);
                         return true;
                     }
                 }
@@ -66,8 +83,8 @@ public final class SeasonBiomeFixSpringJungleCommand implements CommandExecutor,
 
             if (!allWorlds && targetWorld == null) {
                 if (sender instanceof Player) {
-                    Player p = (Player)sender;
-                    targetWorld = p.getWorld();
+                    Player player = (Player)sender;
+                    targetWorld = player.getWorld();
                 } else {
                     targetWorld = this.firstNormalWorld();
                     if (targetWorld == null) {
@@ -85,10 +102,10 @@ public final class SeasonBiomeFixSpringJungleCommand implements CommandExecutor,
 
             final List<ChunkPos> work = new ArrayList();
             if (allWorlds) {
-                for(World w : Bukkit.getWorlds()) {
-                    if (w.getEnvironment() == Environment.NORMAL) {
-                        for(Chunk ch : w.getLoadedChunks()) {
-                            work.add(new ChunkPos(w.getUID(), ch.getX(), ch.getZ()));
+                for(World world : Bukkit.getWorlds()) {
+                    if (world.getEnvironment() == Environment.NORMAL) {
+                        for(Chunk chunk : world.getLoadedChunks()) {
+                            work.add(new ChunkPos(world.getUID(), chunk.getX(), chunk.getZ()));
                         }
                     }
                 }
@@ -97,8 +114,8 @@ public final class SeasonBiomeFixSpringJungleCommand implements CommandExecutor,
                     sender.sendMessage("§eAviso: este mundo no es NORMAL, igual lo proceso (pero lo normal es solo overworld).");
                 }
 
-                for(Chunk ch : targetWorld.getLoadedChunks()) {
-                    work.add(new ChunkPos(targetWorld.getUID(), ch.getX(), ch.getZ()));
+                for(Chunk chunk : targetWorld.getLoadedChunks()) {
+                    work.add(new ChunkPos(targetWorld.getUID(), chunk.getX(), chunk.getZ()));
                 }
             }
 
@@ -110,8 +127,8 @@ public final class SeasonBiomeFixSpringJungleCommand implements CommandExecutor,
 
                 return true;
             } else {
-                String var10001 = TARGET.name();
-                sender.sendMessage("§a[BiomeFix] Forzando bioma §f" + var10001 + "§a en §f" + work.size() + "§a chunks cargados. budget=§f" + budget + "§a/tick");
+                String targetBiomeName = TARGET.name();
+                sender.sendMessage("§a[BiomeFix] Forzando bioma §f" + targetBiomeName + "§a en §f" + work.size() + "§a chunks cargados. budget=§f" + budget + "§a/tick");
                 final int budgetFinal = budget;
                 final boolean allWorldsFinal = allWorlds;
                 final World targetWorldFinal = targetWorld;
@@ -127,13 +144,13 @@ public final class SeasonBiomeFixSpringJungleCommand implements CommandExecutor,
 
                         while(doneThisTick < budgetFinal && this.idx < work.size()) {
                             ChunkPos pos = (ChunkPos)work.get(this.idx++);
-                            World w = Bukkit.getWorld(pos.worldId);
-                            if (w != null) {
-                                if (!w.isChunkLoaded(pos.cx, pos.cz)) {
+                            World world = Bukkit.getWorld(pos.worldId);
+                            if (world != null) {
+                                if (!world.isChunkLoaded(pos.cx, pos.cz)) {
                                     ++this.skippedUnloaded;
                                     ++doneThisTick;
                                 } else {
-                                    boolean changed = SeasonBiomeFixSpringJungleCommand.this.applyBiomeGrid(w, pos.cx, pos.cz, SeasonBiomeFixSpringJungleCommand.TARGET);
+                                    boolean changed = SeasonBiomeFixSpringJungleCommand.this.applyBiomeGrid(world, pos.cx, pos.cz, SeasonBiomeFixSpringJungleCommand.TARGET);
                                     if (changed) {
                                         ++this.painted;
                                     }
@@ -144,8 +161,8 @@ public final class SeasonBiomeFixSpringJungleCommand implements CommandExecutor,
                         }
 
                         if (this.ticks % 20 == 0) {
-                            int var10001 = this.idx;
-                            sender.sendMessage("§a[BiomeFix] Progreso: §f" + var10001 + "§7/§f" + work.size() + " §a| Pintados: §f" + this.painted + " §a| Saltados(unloaded): §f" + this.skippedUnloaded);
+                            int processedCount = this.idx;
+                            sender.sendMessage("§a[BiomeFix] Progreso: §f" + processedCount + "§7/§f" + work.size() + " §a| Pintados: §f" + this.painted + " §a| Saltados(unloaded): §f" + this.skippedUnloaded);
                         }
 
                         if (this.idx >= work.size()) {
@@ -167,19 +184,24 @@ public final class SeasonBiomeFixSpringJungleCommand implements CommandExecutor,
         }
     }
 
-    private boolean applyBiomeGrid(World w, int cx, int cz, Biome target) {
+    /**
+     * 按 4×4×4 网格重绘单个区块的生物群系，必要时刷新区块。
+     *
+     * @return 是否有任意采样点的实际群系发生变化
+     */
+    private boolean applyBiomeGrid(World world, int cx, int cz, Biome target) {
         int bx = cx << 4;
         int bz = cz << 4;
-        int minY = w.getMinHeight();
-        int maxY = w.getMaxHeight();
+        int minY = world.getMinHeight();
+        int maxY = world.getMaxHeight();
         boolean anyChange = false;
 
         for(int x = 0; x < 16; x += 4) {
             for(int z = 0; z < 16; z += 4) {
                 for(int y = minY; y < maxY; y += 4) {
-                    Biome cur = w.getBiome(bx + x, y, bz + z);
-                    if (cur != target) {
-                        w.setBiome(bx + x, y, bz + z, target);
+                    Biome currentBiome = world.getBiome(bx + x, y, bz + z);
+                    if (currentBiome != target) {
+                        world.setBiome(bx + x, y, bz + z, target);
                         anyChange = true;
                     }
                 }
@@ -187,12 +209,13 @@ public final class SeasonBiomeFixSpringJungleCommand implements CommandExecutor,
         }
 
         if (anyChange) {
-            w.refreshChunk(cx, cz);
+            world.refreshChunk(cx, cz);
         }
 
         return anyChange;
     }
 
+    /** 通过反射清空 {@link BiomeSpoofAdapter} 的静态/实例缓存，避免修复期间被伪装数据干扰。 */
     private void hardResetBiomeSpoofInternals(CommandSender sender) {
         if (this.biomeSpoof != null) {
             try {
@@ -200,68 +223,72 @@ public final class SeasonBiomeFixSpringJungleCommand implements CommandExecutor,
                 cold.setAccessible(true);
                 Object coldSet = cold.get((Object)null);
                 if (coldSet instanceof Set) {
-                    Set<?> s = (Set)coldSet;
-                    s.clear();
+                    Set<?> coldChunks = (Set)coldSet;
+                    coldChunks.clear();
                 }
 
                 Field spoofed = BiomeSpoofAdapter.class.getDeclaredField("spoofed");
                 spoofed.setAccessible(true);
                 Object spoofedSet = spoofed.get(this.biomeSpoof);
                 if (spoofedSet instanceof Set) {
-                    Set<?> s = (Set)spoofedSet;
-                    s.clear();
+                    Set<?> spoofedChunks = (Set)spoofedSet;
+                    spoofedChunks.clear();
                 }
 
                 Field backups = BiomeSpoofAdapter.class.getDeclaredField("backups");
                 backups.setAccessible(true);
                 Object backupsMap = backups.get(this.biomeSpoof);
                 if (backupsMap instanceof Map) {
-                    Map<?, ?> m = (Map)backupsMap;
-                    m.clear();
+                    Map<?, ?> backupsByKey = (Map)backupsMap;
+                    backupsByKey.clear();
                 }
 
                 this.tryClearFieldMap("nudgeQueue");
                 this.tryClearFieldMap("nudgeLast");
                 sender.sendMessage("§a[BiomeFix] Cache del BiomeSpoof limpiada (cold/spoofed/backups).");
-            } catch (Throwable t) {
-                sender.sendMessage("§e[BiomeFix] No pude limpiar caches por reflexión: " + t.getMessage());
+            } catch (Throwable error) {
+                sender.sendMessage("§e[BiomeFix] No pude limpiar caches por reflexión: " + error.getMessage());
             }
 
         }
     }
 
+    /** 反射清空 BiomeSpoofAdapter 上某个 Map 类型字段；任何异常都静默忽略。 */
     private void tryClearFieldMap(String fieldName) {
         try {
-            Field f = BiomeSpoofAdapter.class.getDeclaredField(fieldName);
-            f.setAccessible(true);
-            Object v = f.get(this.biomeSpoof);
-            if (v instanceof Map<?, ?> m) {
-                m.clear();
+            Field field = BiomeSpoofAdapter.class.getDeclaredField(fieldName);
+            field.setAccessible(true);
+            Object value = field.get(this.biomeSpoof);
+            if (value instanceof Map<?, ?> map) {
+                map.clear();
             }
-        } catch (Throwable var5) {
+        } catch (Throwable ignored) {
         }
 
     }
 
+    /** 返回第一个已加载的 NORMAL（主世界）维度，找不到返回 null。 */
     private World firstNormalWorld() {
-        for(World w : Bukkit.getWorlds()) {
-            if (w.getEnvironment() == Environment.NORMAL) {
-                return w;
+        for(World world : Bukkit.getWorlds()) {
+            if (world.getEnvironment() == Environment.NORMAL) {
+                return world;
             }
         }
 
         return null;
     }
 
-    private Integer tryParseInt(String s) {
+    /** 尝试把字符串解析为整数，失败返回 null。 */
+    private Integer tryParseInt(String input) {
         try {
-            return Integer.parseInt(s);
-        } catch (Exception var3) {
+            return Integer.parseInt(input);
+        } catch (Exception ignored) {
             return null;
         }
     }
 
-    public List<String> onTabComplete(CommandSender s, Command cmd, String label, String[] args) {
+    /** 本命令不提供参数补全。 */
+    public List<String> onTabComplete(CommandSender sender, Command cmd, String label, String[] args) {
         return Collections.emptyList();
     }
 
@@ -269,6 +296,7 @@ public final class SeasonBiomeFixSpringJungleCommand implements CommandExecutor,
         TARGET = Biome.SAVANNA;
     }
 
+    /** 待处理区块的坐标（世界 UUID + 区块 x/z）。 */
     private static record ChunkPos(UUID worldId, int cx, int cz) {
         private ChunkPos {
         }

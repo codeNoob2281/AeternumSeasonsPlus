@@ -50,6 +50,17 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
 
+/**
+ * 秋季落叶/土壤染色器（AutumnSoilPainter）。
+ *
+ * <p>作为周期任务运行，在秋季把玩家附近的自然树叶（云杉/白桦/樱花等）逐步“染”成秋季配色
+ * （DAPPLED_POPLAR 调色板或旧版金合欢色），并记录每片被染色树叶的原始材质以便日后还原。
+ * 工作按预算分片执行（时间片 + 方块数上限），避免卡顿；随季节阶段推进渐变、入冬前逐渐还原。
+ * 同时监听方块破坏、树叶凋零、爆炸与树苗掉落等事件，在树叶消失时还原原始类型、修正树苗种类。</p>
+ *
+ * <p>依赖 {@link SeasonService}（季节/天数）、{@link BiomeSpoofAdapter}（决定配色方案）、
+ * {@link AutumnTreePlan}（分步扫描整棵树）、{@link AutumnLeafStore}（持久化原始材质）。</p>
+ */
 public final class AutumnSoilPainter implements Runnable, Listener {
     private final AeternumSeasonsPlugin plugin;
     private final SeasonService seasons;
@@ -112,12 +123,13 @@ public final class AutumnSoilPainter implements Runnable, Listener {
         this.paintedLeaves.putAll(AutumnLeafStore.load(plugin));
     }
 
+    /** 从气候配置与主配置重新读取染色参数、禁用世界列表，并重新解析配色方案。 */
     public void reloadFromConfig() {
-        FileConfiguration y = this.plugin.cfg.climate;
-        this.chunksPerTick = Math.max(2, y.getInt("autumn_soil.attempts_per_tick", 4));
-        this.radiusChunks = Math.max(2, y.getInt("autumn_soil.radius_chunks", 4));
-        this.dappledRadiusChunks = Math.max(this.radiusChunks, y.getInt("autumn_soil.dappled_radius_chunks", 6));
-        this.leafChancePerBlock = y.getDouble("autumn_soil.leaf_chance_per_block", (double)1.0F);
+        FileConfiguration climateConfig = this.plugin.cfg.climate;
+        this.chunksPerTick = Math.max(2, climateConfig.getInt("autumn_soil.attempts_per_tick", 4));
+        this.radiusChunks = Math.max(2, climateConfig.getInt("autumn_soil.radius_chunks", 4));
+        this.dappledRadiusChunks = Math.max(this.radiusChunks, climateConfig.getInt("autumn_soil.dappled_radius_chunks", 6));
+        this.leafChancePerBlock = climateConfig.getDouble("autumn_soil.leaf_chance_per_block", (double)1.0F);
         if (this.leafChancePerBlock < (double)0.0F) {
             this.leafChancePerBlock = (double)0.0F;
         }
@@ -127,22 +139,23 @@ public final class AutumnSoilPainter implements Runnable, Listener {
         }
 
         List<String> list = this.plugin.getConfig().getStringList("worlds.disabled_season_fx");
-        Set<String> s = new HashSet();
+        Set<String> disabledWorlds = new HashSet();
 
-        for(String w : list) {
-            if (w != null) {
-                String name = w.trim();
+        for(String worldName : list) {
+            if (worldName != null) {
+                String name = worldName.trim();
                 if (!name.isEmpty()) {
-                    s.add(name.toLowerCase(Locale.ROOT));
+                    disabledWorlds.add(name.toLowerCase(Locale.ROOT));
                 }
             }
         }
 
-        this.disabledFxWorlds = s;
+        this.disabledFxWorlds = disabledWorlds;
         this.resolvePaletteMode();
         this.sweepCache.clear();
     }
 
+    /** 依据 {@link BiomeSpoofAdapter} 的秋季群系类型，决定使用哪套树叶调色板（或禁用）。 */
     private void resolvePaletteMode() {
         this.dappledPalette = this.resolveMaterials("RED_POPLAR_LEAVES", "ORANGE_POPLAR_LEAVES", "YELLOW_POPLAR_LEAVES");
         this.poplarSapling = Material.matchMaterial("POPLAR_SAPLING");
@@ -161,6 +174,7 @@ public final class AutumnSoilPainter implements Runnable, Listener {
         }
     }
 
+    /** 按名称批量解析材质，忽略无法识别的项，返回不可变列表。 */
     private List<Material> resolveMaterials(String... names) {
         List<Material> resolved = new ArrayList(names.length);
 
@@ -174,6 +188,7 @@ public final class AutumnSoilPainter implements Runnable, Listener {
         return List.copyOf(resolved);
     }
 
+    /** 注册周期任务与事件监听（仅当配置启用且配色方案可用时）。 */
     public void register() {
         if (this.task != null) {
             this.task.cancel();
@@ -191,6 +206,7 @@ public final class AutumnSoilPainter implements Runnable, Listener {
         }
     }
 
+    /** 取消任务、注销事件监听、清理状态并把已记录的原始树叶材质持久化。 */
     public void unregister() {
         if (this.task != null) {
             this.task.cancel();
@@ -210,6 +226,7 @@ public final class AutumnSoilPainter implements Runnable, Listener {
 
     }
 
+    /** 周期任务主体：按当前季节阶段推进染色/还原，每次仅消耗有限预算。 */
     public void run() {
         this.workDeadline = System.nanoTime() + 1000000L;
         this.remainingBlocks = 1024;
@@ -272,11 +289,11 @@ public final class AutumnSoilPainter implements Runnable, Listener {
                 List<Player> eligiblePlayers = new ArrayList();
                 Map<UUID, List<Offset>> sweeps = new HashMap();
 
-                for(Player p : Bukkit.getOnlinePlayers()) {
-                    World w = p.getWorld();
-                    if (w.getEnvironment() == Environment.NORMAL && !this.isFxDisabled(w) && !this.seasons.isPermanentWinterWorld(w)) {
-                        eligiblePlayers.add(p);
-                        sweeps.put(p.getUniqueId(), this.buildChunkSweep(p));
+                for(Player player : Bukkit.getOnlinePlayers()) {
+                    World world = player.getWorld();
+                    if (world.getEnvironment() == Environment.NORMAL && !this.isFxDisabled(world) && !this.seasons.isPermanentWinterWorld(world)) {
+                        eligiblePlayers.add(player);
+                        sweeps.put(player.getUniqueId(), this.buildChunkSweep(player));
                     }
                 }
 
@@ -315,6 +332,7 @@ public final class AutumnSoilPainter implements Runnable, Listener {
         }
     }
 
+    /** 构建某玩家周围待扫描的区块偏移列表（按距离与朝向评分排序，并做 1 秒缓存）。 */
     private List<Offset> buildChunkSweep(Player player) {
         long now = System.currentTimeMillis();
         CachedSweep cached = (CachedSweep)this.sweepCache.get(player.getUniqueId());
@@ -344,12 +362,13 @@ public final class AutumnSoilPainter implements Runnable, Listener {
                 }
             }
 
-            offsets.sort(Comparator.comparingInt((Offset o) -> o.dist).thenComparingDouble((Offset o) -> -o.forwardScore));
+            offsets.sort(Comparator.comparingInt((Offset offset) -> offset.dist).thenComparingDouble((Offset offset) -> -offset.forwardScore));
             this.sweepCache.put(player.getUniqueId(), new CachedSweep(now + 1000L, offsets));
             return offsets;
         }
     }
 
+    /** 处理玩家扫描列表中的下一个已加载区块；返回是否真正处理了一个区块。 */
     private boolean processNextLoadedChunk(Player player, List<Offset> sweep, boolean highDetail, double paintFactor) {
         if (sweep != null && !sweep.isEmpty()) {
             Location loc = player.getLocation();
@@ -393,41 +412,42 @@ public final class AutumnSoilPainter implements Runnable, Listener {
         }
     }
 
+    /** 在树叶周围 6 格范围内统计各类原木，据此推断其原始树叶材质；无法判断时返回 null。 */
     private Material guessOriginalUncached(Block leaf) {
-        World w = leaf.getWorld();
+        World world = leaf.getWorld();
         Biome biome = leaf.getBiome();
         int radius = 6;
-        int lx = leaf.getX();
-        int ly = leaf.getY();
-        int lz = leaf.getZ();
+        int leafX = leaf.getX();
+        int leafY = leaf.getY();
+        int leafZ = leaf.getZ();
         int spruce = 0;
         int birch = 0;
         int cherry = 0;
         int acacia = 0;
         int poplar = 0;
 
-        for(int x = lx - radius; x <= lx + radius; ++x) {
-            for(int y = ly - radius; y <= ly + radius; ++y) {
-                for(int z = lz - radius; z <= lz + radius; ++z) {
-                    if (y >= w.getMinHeight() && y < w.getMaxHeight() && w.isChunkLoaded(x >> 4, z >> 4)) {
-                        Material t = w.getBlockAt(x, y, z).getType();
-                        if (t == Material.SPRUCE_LOG || t == Material.SPRUCE_WOOD || t == Material.STRIPPED_SPRUCE_LOG || t == Material.STRIPPED_SPRUCE_WOOD) {
+        for(int x = leafX - radius; x <= leafX + radius; ++x) {
+            for(int y = leafY - radius; y <= leafY + radius; ++y) {
+                for(int z = leafZ - radius; z <= leafZ + radius; ++z) {
+                    if (y >= world.getMinHeight() && y < world.getMaxHeight() && world.isChunkLoaded(x >> 4, z >> 4)) {
+                        Material type = world.getBlockAt(x, y, z).getType();
+                        if (type == Material.SPRUCE_LOG || type == Material.SPRUCE_WOOD || type == Material.STRIPPED_SPRUCE_LOG || type == Material.STRIPPED_SPRUCE_WOOD) {
                             ++spruce;
                         }
 
-                        if (t == Material.BIRCH_LOG || t == Material.BIRCH_WOOD || t == Material.STRIPPED_BIRCH_LOG || t == Material.STRIPPED_BIRCH_WOOD) {
+                        if (type == Material.BIRCH_LOG || type == Material.BIRCH_WOOD || type == Material.STRIPPED_BIRCH_LOG || type == Material.STRIPPED_BIRCH_WOOD) {
                             ++birch;
                         }
 
-                        if (t == Material.CHERRY_LOG || t == Material.CHERRY_WOOD || t == Material.STRIPPED_CHERRY_LOG || t == Material.STRIPPED_CHERRY_WOOD) {
+                        if (type == Material.CHERRY_LOG || type == Material.CHERRY_WOOD || type == Material.STRIPPED_CHERRY_LOG || type == Material.STRIPPED_CHERRY_WOOD) {
                             ++cherry;
                         }
 
-                        if (t == Material.ACACIA_LOG || t == Material.ACACIA_WOOD || t == Material.STRIPPED_ACACIA_LOG || t == Material.STRIPPED_ACACIA_WOOD) {
+                        if (type == Material.ACACIA_LOG || type == Material.ACACIA_WOOD || type == Material.STRIPPED_ACACIA_LOG || type == Material.STRIPPED_ACACIA_WOOD) {
                             ++acacia;
                         }
 
-                        if (this.isPoplarWood(t)) {
+                        if (this.isPoplarWood(type)) {
                             ++poplar;
                         }
                     }
@@ -460,12 +480,13 @@ public final class AutumnSoilPainter implements Runnable, Listener {
         return biome == Biome.BIRCH_FOREST || biome == Biome.OLD_GROWTH_BIRCH_FOREST;
     }
 
-    private void processChunk(World w, int cx, int cz, boolean highDetail, double paintFactor) {
-        String scanKey = String.valueOf(w.getUID()) + ":" + cx + ":" + cz;
+    /** 在给定区块内按预算扫描方块，按阶段对树叶进行染色或还原。 */
+    private void processChunk(World world, int cx, int cz, boolean highDetail, double paintFactor) {
+        String scanKey = String.valueOf(world.getUID()) + ":" + cx + ":" + cz;
         int cursor = (Integer)this.scanPositions.getOrDefault(scanKey, 0);
         int depth = 48;
         int total = 12288;
-        int[] tops = (int[])this.scanTops.computeIfAbsent(scanKey, (ignored) -> {
+        int[] tops = (int[])this.scanTops.computeIfAbsent(scanKey, (ignoredKey) -> {
             int[] values = new int[256];
             Arrays.fill(values, Integer.MIN_VALUE);
             return values;
@@ -477,21 +498,21 @@ public final class AutumnSoilPainter implements Runnable, Listener {
             int wx = (cx << 4) + column / 16;
             int wz = (cz << 4) + column % 16;
             if (tops[column] == Integer.MIN_VALUE) {
-                tops[column] = Math.min(w.getMaxHeight() - 1, w.getHighestBlockYAt(wx, wz));
+                tops[column] = Math.min(world.getMaxHeight() - 1, world.getHighestBlockYAt(wx, wz));
             }
 
             int y = tops[column] - cursor / 256;
             ++cursor;
             --this.remainingBlocks;
-            if (y >= w.getMinHeight()) {
-                Block block = w.getBlockAt(wx, y, wz);
+            if (y >= world.getMinHeight()) {
+                Block block = world.getBlockAt(wx, y, wz);
                 Material type = block.getType();
                 if (this.leafTypes.contains(type) || this.isAutumnPaintMaterial(type)) {
-                    BlockData var20 = block.getBlockData();
-                    if (var20 instanceof Leaves) {
-                        Leaves leaves = (Leaves)var20;
-                        if (!leaves.isPersistent()) {
-                            String leafKey = this.key(w, wx, y, wz);
+                    BlockData blockData = block.getBlockData();
+                    if (blockData instanceof Leaves) {
+                        Leaves leavesData = (Leaves)blockData;
+                        if (!leavesData.isPersistent()) {
+                            String leafKey = this.key(world, wx, y, wz);
                             Material original = (Material)this.paintedLeaves.get(leafKey);
                             if (paintFactor > (double)0.0F) {
                                 if (!this.validatedLeaves.contains(leafKey)) {
@@ -584,6 +605,7 @@ public final class AutumnSoilPainter implements Runnable, Listener {
         }
     }
 
+    /** 分步还原已染色的树/树叶：优先还原整棵树，否则按记录逐条回退。 */
     private void restoreTree() {
         if (!this.paintedTrees.isEmpty()) {
             PaintedTree tree = (PaintedTree)this.paintedTrees.removeFirst();
@@ -596,13 +618,13 @@ public final class AutumnSoilPainter implements Runnable, Listener {
 
                 while(this.restoreCursor.hasNext() && this.takeTreeBudget()) {
                     Map.Entry<String, Material> entry = (Map.Entry)this.restoreCursor.next();
-                    String[] p = ((String)entry.getKey()).split(":");
-                    if (p.length == 4) {
-                        World world = Bukkit.getWorld(UUID.fromString(p[0]));
+                    String[] parts = ((String)entry.getKey()).split(":");
+                    if (parts.length == 4) {
+                        World world = Bukkit.getWorld(UUID.fromString(parts[0]));
                         if (world != null) {
-                            int x = Integer.parseInt(p[1]);
-                            int y = Integer.parseInt(p[2]);
-                            int z = Integer.parseInt(p[3]);
+                            int x = Integer.parseInt(parts[1]);
+                            int y = Integer.parseInt(parts[2]);
+                            int z = Integer.parseInt(parts[3]);
                             if (world.isChunkLoaded(x >> 4, z >> 4)) {
                                 Block block = world.getBlockAt(x, y, z);
                                 if (!this.isAutumnPaintMaterial(block.getType())) {
@@ -628,6 +650,7 @@ public final class AutumnSoilPainter implements Runnable, Listener {
         }
     }
 
+    /** 推进当前待处理的树计划；完成后依据是否还原与阶段判定执行提交或记录验证。 */
     private void finishPendingTree(boolean restore) {
         AutumnTreePlan plan = this.pendingTree;
         plan.advance(this::takeTreeBudget);
@@ -650,6 +673,7 @@ public final class AutumnSoilPainter implements Runnable, Listener {
         }
     }
 
+    /** 对一棵树的全部坐标执行染色（或还原），记录/移除原始材质映射。 */
     private void commitTree(World world, Material original, Collection<AutumnTreePlan.Pos> positions, Material target, boolean restore) {
         for(AutumnTreePlan.Pos pos : positions) {
             if (!restore && !world.isChunkLoaded(pos.x() >> 4, pos.z() >> 4)) {
@@ -657,6 +681,7 @@ public final class AutumnSoilPainter implements Runnable, Listener {
             }
         }
 
+        /** 用于暂存单个方块的叶片数据变更（目标方块、唯一键、原始 Leaves 数据）。 */
         record Change(Block block, String key, Leaves data) {
             Change {
             }
@@ -670,9 +695,9 @@ public final class AutumnSoilPainter implements Runnable, Listener {
                 Block block = world.getBlockAt(pos.x(), pos.y(), pos.z());
                 String leafKey = this.key(world, pos.x(), pos.y(), pos.z());
                 if (this.originalLeafType(block) == original) {
-                    BlockData var13 = block.getBlockData();
-                    if (var13 instanceof Leaves) {
-                        Leaves old = (Leaves)var13;
+                    BlockData currentData = block.getBlockData();
+                    if (currentData instanceof Leaves) {
+                        Leaves old = (Leaves)currentData;
                         if (!old.isPersistent()) {
                             if (restore) {
                                 if (!this.paintedLeaves.containsKey(leafKey)) {
@@ -714,12 +739,13 @@ public final class AutumnSoilPainter implements Runnable, Listener {
 
     }
 
-    private void paintLeaf(Block b, Material originalType) {
+    /** 将单个方块染成金合欢树叶并记录其原始材质（保留原距离值）。 */
+    private void paintLeaf(Block block, Material originalType) {
         Material paintedType = Material.ACACIA_LEAVES;
-        String k = this.key(b.getWorld(), b.getX(), b.getY(), b.getZ());
-        this.paintedLeaves.putIfAbsent(k, originalType);
-        if (b.getType() != paintedType) {
-            BlockData oldData = b.getBlockData();
+        String leafKey = this.key(block.getWorld(), block.getX(), block.getY(), block.getZ());
+        this.paintedLeaves.putIfAbsent(leafKey, originalType);
+        if (block.getType() != paintedType) {
+            BlockData oldData = block.getBlockData();
             int distance = 1;
             if (oldData instanceof Leaves) {
                 Leaves leavesOld = (Leaves)oldData;
@@ -729,7 +755,7 @@ public final class AutumnSoilPainter implements Runnable, Listener {
             Leaves newLeaves = (Leaves)paintedType.createBlockData();
             newLeaves.setDistance(distance);
             newLeaves.setPersistent(false);
-            b.setBlockData(newLeaves, false);
+            block.setBlockData(newLeaves, false);
         }
     }
 
@@ -742,20 +768,21 @@ public final class AutumnSoilPainter implements Runnable, Listener {
         }
     }
 
-    public boolean restoreOriginalLeafForDecay(Block b) {
-        if (b == null) {
+    /** 在被染色的树叶消失（破坏/凋零/爆炸）前，把它还原为原始材质，避免掉落错误树苗。 */
+    public boolean restoreOriginalLeafForDecay(Block block) {
+        if (block == null) {
             return false;
-        } else if (!this.isAutumnPaintMaterial(b.getType())) {
+        } else if (!this.isAutumnPaintMaterial(block.getType())) {
             return false;
         } else {
-            World w = b.getWorld();
-            if (w == null) {
+            World world = block.getWorld();
+            if (world == null) {
                 return false;
             } else {
-                String k = this.key(w, b.getX(), b.getY(), b.getZ());
-                Material original = (Material)this.paintedLeaves.remove(k);
+                String leafKey = this.key(world, block.getX(), block.getY(), block.getZ());
+                Material original = (Material)this.paintedLeaves.remove(leafKey);
                 if (original != null && original != Material.ACACIA_LEAVES) {
-                    BlockData currentData = b.getBlockData();
+                    BlockData currentData = block.getBlockData();
                     int distance = 1;
                     boolean persistent = false;
                     if (currentData instanceof Leaves) {
@@ -769,9 +796,9 @@ public final class AutumnSoilPainter implements Runnable, Listener {
                         Leaves backLeaves = (Leaves)backData;
                         backLeaves.setDistance(distance);
                         backLeaves.setPersistent(persistent);
-                        b.setBlockData(backLeaves, false);
+                        block.setBlockData(backLeaves, false);
                     } else {
-                        b.setType(original, false);
+                        block.setType(original, false);
                     }
 
                     return true;
@@ -786,6 +813,7 @@ public final class AutumnSoilPainter implements Runnable, Listener {
         ignoreCancelled = true,
         priority = EventPriority.HIGHEST
     )
+    /** 监听到被染色树叶被破坏前，先还原为原始类型。 */
     public void onPaintedLeafBreak(BlockBreakEvent event) {
         this.restoreOriginalLeafForDecay(event.getBlock());
     }
@@ -794,6 +822,7 @@ public final class AutumnSoilPainter implements Runnable, Listener {
         ignoreCancelled = true,
         priority = EventPriority.HIGHEST
     )
+    /** 监听到被染色树叶自然凋零前，先还原为原始类型。 */
     public void onPaintedLeafDecay(LeavesDecayEvent event) {
         this.restoreOriginalLeafForDecay(event.getBlock());
     }
@@ -802,6 +831,7 @@ public final class AutumnSoilPainter implements Runnable, Listener {
         ignoreCancelled = true,
         priority = EventPriority.HIGHEST
     )
+    /** 方块爆炸时，先还原爆炸范围内被染色的树叶。 */
     public void onPaintedLeavesBlockExplosion(BlockExplodeEvent event) {
         for(Block block : event.blockList()) {
             this.restoreOriginalLeafForDecay(block);
@@ -813,6 +843,7 @@ public final class AutumnSoilPainter implements Runnable, Listener {
         ignoreCancelled = true,
         priority = EventPriority.HIGHEST
     )
+    /** 实体爆炸时，先还原爆炸范围内被染色的树叶。 */
     public void onPaintedLeavesEntityExplosion(EntityExplodeEvent event) {
         for(Block block : event.blockList()) {
             this.restoreOriginalLeafForDecay(block);
@@ -824,18 +855,19 @@ public final class AutumnSoilPainter implements Runnable, Listener {
         ignoreCancelled = true,
         priority = EventPriority.HIGHEST
     )
+    /** 监听树苗掉落：若落在被染色树叶附近，把金合欢/白杨树苗纠正为对应原树种的树苗。 */
     public void onSaplingSpawn(ItemSpawnEvent event) {
         Item item = event.getEntity();
-        ItemStack st = item.getItemStack();
-        if (st.getType() == Material.ACACIA_SAPLING || st.getType() == this.poplarSapling) {
+        ItemStack itemStack = item.getItemStack();
+        if (itemStack.getType() == Material.ACACIA_SAPLING || itemStack.getType() == this.poplarSapling) {
             Location loc = item.getLocation();
-            World w = loc.getWorld();
-            if (w != null) {
-                Block leafBlock = this.findNearbyPaintedLeaf(w, loc);
+            World world = loc.getWorld();
+            if (world != null) {
+                Block leafBlock = this.findNearbyPaintedLeaf(world, loc);
                 Material original = null;
                 if (leafBlock != null) {
-                    String k = this.key(w, leafBlock.getX(), leafBlock.getY(), leafBlock.getZ());
-                    original = (Material)this.paintedLeaves.get(k);
+                    String leafKey = this.key(world, leafBlock.getX(), leafBlock.getY(), leafBlock.getZ());
+                    original = (Material)this.paintedLeaves.get(leafKey);
                     if (original == null) {
                         original = this.guessOriginalFromWorld(leafBlock);
                     }
@@ -844,7 +876,7 @@ public final class AutumnSoilPainter implements Runnable, Listener {
                         original = this.guessOriginalFromNearbyLogItems(item);
                     }
                 } else {
-                    original = this.guessOriginalFromWorld(w.getBlockAt(loc.getBlockX(), loc.getBlockY(), loc.getBlockZ()));
+                    original = this.guessOriginalFromWorld(world.getBlockAt(loc.getBlockX(), loc.getBlockY(), loc.getBlockZ()));
                     if (original == null) {
                         original = this.guessOriginalFromNearbyLogItems(item);
                     }
@@ -852,9 +884,9 @@ public final class AutumnSoilPainter implements Runnable, Listener {
 
                 if (original != null) {
                     Material correct = this.saplingFor(original);
-                    if (correct != null && correct != st.getType()) {
-                        ItemStack newStack = new ItemStack(correct, st.getAmount());
-                        newStack.setItemMeta(st.getItemMeta());
+                    if (correct != null && correct != itemStack.getType()) {
+                        ItemStack newStack = new ItemStack(correct, itemStack.getAmount());
+                        newStack.setItemMeta(itemStack.getItemMeta());
                         item.setItemStack(newStack);
                     }
                 }
@@ -862,30 +894,31 @@ public final class AutumnSoilPainter implements Runnable, Listener {
         }
     }
 
+    /** 通过附近 6 格内的原木掉落物推断原始树种；无法判断时返回 null。 */
     private Material guessOriginalFromNearbyLogItems(Item saplingItem) {
         Location loc = saplingItem.getLocation();
-        World w = loc.getWorld();
-        if (w == null) {
+        World world = loc.getWorld();
+        if (world == null) {
             return null;
         } else {
-            double r = (double)6.0F;
+            double radius = (double)6.0F;
             int spruce = 0;
             int birch = 0;
             int cherry = 0;
 
-            for(Entity e : w.getNearbyEntities(loc, r, r, r)) {
-                if (e instanceof Item) {
-                    Item it = (Item)e;
-                    Material t = it.getItemStack().getType();
-                    if (t == Material.SPRUCE_LOG || t == Material.SPRUCE_WOOD || t == Material.STRIPPED_SPRUCE_LOG || t == Material.STRIPPED_SPRUCE_WOOD) {
+            for(Entity entity : world.getNearbyEntities(loc, radius, radius, radius)) {
+                if (entity instanceof Item) {
+                    Item item = (Item)entity;
+                    Material type = item.getItemStack().getType();
+                    if (type == Material.SPRUCE_LOG || type == Material.SPRUCE_WOOD || type == Material.STRIPPED_SPRUCE_LOG || type == Material.STRIPPED_SPRUCE_WOOD) {
                         ++spruce;
                     }
 
-                    if (t == Material.BIRCH_LOG || t == Material.BIRCH_WOOD || t == Material.STRIPPED_BIRCH_LOG || t == Material.STRIPPED_BIRCH_WOOD) {
+                    if (type == Material.BIRCH_LOG || type == Material.BIRCH_WOOD || type == Material.STRIPPED_BIRCH_LOG || type == Material.STRIPPED_BIRCH_WOOD) {
                         ++birch;
                     }
 
-                    if (t == Material.CHERRY_LOG || t == Material.CHERRY_WOOD || t == Material.STRIPPED_CHERRY_LOG || t == Material.STRIPPED_CHERRY_WOOD) {
+                    if (type == Material.CHERRY_LOG || type == Material.CHERRY_WOOD || type == Material.STRIPPED_CHERRY_LOG || type == Material.STRIPPED_CHERRY_WOOD) {
                         ++cherry;
                     }
                 }
@@ -903,19 +936,20 @@ public final class AutumnSoilPainter implements Runnable, Listener {
         }
     }
 
-    private Block findNearbyPaintedLeaf(World w, Location loc) {
-        int bx = loc.getBlockX();
-        int by = loc.getBlockY();
-        int bz = loc.getBlockZ();
-        int rXZ = 2;
-        int rY = 3;
+    /** 在给定位置附近（水平 2 格、垂直 3 格）寻找最近的被染色树叶方块。 */
+    private Block findNearbyPaintedLeaf(World world, Location loc) {
+        int baseX = loc.getBlockX();
+        int baseY = loc.getBlockY();
+        int baseZ = loc.getBlockZ();
+        int radiusXZ = 2;
+        int radiusY = 3;
 
-        for(int dy = -rY; dy <= rY; ++dy) {
-            for(int dx = -rXZ; dx <= rXZ; ++dx) {
-                for(int dz = -rXZ; dz <= rXZ; ++dz) {
-                    Block b = w.getBlockAt(bx + dx, by + dy, bz + dz);
-                    if (this.isAutumnPaintMaterial(b.getType())) {
-                        return b;
+        for(int dy = -radiusY; dy <= radiusY; ++dy) {
+            for(int dx = -radiusXZ; dx <= radiusXZ; ++dx) {
+                for(int dz = -radiusXZ; dz <= radiusXZ; ++dz) {
+                    Block block = world.getBlockAt(baseX + dx, baseY + dy, baseZ + dz);
+                    if (this.isAutumnPaintMaterial(block.getType())) {
+                        return block;
                     }
                 }
             }
@@ -924,34 +958,35 @@ public final class AutumnSoilPainter implements Runnable, Listener {
         return null;
     }
 
+    /** 在没有整棵树可还原时，按记录逐条还原最多 {@code maxBlocks} 片树叶。 */
     private void revertSomeLeaves(int maxBlocks) {
         if (maxBlocks > 0) {
             if (this.restoreCursor == null || !this.restoreCursor.hasNext()) {
                 this.restoreCursor = this.paintedLeaves.entrySet().iterator();
             }
 
-            Iterator<Map.Entry<String, Material>> it = this.restoreCursor;
+            Iterator<Map.Entry<String, Material>> iterator = this.restoreCursor;
 
-            while(it.hasNext() && maxBlocks-- > 0 && this.hasWorkBudget()) {
+            while(iterator.hasNext() && maxBlocks-- > 0 && this.hasWorkBudget()) {
                 --this.remainingBlocks;
-                Map.Entry<String, Material> entry = (Map.Entry)it.next();
+                Map.Entry<String, Material> entry = (Map.Entry)iterator.next();
                 String key = (String)entry.getKey();
                 Material original = (Material)entry.getValue();
                 String[] parts = key.split(":");
                 if (parts.length != 4) {
-                    it.remove();
+                    iterator.remove();
                 } else {
                     UUID worldId;
                     try {
                         worldId = UUID.fromString(parts[0]);
-                    } catch (IllegalArgumentException var18) {
-                        it.remove();
+                    } catch (IllegalArgumentException invalidWorldId) {
+                        iterator.remove();
                         continue;
                     }
 
-                    World w = Bukkit.getWorld(worldId);
-                    if (w == null) {
-                        it.remove();
+                    World world = Bukkit.getWorld(worldId);
+                    if (world == null) {
+                        iterator.remove();
                     } else {
                         int x;
                         int y;
@@ -960,17 +995,17 @@ public final class AutumnSoilPainter implements Runnable, Listener {
                             x = Integer.parseInt(parts[1]);
                             y = Integer.parseInt(parts[2]);
                             z = Integer.parseInt(parts[3]);
-                        } catch (NumberFormatException var17) {
-                            it.remove();
+                        } catch (NumberFormatException invalidCoordinate) {
+                            iterator.remove();
                             continue;
                         }
 
-                        if (w.isChunkLoaded(x >> 4, z >> 4)) {
-                            Block b = w.getBlockAt(x, y, z);
-                            if (!this.isAutumnPaintMaterial(b.getType())) {
-                                it.remove();
+                        if (world.isChunkLoaded(x >> 4, z >> 4)) {
+                            Block block = world.getBlockAt(x, y, z);
+                            if (!this.isAutumnPaintMaterial(block.getType())) {
+                                iterator.remove();
                             } else {
-                                BlockData currentData = b.getBlockData();
+                                BlockData currentData = block.getBlockData();
                                 int distance = 1;
                                 if (currentData instanceof Leaves) {
                                     Leaves leavesCurrent = (Leaves)currentData;
@@ -982,12 +1017,12 @@ public final class AutumnSoilPainter implements Runnable, Listener {
                                     Leaves backLeaves = (Leaves)backData;
                                     backLeaves.setDistance(distance);
                                     backLeaves.setPersistent(false);
-                                    b.setBlockData(backLeaves, false);
+                                    block.setBlockData(backLeaves, false);
                                 } else {
-                                    b.setType(original, false);
+                                    block.setType(original, false);
                                 }
 
-                                it.remove();
+                                iterator.remove();
                             }
                         }
                     }
@@ -1010,26 +1045,29 @@ public final class AutumnSoilPainter implements Runnable, Listener {
         }
     }
 
+    /** 根据原始树叶材质返回对应的树苗材质（未知类型返回 null）。 */
     private Material saplingFor(Material originalLeaves) {
-        Material var10000;
+        Material sapling;
         switch (originalLeaves) {
-            case SPRUCE_LEAVES -> var10000 = Material.SPRUCE_SAPLING;
-            case BIRCH_LEAVES -> var10000 = Material.BIRCH_SAPLING;
-            case OAK_LEAVES -> var10000 = Material.OAK_SAPLING;
-            case DARK_OAK_LEAVES -> var10000 = Material.DARK_OAK_SAPLING;
-            case JUNGLE_LEAVES -> var10000 = Material.JUNGLE_SAPLING;
-            case ACACIA_LEAVES -> var10000 = Material.ACACIA_SAPLING;
-            case CHERRY_LEAVES -> var10000 = Material.CHERRY_SAPLING;
-            default -> var10000 = null;
+            case SPRUCE_LEAVES -> sapling = Material.SPRUCE_SAPLING;
+            case BIRCH_LEAVES -> sapling = Material.BIRCH_SAPLING;
+            case OAK_LEAVES -> sapling = Material.OAK_SAPLING;
+            case DARK_OAK_LEAVES -> sapling = Material.DARK_OAK_SAPLING;
+            case JUNGLE_LEAVES -> sapling = Material.JUNGLE_SAPLING;
+            case ACACIA_LEAVES -> sapling = Material.ACACIA_SAPLING;
+            case CHERRY_LEAVES -> sapling = Material.CHERRY_SAPLING;
+            default -> sapling = null;
         }
 
-        return var10000;
+        return sapling;
     }
 
-    private String key(World w, int x, int y, int z) {
-        return String.valueOf(w.getUID()) + ":" + x + ":" + y + ":" + z;
+    /** 生成用于记录树叶位置/原始材质的键：{@code 世界UUID:x:y:z}。 */
+    private String key(World world, int x, int y, int z) {
+        return String.valueOf(world.getUID()) + ":" + x + ":" + y + ":" + z;
     }
 
+    /** 通过反射从日历状态中推算“季节内第几天”，兼容多种字段/方法命名。 */
     private int computeDayInSeason(CalendarState st) {
         try {
             try {
@@ -1038,50 +1076,52 @@ public final class AutumnSoilPainter implements Runnable, Listener {
                 if (val instanceof Number n) {
                     return this.clampDayInSeason(n.intValue());
                 }
-            } catch (NoSuchMethodException var10) {
+            } catch (NoSuchMethodException noGetDayInSeasonMethod) {
                 Method m = st.getClass().getMethod("dayInSeason");
                 Object val = m.invoke(st);
                 if (val instanceof Number n) {
                     return this.clampDayInSeason(n.intValue());
                 }
             }
-        } catch (Exception var11) {
+        } catch (Exception dayLookupError) {
         }
 
         try {
-            for(Field f : st.getClass().getDeclaredFields()) {
-                String name = f.getName().toLowerCase(Locale.ROOT);
+            for(Field field : st.getClass().getDeclaredFields()) {
+                String name = field.getName().toLowerCase(Locale.ROOT);
                 if (name.contains("dayinseason")) {
-                    f.setAccessible(true);
-                    Object v = f.get(st);
+                    field.setAccessible(true);
+                    Object v = field.get(st);
                     if (v instanceof Number) {
                         Number n = (Number)v;
                         return this.clampDayInSeason(n.intValue());
                     }
                 }
             }
-        } catch (Exception var9) {
+        } catch (Exception fieldScanError) {
         }
 
         Integer dayGlobal = this.tryGetIntField(st, "dayOfYear", "day_of_year", "day");
         if (dayGlobal != null) {
-            int d = (dayGlobal - 1) % 28 + 1;
-            return this.clampDayInSeason(d);
+            int day = (dayGlobal - 1) % 28 + 1;
+            return this.clampDayInSeason(day);
         } else {
             return 1;
         }
     }
 
-    private boolean isFxDisabled(World w) {
-        return w != null && this.disabledFxWorlds.contains(w.getName().toLowerCase(Locale.ROOT));
+    /** 判断该世界是否已在“禁用季节特效世界”列表中。 */
+    private boolean isFxDisabled(World world) {
+        return world != null && this.disabledFxWorlds.contains(world.getName().toLowerCase(Locale.ROOT));
     }
 
+    /** 通过反射尝试读取指定名称的整型字段（兼容 getter/直接方法/字段三种形式），失败返回 null。 */
     private Integer tryGetIntField(CalendarState st, String... candidates) {
         try {
             for(String raw : candidates) {
                 String name = raw;
-                String var10000 = raw.substring(0, 1).toUpperCase(Locale.ROOT);
-                String getter = "get" + var10000 + raw.substring(1);
+                String firstCharUpper = raw.substring(0, 1).toUpperCase(Locale.ROOT);
+                String getter = "get" + firstCharUpper + raw.substring(1);
 
                 try {
                     Method m = st.getClass().getMethod(getter);
@@ -1089,7 +1129,7 @@ public final class AutumnSoilPainter implements Runnable, Listener {
                     if (v instanceof Number n) {
                         return n.intValue();
                     }
-                } catch (NoSuchMethodException var15) {
+                } catch (NoSuchMethodException noGetterMethod) {
                 }
 
                 try {
@@ -1098,17 +1138,17 @@ public final class AutumnSoilPainter implements Runnable, Listener {
                     if (v2 instanceof Number n2) {
                         return n2.intValue();
                     }
-                } catch (NoSuchMethodException var14) {
+                } catch (NoSuchMethodException noFieldMethod) {
                 }
             }
 
-            for(Field f : st.getClass().getDeclaredFields()) {
-                String fn = f.getName();
+            for(Field field : st.getClass().getDeclaredFields()) {
+                String fn = field.getName();
 
                 for(String cand : candidates) {
                     if (fn.equalsIgnoreCase(cand)) {
-                        f.setAccessible(true);
-                        Object v = f.get(st);
+                        field.setAccessible(true);
+                        Object v = field.get(st);
                         if (v instanceof Number) {
                             Number n = (Number)v;
                             return n.intValue();
@@ -1116,23 +1156,23 @@ public final class AutumnSoilPainter implements Runnable, Listener {
                     }
                 }
             }
-        } catch (Exception var16) {
+        } catch (Exception error) {
         }
 
         return null;
     }
 
-    private int clampDayInSeason(int d) {
+    private int clampDayInSeason(int day) {
         int max = Math.max(1, this.seasons.getDaysPerSeason());
-        if (d < 1) {
-            d = 1;
+        if (day < 1) {
+            day = 1;
         }
 
-        if (d > max) {
-            d = max;
+        if (day > max) {
+            day = max;
         }
 
-        return d;
+        return day;
     }
 
     private double computePreAutumnFactor(int dayInSeason) {
@@ -1157,6 +1197,7 @@ public final class AutumnSoilPainter implements Runnable, Listener {
         return INSTANCE;
     }
 
+    /** 树叶配色方案：禁用、旧版金合欢、Dappled 白杨三选一。 */
     private static enum PaletteMode {
         DISABLED,
         LEGACY_ACACIA,
@@ -1171,16 +1212,19 @@ public final class AutumnSoilPainter implements Runnable, Listener {
         }
     }
 
+    /** 玩家区块扫描偏移列表的缓存，带过期时间戳。 */
     private static record CachedSweep(long expires, List<Offset> offsets) {
         private CachedSweep {
         }
     }
 
+    /** 已染色且待还原的树：记录世界、原始材质与其全部树叶坐标。 */
     private static record PaintedTree(World world, Material original, List<AutumnTreePlan.Pos> leaves) {
         private PaintedTree {
         }
     }
 
+    /** 单个区块偏移：记录相对偏移、切比雪夫距离与朝向评分，用于排序扫描顺序。 */
     private static final class Offset {
         final int dx;
         final int dz;

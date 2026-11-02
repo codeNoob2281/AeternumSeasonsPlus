@@ -8,11 +8,23 @@ import java.nio.charset.StandardCharsets;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
 
+/**
+ * YAML 默认值合并工具。
+ *
+ * <p>确保数据目录下的配置文件存在，并把插件 jar 内资源中的默认键补全到现有文件（不覆盖已有值）。
+ * 对 climate.yml 还包含若干历史配置迁移（键迁移、过时键清理、默认值修正）。</p>
+ *
+ * <p>工具类：私有构造，方法均为静态。</p>
+ */
 public final class YamlDefaults {
     private YamlDefaults() {
         super();
     }
 
+    /**
+     * 合并指定文件的默认值：文件不存在则直接从 jar 释放；存在则读取 jar 内默认值，
+     * 补全缺失键、执行 climate.yml 的历史迁移，必要时写回文件。
+     */
     public static void merge(JavaPlugin plugin, String fileName) {
         try {
             if (!plugin.getDataFolder().exists()) {
@@ -41,14 +53,14 @@ public final class YamlDefaults {
             YamlConfiguration def;
             try {
                 def = YamlConfiguration.loadConfiguration(r);
-            } catch (Throwable var13) {
+            } catch (Throwable loadFailure) {
                 try {
                     r.close();
-                } catch (Throwable var12) {
-                    var13.addSuppressed(var12);
+                } catch (Throwable closeFailure) {
+                    loadFailure.addSuppressed(closeFailure);
                 }
 
-                throw var13;
+                throw loadFailure;
             }
 
             r.close();

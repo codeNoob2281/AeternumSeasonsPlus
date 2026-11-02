@@ -15,14 +15,27 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.inventory.ItemStack;
 
+/**
+ * 石英热潮事件（Quartz Rush）。
+ *
+ * <p>当玩家身处下界时，有一定概率触发本事件。事件激活期间，玩家挖掘
+ * 下界石英矿石时，有概率额外掉落一批石英，并播放末地烛粒子效果。
+ * 配置来自 {@link YamlEvents} 读取的 {@code events.yml}。</p>
+ */
 public final class QuartzRushEvent implements SeasonalEvent {
     private final AeternumSeasonsPlugin plugin;
     private boolean enabled;
+    /** 事件最短持续天数。 */
     private int minDur;
+    /** 事件最长持续天数。 */
     private int maxDur;
+    /** 每天触发事件的基础概率。 */
     private double baseChance;
+    /** 挖掘石英矿石额外掉落石英的概率。 */
     private double extraQuartzChance;
+    /** 额外掉落石英的最少数量。 */
     private int extraMin;
+    /** 额外掉落石英的最多数量。 */
     private int extraMax;
 
     public QuartzRushEvent(AeternumSeasonsPlugin plugin) {
@@ -31,15 +44,16 @@ public final class QuartzRushEvent implements SeasonalEvent {
         this.reloadFromConfig();
     }
 
+    /** 从 events.yml 重新读取本事件的配置项。 */
     private void reloadFromConfig() {
-        FileConfiguration y = YamlEvents.get(this.plugin);
-        this.enabled = y.getBoolean("events.quartz_rush.enabled", true);
-        this.minDur = y.getInt("events.quartz_rush.min_duration_days", 1);
-        this.maxDur = y.getInt("events.quartz_rush.max_duration_days", 2);
-        this.baseChance = y.getDouble("events.quartz_rush.base_chance_per_day", 0.1);
-        this.extraQuartzChance = y.getDouble("events.quartz_rush.extra_quartz_chance", 0.55);
-        this.extraMin = y.getInt("events.quartz_rush.extra_min", 1);
-        this.extraMax = y.getInt("events.quartz_rush.extra_max", 2);
+        FileConfiguration config = YamlEvents.get(this.plugin);
+        this.enabled = config.getBoolean("events.quartz_rush.enabled", true);
+        this.minDur = config.getInt("events.quartz_rush.min_duration_days", 1);
+        this.maxDur = config.getInt("events.quartz_rush.max_duration_days", 2);
+        this.baseChance = config.getDouble("events.quartz_rush.base_chance_per_day", 0.1);
+        this.extraQuartzChance = config.getDouble("events.quartz_rush.extra_quartz_chance", 0.55);
+        this.extraMin = config.getInt("events.quartz_rush.extra_min", 1);
+        this.extraMax = config.getInt("events.quartz_rush.extra_max", 2);
     }
 
     public String getId() {
@@ -62,11 +76,12 @@ public final class QuartzRushEvent implements SeasonalEvent {
         return this.maxDur;
     }
 
-    public boolean canStartToday(CalendarState st, EventContext ctx) {
+    /** 仅当有玩家位于下界、且通过基础概率判定时才允许开始。 */
+    public boolean canStartToday(CalendarState state, EventContext context) {
         if (!this.enabled) {
             return false;
         } else {
-            boolean someoneInNether = Bukkit.getOnlinePlayers().stream().anyMatch((p) -> p.getWorld().getEnvironment() == Environment.NETHER);
+            boolean someoneInNether = Bukkit.getOnlinePlayers().stream().anyMatch((player) -> player.getWorld().getEnvironment() == Environment.NETHER);
             if (!someoneInNether) {
                 return false;
             } else {
@@ -75,43 +90,48 @@ public final class QuartzRushEvent implements SeasonalEvent {
         }
     }
 
-    public void onStart(CalendarState st, EventContext ctx) {
-        for(Player p : Bukkit.getOnlinePlayers()) {
-            if (p.getWorld().getEnvironment() == Environment.NETHER) {
-                p.sendTitle(this.plugin.lang.tr(p, "event.quartz_rush.title"), this.plugin.lang.tr(p, "event.quartz_rush.subtitle"), 20, 80, 40);
+    /** 事件开始时向所有身处下界的玩家发送标题提示。 */
+    public void onStart(CalendarState state, EventContext context) {
+        for(Player player : Bukkit.getOnlinePlayers()) {
+            if (player.getWorld().getEnvironment() == Environment.NETHER) {
+                player.sendTitle(this.plugin.lang.tr(player, "event.quartz_rush.title"), this.plugin.lang.tr(player, "event.quartz_rush.subtitle"), 20, 80, 40);
             }
         }
 
     }
 
-    public void onEnd(CalendarState st, EventContext ctx) {
-        for(Player p : Bukkit.getOnlinePlayers()) {
-            if (p.getWorld().getEnvironment() == Environment.NETHER) {
-                p.sendMessage(this.plugin.lang.tr(p, "event.quartz_rush.end"));
+    /** 事件结束时通知所有身处下界的玩家事件已结束。 */
+    public void onEnd(CalendarState state, EventContext context) {
+        for(Player player : Bukkit.getOnlinePlayers()) {
+            if (player.getWorld().getEnvironment() == Environment.NETHER) {
+                player.sendMessage(this.plugin.lang.tr(player, "event.quartz_rush.end"));
             }
         }
 
     }
 
-    public void onDayTick(CalendarState st, EventContext ctx) {
+    public void onDayTick(CalendarState state, EventContext context) {
     }
 
-    public void onTick(CalendarState st, EventContext ctx) {
+    public void onTick(CalendarState state, EventContext context) {
     }
 
+    /**
+     * 监听方块破坏事件：在下界破坏石英矿石时，按概率额外掉落石英。
+     */
     @EventHandler
-    public void onBreak(BlockBreakEvent e) {
-        if (!e.isCancelled()) {
-            Player p = e.getPlayer();
-            if (p.getWorld().getEnvironment() == Environment.NETHER) {
-                Block b = e.getBlock();
-                if (b.getType() == Material.NETHER_QUARTZ_ORE) {
+    public void onBreak(BlockBreakEvent event) {
+        if (!event.isCancelled()) {
+            Player player = event.getPlayer();
+            if (player.getWorld().getEnvironment() == Environment.NETHER) {
+                Block block = event.getBlock();
+                if (block.getType() == Material.NETHER_QUARTZ_ORE) {
                     if (!(Math.random() > this.extraQuartzChance)) {
-                        ThreadLocalRandom rnd = ThreadLocalRandom.current();
-                        int amt = this.extraMax <= this.extraMin ? this.extraMin : rnd.nextInt(this.extraMin, this.extraMax + 1);
-                        ItemStack extra = new ItemStack(Material.QUARTZ, Math.max(1, amt));
-                        b.getWorld().dropItemNaturally(b.getLocation(), extra);
-                        b.getWorld().spawnParticle(Particle.END_ROD, b.getLocation().add((double)0.5F, (double)0.5F, (double)0.5F), 6, 0.2, 0.2, 0.2, 0.01);
+                        ThreadLocalRandom random = ThreadLocalRandom.current();
+                        int amount = this.extraMax <= this.extraMin ? this.extraMin : random.nextInt(this.extraMin, this.extraMax + 1);
+                        ItemStack extraDrop = new ItemStack(Material.QUARTZ, Math.max(1, amount));
+                        block.getWorld().dropItemNaturally(block.getLocation(), extraDrop);
+                        block.getWorld().spawnParticle(Particle.END_ROD, block.getLocation().add((double)0.5F, (double)0.5F, (double)0.5F), 6, 0.2, 0.2, 0.2, 0.01);
                     }
                 }
             }

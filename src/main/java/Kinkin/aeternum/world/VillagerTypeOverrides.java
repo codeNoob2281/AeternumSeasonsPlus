@@ -32,21 +32,41 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerLocaleChangeEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 
+/**
+ * 村民类型与职业轮换覆盖。
+ *
+ * <p>包含两套彼此独立的能力：
+ * <ul>
+ *     <li>外观覆盖：新生/自然生成的村民按概率随机赋予配置允许的生物群系类型（外观）；</li>
+ *     <li>职业轮换：每隔若干日历天，将玩家附近已交易与未交易的村民重新分配职业，
+ *     并按“懒人比例”把一部分未交易村民设为傻子（NITWIT），同时维护其自定义名称上的“懒人”标签。</li>
+ * </ul>
+ * 依赖 {@link LanguageManager} 获取多语言的懒人标签，并将最后轮换日期持久化到
+ * {@code data/villager_override_state.yml}。</p>
+ */
 public final class VillagerTypeOverrides implements Listener {
     private final AeternumSeasonsPlugin plugin;
     private final LanguageManager langManager;
     private boolean enabled;
     private boolean appearanceEnabled;
     private boolean professionRotationEnabled;
+    /** 外观覆盖生效的概率。 */
     private double overrideChance;
+    /** 是否在村民名称上显示“懒人”标签。 */
     private boolean showLazyTag = true;
+    /** 仅在这些世界名中生效（为空表示全部世界）。 */
     private final Set<String> worlds = new HashSet();
+    /** 允许随机赋予的村民类型。 */
     private final List<Villager.Type> allowedTypes = new ArrayList();
+    /** 所有语言的懒人标签集合，用于从名称中移除。 */
     private Set<String> allLazyTags = Collections.emptySet();
     private int lastUpdateDay = -1;
     private static final int VILLAGE_RANGE_CHUNKS = 10;
+    /** 职业轮换的间隔天数。 */
     private int updatePeriodDays = 5;
+    /** 每个区域内最多设为懒人的村民数量。 */
     private int maxLazyPerArea = 2;
+    /** 懒人占候选村民的比例。 */
     private double lazyRatio = (double)0.25F;
     private int currentCalendarDay = -1;
 
@@ -58,32 +78,35 @@ public final class VillagerTypeOverrides implements Listener {
         this.reloadFromConfig();
     }
 
+    /** 从数据文件读取上次轮换日期。 */
     private void loadState() {
-        File f = new File(this.plugin.getDataFolder(), "data/villager_override_state.yml");
-        if (!f.exists()) {
+        File stateFile = new File(this.plugin.getDataFolder(), "data/villager_override_state.yml");
+        if (!stateFile.exists()) {
             this.lastUpdateDay = -1;
         } else {
-            YamlConfiguration y = YamlConfiguration.loadConfiguration(f);
-            this.lastUpdateDay = y.getInt("last_update_day", -1);
+            YamlConfiguration stateYaml = YamlConfiguration.loadConfiguration(stateFile);
+            this.lastUpdateDay = stateYaml.getInt("last_update_day", -1);
         }
     }
 
+    /** 将上次轮换日期持久化到数据文件。 */
     private void saveState() {
         try {
-            File f = new File(this.plugin.getDataFolder(), "data/villager_override_state.yml");
-            if (!f.getParentFile().exists()) {
-                f.getParentFile().mkdirs();
+            File stateFile = new File(this.plugin.getDataFolder(), "data/villager_override_state.yml");
+            if (!stateFile.getParentFile().exists()) {
+                stateFile.getParentFile().mkdirs();
             }
 
-            YamlConfiguration y = new YamlConfiguration();
-            y.set("last_update_day", this.lastUpdateDay);
-            y.save(f);
-        } catch (IOException e) {
-            this.plugin.getLogger().warning("No se pudo guardar villager_override_state.yml: " + e.getMessage());
+            YamlConfiguration stateYaml = new YamlConfiguration();
+            stateYaml.set("last_update_day", this.lastUpdateDay);
+            stateYaml.save(stateFile);
+        } catch (IOException ex) {
+            this.plugin.getLogger().warning("No se pudo guardar villager_override_state.yml: " + ex.getMessage());
         }
 
     }
 
+    /** 从 villager_type_overrides 配置节重新读取全部参数。 */
     public void reloadFromConfig() {
         ConfigurationSection sec = this.plugin.cfg.climate.getConfigurationSection("villager_type_overrides");
         if (sec == null) {
@@ -103,20 +126,20 @@ public final class VillagerTypeOverrides implements Listener {
             this.lazyRatio = Math.max((double)0.0F, Math.min(0.9, sec.getDouble("profession_rotation.lazy_ratio", (double)0.25F)));
             this.worlds.clear();
 
-            for(String w : sec.getStringList("worlds")) {
-                if (w != null && !w.isEmpty()) {
-                    this.worlds.add(w);
+            for(String worldName : sec.getStringList("worlds")) {
+                if (worldName != null && !worldName.isEmpty()) {
+                    this.worlds.add(worldName);
                 }
             }
 
             this.allowedTypes.clear();
 
-            for(String s : sec.getStringList("allowed_types")) {
+            for(String typeName : sec.getStringList("allowed_types")) {
                 try {
-                    Villager.Type t = Type.valueOf(s.toUpperCase(Locale.ROOT));
-                    this.allowedTypes.add(t);
-                } catch (IllegalArgumentException var5) {
-                    this.plugin.getLogger().warning("[VillagerTypes] Invalid villager type '" + s + "' in allowed_types");
+                    Villager.Type villagerType = Type.valueOf(typeName.toUpperCase(Locale.ROOT));
+                    this.allowedTypes.add(villagerType);
+                } catch (IllegalArgumentException ignored) {
+                    this.plugin.getLogger().warning("[VillagerTypes] Invalid villager type '" + typeName + "' in allowed_types");
                 }
             }
 
@@ -125,12 +148,15 @@ public final class VillagerTypeOverrides implements Listener {
             }
 
             this.allLazyTags = this.langManager.getAllTranslations("villager.lazy_tag");
-            Logger var10000 = this.plugin.getLogger();
-            boolean var10001 = this.enabled;
-            var10000.info("[VillagerTypes] Enabled=" + var10001 + ", appearanceEnabled=" + this.appearanceEnabled + ", professionRotationEnabled=" + this.professionRotationEnabled + ", showLazyTag=" + this.showLazyTag + ", worlds=" + String.valueOf(this.worlds) + ", allowedTypes=" + String.valueOf(this.allowedTypes));
+            Logger logger = this.plugin.getLogger();
+            boolean enabledValue = this.enabled;
+            logger.info("[VillagerTypes] Enabled=" + enabledValue + ", appearanceEnabled=" + this.appearanceEnabled + ", professionRotationEnabled=" + this.professionRotationEnabled + ", showLazyTag=" + this.showLazyTag + ", worlds=" + String.valueOf(this.worlds) + ", allowedTypes=" + String.valueOf(this.allowedTypes));
         }
     }
 
+    /**
+     * 监听村民生成：对符合条件的生成原因按概率覆盖外观，并在开启职业轮换时立即刷新其显示名称。
+     */
     @EventHandler(
         ignoreCancelled = true
     )
@@ -145,8 +171,8 @@ public final class VillagerTypeOverrides implements Listener {
                     case JOCKEY:
                     case COMMAND:
                     case SPAWNER_EGG:
-                        World w = e.getLocation().getWorld();
-                        if (w != null && (this.worlds.isEmpty() || this.worlds.contains(w.getName()))) {
+                        World world = e.getLocation().getWorld();
+                        if (world != null && (this.worlds.isEmpty() || this.worlds.contains(world.getName()))) {
                             Villager villager = (Villager)e.getEntity();
                             if (this.appearanceEnabled && villager.getVillagerLevel() <= 1 && ThreadLocalRandom.current().nextDouble() <= this.overrideChance) {
                                 Villager.Type newType = (Villager.Type)this.allowedTypes.get(ThreadLocalRandom.current().nextInt(this.allowedTypes.size()));
@@ -167,6 +193,7 @@ public final class VillagerTypeOverrides implements Listener {
         }
     }
 
+    /** 监听季节更新事件：记录当前日历天，供轮换周期判断使用。 */
     @EventHandler
     public void onSeasonUpdate(SeasonUpdateEvent e) {
         if (this.enabled && this.professionRotationEnabled) {
@@ -175,6 +202,7 @@ public final class VillagerTypeOverrides implements Listener {
         }
     }
 
+    /** 监听玩家跨区块移动：可能触发到期的村庄轮换。 */
     @EventHandler
     public void onPlayerMove(PlayerMoveEvent e) {
         if (this.enabled && this.professionRotationEnabled) {
@@ -188,6 +216,7 @@ public final class VillagerTypeOverrides implements Listener {
         }
     }
 
+    /** 监听玩家加入：延迟一段时间后检查是否需要更新村庄。 */
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent e) {
         if (this.enabled && this.professionRotationEnabled) {
@@ -200,13 +229,14 @@ public final class VillagerTypeOverrides implements Listener {
         }
     }
 
+    /** 若距上次轮换已超过配置天数，则调度一次村庄更新。 */
     private void maybeUpdateVillagersIfPeriodPassed() {
         if (this.enabled && this.professionRotationEnabled) {
             if (this.currentCalendarDay > 0) {
                 boolean anyPlayerInConfiguredWorld = false;
 
-                for(Player p : this.plugin.getServer().getOnlinePlayers()) {
-                    if (this.worlds.contains(p.getWorld().getName())) {
+                for(Player player : this.plugin.getServer().getOnlinePlayers()) {
+                    if (this.worlds.contains(player.getWorld().getName())) {
                         anyPlayerInConfiguredWorld = true;
                         break;
                     }
@@ -236,26 +266,27 @@ public final class VillagerTypeOverrides implements Listener {
         }
     }
 
+    /** 执行一次村庄更新：对每个玩家附近村庄范围的村民重新分配职业与外观。 */
     private void performVillageUpdate() {
         if (!this.allowedTypes.isEmpty()) {
             ThreadLocalRandom rnd = ThreadLocalRandom.current();
 
-            for(Player p : this.plugin.getServer().getOnlinePlayers()) {
-                World w = p.getWorld();
-                if (this.worlds.contains(w.getName())) {
-                    Chunk pChunk = p.getLocation().getChunk();
-                    int r = 10;
+            for(Player player : this.plugin.getServer().getOnlinePlayers()) {
+                World world = player.getWorld();
+                if (this.worlds.contains(world.getName())) {
+                    Chunk playerChunk = player.getLocation().getChunk();
+                    int chunkRadius = 10;
                     List<Villager> candidates = new ArrayList();
 
-                    for(int x = pChunk.getX() - r; x <= pChunk.getX() + r; ++x) {
-                        for(int z = pChunk.getZ() - r; z <= pChunk.getZ() + r; ++z) {
-                            if (w.isChunkLoaded(x, z)) {
-                                for(Entity entity : w.getChunkAt(x, z).getEntities()) {
+                    for(int x = playerChunk.getX() - chunkRadius; x <= playerChunk.getX() + chunkRadius; ++x) {
+                        for(int z = playerChunk.getZ() - chunkRadius; z <= playerChunk.getZ() + chunkRadius; ++z) {
+                            if (world.isChunkLoaded(x, z)) {
+                                for(Entity entity : world.getChunkAt(x, z).getEntities()) {
                                     if (entity.getType() == EntityType.VILLAGER) {
                                         Villager villager = (Villager)entity;
                                         boolean hasTraded = villager.getVillagerLevel() > 1 || villager.getVillagerExperience() > 0;
                                         if (hasTraded) {
-                                            this.updateVillagerDisplay(villager, p);
+                                            this.updateVillagerDisplay(villager, player);
                                         } else {
                                             candidates.add(villager);
                                         }
@@ -279,19 +310,19 @@ public final class VillagerTypeOverrides implements Listener {
                         }
 
                         for(int i = 0; i < total; ++i) {
-                            Villager v = (Villager)candidates.get(i);
+                            Villager candidate = (Villager)candidates.get(i);
                             if (i < lazyToAssign) {
-                                v.setProfession(Profession.NITWIT);
+                                candidate.setProfession(Profession.NITWIT);
                             } else {
-                                v.setProfession(Profession.NONE);
+                                candidate.setProfession(Profession.NONE);
                             }
 
                             if (this.appearanceEnabled && rnd.nextDouble() <= this.overrideChance) {
                                 Villager.Type newType = (Villager.Type)this.allowedTypes.get(rnd.nextInt(this.allowedTypes.size()));
-                                v.setVillagerType(newType);
+                                candidate.setVillagerType(newType);
                             }
 
-                            this.updateVillagerDisplay(v, p);
+                            this.updateVillagerDisplay(candidate, player);
                         }
                     }
                 }
@@ -300,6 +331,7 @@ public final class VillagerTypeOverrides implements Listener {
         }
     }
 
+    /** 根据职业与配置刷新村民的自定义名称（懒人标签的增删）。 */
     private void updateVillagerDisplay(Villager villager, Player p) {
         String currentName = villager.getCustomName();
         if (villager.getProfession() == Profession.NITWIT) {
@@ -339,6 +371,7 @@ public final class VillagerTypeOverrides implements Listener {
         }
     }
 
+    /** 移除名称中包含的所有语言懒人标签并去除首尾空白。 */
     private String removeAllLazyTags(String name) {
         if (name == null) {
             return "";
@@ -355,6 +388,7 @@ public final class VillagerTypeOverrides implements Listener {
         }
     }
 
+    /** 监听玩家语言切换：刷新其附近村民的名称显示。 */
     @EventHandler
     public void onPlayerLocaleChange(PlayerLocaleChangeEvent e) {
         if (this.enabled && this.professionRotationEnabled) {
@@ -362,16 +396,17 @@ public final class VillagerTypeOverrides implements Listener {
         }
     }
 
+    /** 刷新指定玩家附近村庄范围内所有村民的名称显示。 */
     private void checkNearbyVillagers(Player p) {
-        World w = p.getWorld();
-        if (this.worlds.contains(w.getName())) {
-            Chunk pChunk = p.getLocation().getChunk();
-            int r = 10;
+        World world = p.getWorld();
+        if (this.worlds.contains(world.getName())) {
+            Chunk playerChunk = p.getLocation().getChunk();
+            int chunkRadius = 10;
 
-            for(int x = pChunk.getX() - r; x <= pChunk.getX() + r; ++x) {
-                for(int z = pChunk.getZ() - r; z <= pChunk.getZ() + r; ++z) {
-                    if (w.isChunkLoaded(x, z)) {
-                        for(Entity entity : w.getChunkAt(x, z).getEntities()) {
+            for(int x = playerChunk.getX() - chunkRadius; x <= playerChunk.getX() + chunkRadius; ++x) {
+                for(int z = playerChunk.getZ() - chunkRadius; z <= playerChunk.getZ() + chunkRadius; ++z) {
+                    if (world.isChunkLoaded(x, z)) {
+                        for(Entity entity : world.getChunkAt(x, z).getEntities()) {
                             if (entity.getType() == EntityType.VILLAGER) {
                                 this.updateVillagerDisplay((Villager)entity, p);
                             }

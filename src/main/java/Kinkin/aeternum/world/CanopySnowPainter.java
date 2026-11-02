@@ -18,6 +18,16 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
 
+/**
+ * 树冠积雪渲染器（CanopySnowPainter）。
+ *
+ * <p>作为周期任务运行，在冬季暴雪期间随机挑选玩家附近的落地点，若其上方存在树叶（形成“树冠遮蔽”），
+ * 就在地面铺上一层雪，用来模拟树冠下与树冠边缘的积雪效果。可限制仅在“天然寒冷群系”内生效，
+ * 并受每 tick 尝试次数、搜索半径、树叶扫描高度等配置约束。</p>
+ *
+ * <p>依赖 {@link SeasonService} 判断当前季节/天气，{@link WinterWorldPainter} 记录被本渲染器放置的雪，
+ * 以及 {@link BiomeSpoofAdapter} 判断区块是否为天然雪区。</p>
+ */
 public final class CanopySnowPainter implements Runnable {
     private final AeternumSeasonsPlugin plugin;
     private final SeasonService seasons;
@@ -40,19 +50,21 @@ public final class CanopySnowPainter implements Runnable {
         this.reloadFromConfig();
     }
 
+    /** 从气候配置的 {@code real_snow.canopy} 段重新读取本渲染器的参数。 */
     public void reloadFromConfig() {
-        ConfigurationSection y = this.plugin.cfg.climate.getConfigurationSection("real_snow.canopy");
-        if (y == null) {
+        ConfigurationSection canopySection = this.plugin.cfg.climate.getConfigurationSection("real_snow.canopy");
+        if (canopySection == null) {
             this.enabled = false;
         } else {
-            this.enabled = this.plugin.cfg.climate.getBoolean("real_snow.enabled", true) && y.getBoolean("enabled", true);
-            this.attemptsPerTick = Math.max(1, y.getInt("attempts_per_tick", 40));
-            this.radiusBlocks = Math.max(4, y.getInt("radius_blocks", 32));
-            this.maxLeafScanHeight = Math.max(2, y.getInt("max_leaf_scan_height", 6));
-            this.onlyInColdBiomes = y.getBoolean("only_in_cold_biomes", true);
+            this.enabled = this.plugin.cfg.climate.getBoolean("real_snow.enabled", true) && canopySection.getBoolean("enabled", true);
+            this.attemptsPerTick = Math.max(1, canopySection.getInt("attempts_per_tick", 40));
+            this.radiusBlocks = Math.max(4, canopySection.getInt("radius_blocks", 32));
+            this.maxLeafScanHeight = Math.max(2, canopySection.getInt("max_leaf_scan_height", 6));
+            this.onlyInColdBiomes = canopySection.getBoolean("only_in_cold_biomes", true);
         }
     }
 
+    /** 注册周期任务（先取消已有任务），仅在启用时按 init 延迟 60 tick、周期 10 tick 运行。 */
     public void register() {
         if (this.task != null) {
             this.task.cancel();
@@ -63,6 +75,7 @@ public final class CanopySnowPainter implements Runnable {
         }
     }
 
+    /** 取消并清空周期任务。 */
     public void unregister() {
         if (this.task != null) {
             this.task.cancel();
@@ -71,47 +84,50 @@ public final class CanopySnowPainter implements Runnable {
         this.task = null;
     }
 
+    /**
+     * 周期任务主体：对每个处于主世界、冬季且正在下雪的玩家，尝试在其附近放置若干树冠积雪。
+     */
     public void run() {
         if (this.enabled) {
-            ThreadLocalRandom rnd = ThreadLocalRandom.current();
+            ThreadLocalRandom threadRandom = ThreadLocalRandom.current();
             if (this.attemptsPerTick > 0 && this.radiusBlocks > 0) {
-                for(Player p : Bukkit.getOnlinePlayers()) {
-                    World w = p.getWorld();
-                    if (w.getEnvironment() == Environment.NORMAL) {
-                        CalendarState st = this.seasons.getStateCopy(w);
-                        if (st.season == Season.WINTER && w.hasStorm()) {
-                            int px = p.getLocation().getBlockX();
-                            int pz = p.getLocation().getBlockZ();
-                            int minY = w.getMinHeight();
-                            int maxY = w.getMaxHeight();
+                for(Player player : Bukkit.getOnlinePlayers()) {
+                    World world = player.getWorld();
+                    if (world.getEnvironment() == Environment.NORMAL) {
+                        CalendarState calendarState = this.seasons.getStateCopy(world);
+                        if (calendarState.season == Season.WINTER && world.hasStorm()) {
+                            int px = player.getLocation().getBlockX();
+                            int pz = player.getLocation().getBlockZ();
+                            int minY = world.getMinHeight();
+                            int maxY = world.getMaxHeight();
 
                             for(int i = 0; i < this.attemptsPerTick; ++i) {
-                                int x = px + rnd.nextInt(-this.radiusBlocks, this.radiusBlocks + 1);
-                                int z = pz + rnd.nextInt(-this.radiusBlocks, this.radiusBlocks + 1);
+                                int x = px + threadRandom.nextInt(-this.radiusBlocks, this.radiusBlocks + 1);
+                                int z = pz + threadRandom.nextInt(-this.radiusBlocks, this.radiusBlocks + 1);
                                 if (this.onlyInColdBiomes) {
                                     int cx = x >> 4;
                                     int cz = z >> 4;
-                                    boolean markedCold = BiomeSpoofAdapter.isChunkNaturallySnowy(w, cx, cz);
-                                    boolean biomeCold = this.isNaturallySnowyBiome(w, x, z);
+                                    boolean markedCold = BiomeSpoofAdapter.isChunkNaturallySnowy(world, cx, cz);
+                                    boolean biomeCold = this.isNaturallySnowyBiome(world, x, z);
                                     if (!markedCold && !biomeCold) {
                                         continue;
                                     }
                                 }
 
-                                int highest = w.getHighestBlockYAt(x, z) - 1;
+                                int highest = world.getHighestBlockYAt(x, z) - 1;
                                 if (highest >= minY) {
                                     int scanMinY = Math.max(minY, highest - 16);
                                     Block ground = null;
 
                                     for(int y = highest; y >= scanMinY; --y) {
-                                        Block candidate = w.getBlockAt(x, y, z);
-                                        Material t = candidate.getType();
-                                        if (t == Material.SNOW || t == Material.SNOW_BLOCK) {
+                                        Block candidate = world.getBlockAt(x, y, z);
+                                        Material type = candidate.getType();
+                                        if (type == Material.SNOW || type == Material.SNOW_BLOCK) {
                                             ground = null;
                                             break;
                                         }
 
-                                        if (this.groundTypes.contains(t)) {
+                                        if (this.groundTypes.contains(type)) {
                                             Block above = candidate.getRelative(0, 1, 0);
                                             Material aboveType = above.getType();
                                             if (aboveType.isAir() || above.isPassable()) {
@@ -125,7 +141,7 @@ public final class CanopySnowPainter implements Runnable {
                                         int groundY = ground.getY();
                                         Block aboveGround = ground.getRelative(0, 1, 0);
                                         Material aboveType = aboveGround.getType();
-                                        if ((aboveType.isAir() || aboveGround.isPassable()) && this.hasLeavesAbove(w, x, groundY + 2, z, maxY) && WinterWorldGuardHelper.canSnowFall(aboveGround)) {
+                                        if ((aboveType.isAir() || aboveGround.isPassable()) && this.hasLeavesAbove(world, x, groundY + 2, z, maxY) && WinterWorldGuardHelper.canSnowFall(aboveGround)) {
                                             aboveGround.setType(Material.SNOW, false);
                                             this.winterPainter.trackCanopySnow(aboveGround);
                                         }
@@ -140,12 +156,13 @@ public final class CanopySnowPainter implements Runnable {
         }
     }
 
-    private boolean hasLeavesAbove(World w, int x, int startY, int z, int maxWorldY) {
+    /** 从起始高度向上检查是否在扫描范围内存在树叶（遇到实心非树叶方块即停止）。 */
+    private boolean hasLeavesAbove(World world, int x, int startY, int z, int maxWorldY) {
         int maxY = Math.min(startY + this.maxLeafScanHeight, maxWorldY - 1);
 
         for(int y = startY; y <= maxY; ++y) {
-            Block b = w.getBlockAt(x, y, z);
-            Material type = b.getType();
+            Block block = world.getBlockAt(x, y, z);
+            Material type = block.getType();
             if (this.isLeaf(type)) {
                 return true;
             }
@@ -158,14 +175,16 @@ public final class CanopySnowPainter implements Runnable {
         return false;
     }
 
-    private boolean isLeaf(Material m) {
-        String n = m.name();
-        return n.endsWith("_LEAVES");
+    /** 通过材质名是否以 {@code _LEAVES} 结尾判断其是否为树叶。 */
+    private boolean isLeaf(Material material) {
+        String name = material.name();
+        return name.endsWith("_LEAVES");
     }
 
-    private boolean isNaturallySnowyBiome(World w, int x, int z) {
-        int y = w.getHighestBlockYAt(x, z);
-        Biome biome = w.getBiome(x, y, z);
+    /** 判断给定水平坐标处的群系是否属于天然寒冷/积雪类群系。 */
+    private boolean isNaturallySnowyBiome(World world, int x, int z) {
+        int y = world.getHighestBlockYAt(x, z);
+        Biome biome = world.getBiome(x, y, z);
         String name = biome.name().toUpperCase();
         return name.contains("SNOW") || name.contains("FROZEN") || name.contains("ICE") || name.contains("TAIGA") || name.contains("GROVE") || name.contains("PEAK") || name.contains("MOUNTAIN");
     }

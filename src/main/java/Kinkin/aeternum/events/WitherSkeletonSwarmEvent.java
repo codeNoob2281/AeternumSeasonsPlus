@@ -27,19 +27,40 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
+/**
+ * 凋灵骷髅群潮事件（Wither Skeleton Swarm）。
+ *
+ * <p>当下界有玩家且通过概率判定时触发。事件激活期间：
+ * <ul>
+ *     <li>下界自然生成的凋灵骷髅有概率被“强化”（加速、双倍血量与攻击、发光、改名）；</li>
+ *     <li>非自定义生成的凋灵骷髅有概率在附近额外召唤同伴（受区块冷却限制）；</li>
+ *     <li>玩家击杀凋灵骷髅时有概率获得额外战利品，另有小概率额外掉落凋灵骷髅头。</li>
+ * </ul>
+ * 配置来自 {@link YamlEvents} 读取的 {@code events.yml}。</p>
+ */
 public final class WitherSkeletonSwarmEvent implements SeasonalEvent {
     private static final String TAG_BUFFED = "asevent_wss_buffed";
     private final AeternumSeasonsPlugin plugin;
     private boolean enabled;
+    /** 事件最短持续天数。 */
     private int minDur;
+    /** 事件最长持续天数。 */
     private int maxDur;
+    /** 每天触发事件的基础概率。 */
     private double baseChance;
+    /** 自然生成的凋灵骷髅被强化的概率。 */
     private double buffChance;
+    /** 额外召唤同伴的概率。 */
     private double extraSpawnChance;
+    /** 同一区块额外召唤的冷却时间（毫秒）。 */
     private long chunkCooldownMs;
+    /** 击杀时获得额外战利品的概率。 */
     private double extraLootChance;
+    /** 击杀时额外掉落凋灵骷髅头的概率。 */
     private double extraSkullChance;
+    /** 记录每个区块最近一次额外召唤的时间戳，键为“世界UUID:x:z”。 */
     private final Map<String, Long> chunkLastExtra = new HashMap();
+    /** 事件是否正在运行。 */
     private volatile boolean running = false;
 
     public WitherSkeletonSwarmEvent(AeternumSeasonsPlugin plugin) {
@@ -48,17 +69,18 @@ public final class WitherSkeletonSwarmEvent implements SeasonalEvent {
         this.reloadFromConfig();
     }
 
+    /** 从 events.yml 重新读取本事件的配置项。 */
     private void reloadFromConfig() {
-        FileConfiguration y = YamlEvents.get(this.plugin);
-        this.enabled = y.getBoolean("events.wither_skeleton_swarm.enabled", true);
-        this.minDur = y.getInt("events.wither_skeleton_swarm.min_duration_days", 1);
-        this.maxDur = y.getInt("events.wither_skeleton_swarm.max_duration_days", 2);
-        this.baseChance = y.getDouble("events.wither_skeleton_swarm.base_chance_per_day", 0.06);
-        this.buffChance = y.getDouble("events.wither_skeleton_swarm.buff_chance", (double)0.75F);
-        this.extraSpawnChance = y.getDouble("events.wither_skeleton_swarm.extra_spawn_chance", 0.18);
-        this.chunkCooldownMs = y.getLong("events.wither_skeleton_swarm.chunk_cooldown_ms", 20000L);
-        this.extraLootChance = y.getDouble("events.wither_skeleton_swarm.extra_loot_chance", 0.35);
-        this.extraSkullChance = y.getDouble("events.wither_skeleton_swarm.extra_skull_chance", 0.02);
+        FileConfiguration config = YamlEvents.get(this.plugin);
+        this.enabled = config.getBoolean("events.wither_skeleton_swarm.enabled", true);
+        this.minDur = config.getInt("events.wither_skeleton_swarm.min_duration_days", 1);
+        this.maxDur = config.getInt("events.wither_skeleton_swarm.max_duration_days", 2);
+        this.baseChance = config.getDouble("events.wither_skeleton_swarm.base_chance_per_day", 0.06);
+        this.buffChance = config.getDouble("events.wither_skeleton_swarm.buff_chance", (double)0.75F);
+        this.extraSpawnChance = config.getDouble("events.wither_skeleton_swarm.extra_spawn_chance", 0.18);
+        this.chunkCooldownMs = config.getLong("events.wither_skeleton_swarm.chunk_cooldown_ms", 20000L);
+        this.extraLootChance = config.getDouble("events.wither_skeleton_swarm.extra_loot_chance", 0.35);
+        this.extraSkullChance = config.getDouble("events.wither_skeleton_swarm.extra_skull_chance", 0.02);
     }
 
     public String getId() {
@@ -81,11 +103,12 @@ public final class WitherSkeletonSwarmEvent implements SeasonalEvent {
         return this.maxDur;
     }
 
-    public boolean canStartToday(CalendarState st, EventContext ctx) {
+    /** 仅当有玩家位于下界、且通过基础概率判定时才允许开始。 */
+    public boolean canStartToday(CalendarState state, EventContext context) {
         if (!this.enabled) {
             return false;
         } else {
-            boolean someoneInNether = Bukkit.getOnlinePlayers().stream().anyMatch((p) -> p.getWorld().getEnvironment() == Environment.NETHER);
+            boolean someoneInNether = Bukkit.getOnlinePlayers().stream().anyMatch((player) -> player.getWorld().getEnvironment() == Environment.NETHER);
             if (!someoneInNether) {
                 return false;
             } else {
@@ -94,69 +117,74 @@ public final class WitherSkeletonSwarmEvent implements SeasonalEvent {
         }
     }
 
-    public void onStart(CalendarState st, EventContext ctx) {
+    /** 事件开始时标记运行状态、清空区块冷却，并向身处下界的玩家发送标题。 */
+    public void onStart(CalendarState state, EventContext context) {
         this.running = true;
         this.chunkLastExtra.clear();
 
-        for(Player p : Bukkit.getOnlinePlayers()) {
-            if (p.getWorld().getEnvironment() == Environment.NETHER) {
-                p.sendTitle(this.plugin.lang.tr(p, "event.wither_skeleton_swarm.title"), this.plugin.lang.tr(p, "event.wither_skeleton_swarm.subtitle"), 20, 80, 40);
+        for(Player player : Bukkit.getOnlinePlayers()) {
+            if (player.getWorld().getEnvironment() == Environment.NETHER) {
+                player.sendTitle(this.plugin.lang.tr(player, "event.wither_skeleton_swarm.title"), this.plugin.lang.tr(player, "event.wither_skeleton_swarm.subtitle"), 20, 80, 40);
             }
         }
 
     }
 
-    public void onEnd(CalendarState st, EventContext ctx) {
+    /** 事件结束时清除运行状态与区块冷却，并通知身处下界的玩家。 */
+    public void onEnd(CalendarState state, EventContext context) {
         this.running = false;
         this.chunkLastExtra.clear();
 
-        for(Player p : Bukkit.getOnlinePlayers()) {
-            if (p.getWorld().getEnvironment() == Environment.NETHER) {
-                p.sendMessage(this.plugin.lang.tr(p, "event.wither_skeleton_swarm.end"));
+        for(Player player : Bukkit.getOnlinePlayers()) {
+            if (player.getWorld().getEnvironment() == Environment.NETHER) {
+                player.sendMessage(this.plugin.lang.tr(player, "event.wither_skeleton_swarm.end"));
             }
         }
 
     }
 
-    public void onDayTick(CalendarState st, EventContext ctx) {
+    public void onDayTick(CalendarState state, EventContext context) {
     }
 
-    public void onTick(CalendarState st, EventContext ctx) {
+    public void onTick(CalendarState state, EventContext context) {
     }
 
+    /**
+     * 监听生物生成事件：在下界生成凋灵骷髅时，按概率强化它，并可能额外召唤同伴。
+     */
     @EventHandler
-    public void onSpawn(CreatureSpawnEvent e) {
+    public void onSpawn(CreatureSpawnEvent event) {
         if (this.running) {
-            LivingEntity var3 = e.getEntity();
-            if (var3 instanceof WitherSkeleton) {
-                WitherSkeleton ws = (WitherSkeleton)var3;
-                if (ws.getWorld().getEnvironment() == Environment.NETHER) {
-                    ThreadLocalRandom rnd = ThreadLocalRandom.current();
-                    if (rnd.nextDouble() < this.buffChance && !ws.getScoreboardTags().contains("asevent_wss_buffed")) {
-                        ws.addScoreboardTag("asevent_wss_buffed");
-                        ws.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 6000, 0, true, false, true));
-                        AttributeInstance maxHp = ws.getAttribute(Attribute.MAX_HEALTH);
-                        if (maxHp != null) {
-                            double base = maxHp.getBaseValue();
-                            double newMax = base * (double)2.0F;
-                            maxHp.setBaseValue(newMax);
-                            ws.setHealth(Math.min(newMax, ws.getHealth() > (double)0.0F ? newMax : newMax));
+            LivingEntity entity = event.getEntity();
+            if (entity instanceof WitherSkeleton) {
+                WitherSkeleton skeleton = (WitherSkeleton)entity;
+                if (skeleton.getWorld().getEnvironment() == Environment.NETHER) {
+                    ThreadLocalRandom random = ThreadLocalRandom.current();
+                    if (random.nextDouble() < this.buffChance && !skeleton.getScoreboardTags().contains("asevent_wss_buffed")) {
+                        skeleton.addScoreboardTag("asevent_wss_buffed");
+                        skeleton.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 6000, 0, true, false, true));
+                        AttributeInstance maxHealth = skeleton.getAttribute(Attribute.MAX_HEALTH);
+                        if (maxHealth != null) {
+                            double baseValue = maxHealth.getBaseValue();
+                            double newMax = baseValue * (double)2.0F;
+                            maxHealth.setBaseValue(newMax);
+                            skeleton.setHealth(Math.min(newMax, skeleton.getHealth() > (double)0.0F ? newMax : newMax));
                         }
 
-                        AttributeInstance dmg = ws.getAttribute(Attribute.ATTACK_DAMAGE);
-                        if (dmg != null) {
-                            double base = dmg.getBaseValue();
-                            dmg.setBaseValue(base * (double)2.0F);
+                        AttributeInstance attackDamage = skeleton.getAttribute(Attribute.ATTACK_DAMAGE);
+                        if (attackDamage != null) {
+                            double baseValue = attackDamage.getBaseValue();
+                            attackDamage.setBaseValue(baseValue * (double)2.0F);
                         }
 
-                        ws.setGlowing(true);
-                        ws.setCustomName("Empowered Wither Skeleton");
-                        ws.setCustomNameVisible(true);
+                        skeleton.setGlowing(true);
+                        skeleton.setCustomName("Empowered Wither Skeleton");
+                        skeleton.setCustomNameVisible(true);
                     }
 
-                    if (e.getSpawnReason() != SpawnReason.CUSTOM) {
-                        if (rnd.nextDouble() < this.extraSpawnChance) {
-                            String key = this.chunkKey(ws.getWorld(), ws.getLocation().getChunk());
+                    if (event.getSpawnReason() != SpawnReason.CUSTOM) {
+                        if (random.nextDouble() < this.extraSpawnChance) {
+                            String key = this.chunkKey(skeleton.getWorld(), skeleton.getLocation().getChunk());
                             long now = System.currentTimeMillis();
                             long last = (Long)this.chunkLastExtra.getOrDefault(key, 0L);
                             if (now - last < this.chunkCooldownMs) {
@@ -164,13 +192,13 @@ public final class WitherSkeletonSwarmEvent implements SeasonalEvent {
                             }
 
                             this.chunkLastExtra.put(key, now);
-                            Location base = ws.getLocation();
-                            Location loc = base.clone().add(rnd.nextDouble((double)-6.0F, (double)6.0F), (double)0.0F, rnd.nextDouble((double)-6.0F, (double)6.0F));
-                            if (!loc.getBlock().isPassable()) {
-                                loc = base;
+                            Location baseLocation = skeleton.getLocation();
+                            Location spawnLocation = baseLocation.clone().add(random.nextDouble((double)-6.0F, (double)6.0F), (double)0.0F, random.nextDouble((double)-6.0F, (double)6.0F));
+                            if (!spawnLocation.getBlock().isPassable()) {
+                                spawnLocation = baseLocation;
                             }
 
-                            ws.getWorld().spawnEntity(loc, EntityType.WITHER_SKELETON);
+                            skeleton.getWorld().spawnEntity(spawnLocation, EntityType.WITHER_SKELETON);
                         }
 
                     }
@@ -179,32 +207,35 @@ public final class WitherSkeletonSwarmEvent implements SeasonalEvent {
         }
     }
 
+    /**
+     * 监听凋灵骷髅死亡：被玩家击杀时，有概率追加额外战利品或凋灵骷髅头。
+     */
     @EventHandler
-    public void onDeath(EntityDeathEvent e) {
+    public void onDeath(EntityDeathEvent event) {
         if (this.running) {
-            LivingEntity var3 = e.getEntity();
-            if (var3 instanceof WitherSkeleton) {
-                WitherSkeleton ws = (WitherSkeleton)var3;
-                if (ws.getWorld().getEnvironment() == Environment.NETHER) {
-                    if (ws.getKiller() != null) {
-                        ThreadLocalRandom rnd = ThreadLocalRandom.current();
-                        if (rnd.nextDouble() < this.extraLootChance) {
-                            int roll = rnd.nextInt(100);
+            LivingEntity entity = event.getEntity();
+            if (entity instanceof WitherSkeleton) {
+                WitherSkeleton skeleton = (WitherSkeleton)entity;
+                if (skeleton.getWorld().getEnvironment() == Environment.NETHER) {
+                    if (skeleton.getKiller() != null) {
+                        ThreadLocalRandom random = ThreadLocalRandom.current();
+                        if (random.nextDouble() < this.extraLootChance) {
+                            int roll = random.nextInt(100);
                             if (roll < 35) {
-                                e.getDrops().add(new ItemStack(Material.COAL, 3));
+                                event.getDrops().add(new ItemStack(Material.COAL, 3));
                             } else if (roll < 65) {
-                                e.getDrops().add(new ItemStack(Material.BONE, 4));
+                                event.getDrops().add(new ItemStack(Material.BONE, 4));
                             } else if (roll < 85) {
-                                e.getDrops().add(new ItemStack(Material.GOLD_NUGGET, 10));
+                                event.getDrops().add(new ItemStack(Material.GOLD_NUGGET, 10));
                             } else if (roll < 95) {
-                                e.getDrops().add(new ItemStack(Material.BLAZE_POWDER, 2));
+                                event.getDrops().add(new ItemStack(Material.BLAZE_POWDER, 2));
                             } else {
-                                e.getDrops().add(new ItemStack(Material.DIAMOND, 1));
+                                event.getDrops().add(new ItemStack(Material.DIAMOND, 1));
                             }
                         }
 
-                        if (rnd.nextDouble() < this.extraSkullChance) {
-                            e.getDrops().add(new ItemStack(Material.WITHER_SKELETON_SKULL, 1));
+                        if (random.nextDouble() < this.extraSkullChance) {
+                            event.getDrops().add(new ItemStack(Material.WITHER_SKELETON_SKULL, 1));
                         }
 
                     }
@@ -213,8 +244,9 @@ public final class WitherSkeletonSwarmEvent implements SeasonalEvent {
         }
     }
 
-    private String chunkKey(World w, Chunk c) {
-        String var10000 = String.valueOf(w.getUID());
-        return var10000 + ":" + c.getX() + ":" + c.getZ();
+    /** 生成区块冷却键，格式为“世界UUID:x:z”。 */
+    private String chunkKey(World world, Chunk chunk) {
+        String worldId = String.valueOf(world.getUID());
+        return worldId + ":" + chunk.getX() + ":" + chunk.getZ();
     }
 }

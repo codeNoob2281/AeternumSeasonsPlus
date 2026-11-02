@@ -7,18 +7,34 @@ import org.bukkit.World;
 import org.bukkit.World.Environment;
 import org.bukkit.plugin.java.JavaPlugin;
 
+/**
+ * 世界/游戏规则兼容工具。
+ *
+ * <p>不同 Minecraft 版本的 GameRule 字段名存在差异（例如 ADVANCE_TIME 与 DO_DAYLIGHT_CYCLE），
+ * 本工具通过反射在 {@code org.bukkit.GameRules} 与 {@code org.bukkit.GameRule} 中探测可用规则，
+ * 并缓存探测结果，供需要手动控制时间/天气的场景使用。</p>
+ *
+ * <p>仅对常规维度（{@link Environment#NORMAL}）执行手动时间控制；其他维度视为不支持。</p>
+ */
 public final class WorldCompat {
+    /** 是否已提示过缺少 daylight cycle 规则（避免重复刷日志）。 */
     private static boolean warnedDaylightMissing = false;
+    /** 是否已提示过缺少 weather cycle 规则（避免重复刷日志）。 */
     private static boolean warnedWeatherMissing = false;
+    /** daylight 规则是否已探测完成。 */
     private static volatile boolean daylightRuleResolved = false;
+    /** weather 规则是否已探测完成。 */
     private static volatile boolean weatherRuleResolved = false;
+    /** 缓存的 daylight 规则。 */
     private static GameRule<Boolean> cachedDaylightRule;
+    /** 缓存的 weather 规则。 */
     private static GameRule<Boolean> cachedWeatherRule;
 
     private WorldCompat() {
         super();
     }
 
+    /** 依次在若干候选类、候选字段名中查找第一个可用的布尔 GameRule，找不到返回 null。 */
     private static GameRule<Boolean> findBooleanGameRule(String... fieldNames) {
         String[] ownerNames = new String[]{"org.bukkit.GameRules", "org.bukkit.GameRule"};
 
@@ -33,17 +49,18 @@ public final class WorldCompat {
                         if (value instanceof GameRule rule) {
                             return (GameRule<Boolean>)rule;
                         }
-                    } catch (NoSuchFieldException var14) {
+                    } catch (NoSuchFieldException ignoredField) {
                     }
                 }
-            } catch (ClassNotFoundException var15) {
-            } catch (Throwable var16) {
+            } catch (ClassNotFoundException ignoredClass) {
+            } catch (Throwable ignoredError) {
             }
         }
 
         return null;
     }
 
+    /** 获取 daylight cycle 对应的 GameRule（双重检查加锁懒加载并缓存，可能为 null）。 */
     public static GameRule<Boolean> daylightCycleRule() {
         if (!daylightRuleResolved) {
             synchronized(WorldCompat.class) {
@@ -57,6 +74,7 @@ public final class WorldCompat {
         return cachedDaylightRule;
     }
 
+    /** 获取 weather cycle 对应的 GameRule（双重检查加锁懒加载并缓存，可能为 null）。 */
     public static GameRule<Boolean> weatherCycleRule() {
         if (!weatherRuleResolved) {
             synchronized(WorldCompat.class) {
@@ -70,6 +88,7 @@ public final class WorldCompat {
         return cachedWeatherRule;
     }
 
+    /** 判断世界是否允许时间自然推进（无法获取规则时默认按允许处理）。 */
     public static boolean isTimeAdvancementEnabled(World world) {
         if (!supportsManualTime(world)) {
             return true;
@@ -81,13 +100,14 @@ public final class WorldCompat {
                 try {
                     Boolean value = (Boolean)world.getGameRuleValue(rule);
                     return value == null || value;
-                } catch (Throwable var3) {
+                } catch (Throwable failure) {
                     return true;
                 }
             }
         }
     }
 
+    /** 关闭世界的 daylight cycle；规则缺失或设置失败时返回 false。 */
     public static boolean disableDaylightCycle(World world, JavaPlugin plugin) {
         if (world == null) {
             return false;
@@ -103,16 +123,17 @@ public final class WorldCompat {
             } else {
                 try {
                     return world.setGameRule(rule, false);
-                } catch (Throwable t) {
-                    Logger var10000 = plugin.getLogger();
-                    String var10001 = world.getName();
-                    var10000.warning("[Compat] No se pudo desactivar daylight cycle en " + var10001 + ": " + t.getMessage());
+                } catch (Throwable failure) {
+                    Logger logger = plugin.getLogger();
+                    String worldName = world.getName();
+                    logger.warning("[Compat] No se pudo desactivar daylight cycle en " + worldName + ": " + failure.getMessage());
                     return false;
                 }
             }
         }
     }
 
+    /** 关闭世界的 weather cycle；规则缺失或设置失败时返回 false。 */
     public static boolean disableWeatherCycle(World world, JavaPlugin plugin) {
         if (world == null) {
             return false;
@@ -128,16 +149,17 @@ public final class WorldCompat {
             } else {
                 try {
                     return world.setGameRule(rule, false);
-                } catch (Throwable t) {
-                    Logger var10000 = plugin.getLogger();
-                    String var10001 = world.getName();
-                    var10000.warning("[Compat] No se pudo desactivar weather cycle en " + var10001 + ": " + t.getMessage());
+                } catch (Throwable failure) {
+                    Logger logger = plugin.getLogger();
+                    String worldName = world.getName();
+                    logger.warning("[Compat] No se pudo desactivar weather cycle en " + worldName + ": " + failure.getMessage());
                     return false;
                 }
             }
         }
     }
 
+    /** 判断世界是否支持手动设置时间（仅常规维度支持）。 */
     public static boolean supportsManualTime(World world) {
         if (world == null) {
             return false;
@@ -146,6 +168,7 @@ public final class WorldCompat {
         }
     }
 
+    /** 尝试设置世界时间（day time）；失败返回 false 并记录日志。 */
     public static boolean trySetTime(World world, long time, JavaPlugin plugin) {
         if (!supportsManualTime(world)) {
             return false;
@@ -154,19 +177,20 @@ public final class WorldCompat {
                 world.setTime(time);
                 return true;
             } catch (IllegalArgumentException ex) {
-                Logger var7 = plugin.getLogger();
-                String var8 = world.getName();
-                var7.warning("[Compat] No se pudo aplicar setTime en " + var8 + ": " + ex.getMessage());
+                Logger logger = plugin.getLogger();
+                String worldName = world.getName();
+                logger.warning("[Compat] No se pudo aplicar setTime en " + worldName + ": " + ex.getMessage());
                 return false;
-            } catch (Throwable t) {
-                Logger var10000 = plugin.getLogger();
-                String var10001 = world.getName();
-                var10000.warning("[Compat] Error aplicando setTime en " + var10001 + ": " + t.getMessage());
+            } catch (Throwable failure) {
+                Logger logger = plugin.getLogger();
+                String worldName = world.getName();
+                logger.warning("[Compat] Error aplicando setTime en " + worldName + ": " + failure.getMessage());
                 return false;
             }
         }
     }
 
+    /** 尝试设置世界完整时间（full time）；失败返回 false 并记录日志。 */
     public static boolean trySetFullTime(World world, long fullTime, JavaPlugin plugin) {
         if (!supportsManualTime(world)) {
             return false;
@@ -175,14 +199,14 @@ public final class WorldCompat {
                 world.setFullTime(fullTime);
                 return true;
             } catch (IllegalArgumentException ex) {
-                Logger var7 = plugin.getLogger();
-                String var8 = world.getName();
-                var7.warning("[Compat] No se pudo aplicar setFullTime en " + var8 + ": " + ex.getMessage());
+                Logger logger = plugin.getLogger();
+                String worldName = world.getName();
+                logger.warning("[Compat] No se pudo aplicar setFullTime en " + worldName + ": " + ex.getMessage());
                 return false;
-            } catch (Throwable t) {
-                Logger var10000 = plugin.getLogger();
-                String var10001 = world.getName();
-                var10000.warning("[Compat] Error aplicando setFullTime en " + var10001 + ": " + t.getMessage());
+            } catch (Throwable failure) {
+                Logger logger = plugin.getLogger();
+                String worldName = world.getName();
+                logger.warning("[Compat] Error aplicando setFullTime en " + worldName + ": " + failure.getMessage());
                 return false;
             }
         }

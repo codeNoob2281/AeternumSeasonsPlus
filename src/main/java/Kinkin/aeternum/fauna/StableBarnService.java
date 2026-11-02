@@ -51,6 +51,19 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
 
+/**
+ * 稳定谷仓（Stable Barn）服务。
+ *
+ * <p>围绕“谷仓”这一玩家建造结构提供多项养殖增益，并维护马匹的耐力/亲密度系统：
+ * <ul>
+ *     <li>通过屋顶（实心/天光）与干草堆判断某位置是否处于谷仓内；</li>
+ *     <li>谷仓内繁殖可获得额外幼崽；动物在谷仓内死亡/剪毛可额外掉落产物；</li>
+ *     <li>马匹随骑乘与在谷仓休息增减耐力，耐力过低会获得“疲惫”减速，在谷仓内可回血；</li>
+ *     <li>亲密度随骑乘、在谷仓、健康状态增长，并转化为速度/生命上限加成；</li>
+ *     <li>动物 AI：冬寻庇护、夏寻阴凉，向最近的有顶棚位置轻微“推挤”。</li>
+ * </ul>
+ * 季节通过反射从插件中获取以兼容不同版本，依赖 {@link AeternumSeasonsPlugin} 提供配置与调度器。</p>
+ */
 public final class StableBarnService implements Listener {
     private final AeternumSeasonsPlugin plugin;
     private File faunaFile;
@@ -79,6 +92,9 @@ public final class StableBarnService implements Listener {
         this.HORSE_AFFINITY_STEP = new NamespacedKey(plugin, "horse_affinity_step");
     }
 
+    /**
+     * 加载配置、注册事件监听并启动冬季/马匹/动物 AI 三类任务。
+     */
     public void register() {
         this.loadFauna();
         Bukkit.getPluginManager().registerEvents(this, this.plugin);
@@ -87,6 +103,9 @@ public final class StableBarnService implements Listener {
         this.startAiTask();
     }
 
+    /**
+     * 注销事件监听、取消所有任务并清空扫描缓存。
+     */
     public void unregister() {
         HandlerList.unregisterAll(this);
         if (this.winterTask != null) {
@@ -107,6 +126,9 @@ public final class StableBarnService implements Listener {
         this.horseIdx = this.aiIdx = 0;
     }
 
+    /**
+     * 重新加载配置并重启全部任务。
+     */
     public void reload() {
         this.loadFauna();
         this.startWinterTask();
@@ -114,6 +136,9 @@ public final class StableBarnService implements Listener {
         this.startAiTask();
     }
 
+    /**
+     * 确保数据目录存在，并在 fauna.yml 缺失时尝试落盘默认资源或创建空文件。
+     */
     private void loadFauna() {
         if (!this.plugin.getDataFolder().exists()) {
             this.plugin.getDataFolder().mkdirs();
@@ -123,10 +148,10 @@ public final class StableBarnService implements Listener {
         if (!this.faunaFile.exists()) {
             try {
                 this.plugin.saveResource("fauna.yml", false);
-            } catch (Throwable var4) {
+            } catch (Throwable ignored) {
                 try {
                     this.faunaFile.createNewFile();
-                } catch (IOException var3) {
+                } catch (IOException ignoredToo) {
                 }
             }
         }
@@ -134,10 +159,16 @@ public final class StableBarnService implements Listener {
         this.fauna = YamlConfiguration.loadConfiguration(this.faunaFile);
     }
 
+    /**
+     * 谷仓功能是否启用。
+     */
     private boolean enabled() {
         return this.fauna.getBoolean("stables.enabled", true);
     }
 
+    /**
+     * 判断位置上方是否存在屋顶（天光或指定/任意实心方块）。
+     */
     private boolean hasRoofNear(Location loc) {
         int minH = this.fauna.getInt("stables.roof.min_height", 1);
         int maxH = this.fauna.getInt("stables.roof.max_height", 6);
@@ -210,6 +241,9 @@ public final class StableBarnService implements Listener {
         }
     }
 
+    /**
+     * 判断位置是否处于谷仓内：有屋顶且附近干草堆数量达标。
+     */
     private boolean isInBarn(Location loc) {
         int radius = this.fauna.getInt("stables.barn_radius", 6);
         int minHay = this.fauna.getInt("stables.min_hay_bales", 3);
@@ -243,6 +277,9 @@ public final class StableBarnService implements Listener {
         }
     }
 
+    /**
+     * 繁殖监听：谷仓内繁殖可产出额外幼崽；若要求必须在谷仓内而条件不满足则取消繁殖。
+     */
     @EventHandler(
         priority = EventPriority.HIGHEST,
         ignoreCancelled = true
@@ -258,10 +295,10 @@ public final class StableBarnService implements Listener {
                 boolean bothInBarn = motherInBarn && fatherInBarn;
                 if (requireBarn && !bothInBarn) {
                     e.setCancelled(true);
-                    LivingEntity var9 = e.getBreeder();
-                    if (var9 instanceof Player) {
-                        Player p = (Player)var9;
-                        p.sendMessage(color(this.plugin.lang.tr(p, "fauna.barn.breed_fail")));
+                    LivingEntity breeder = e.getBreeder();
+                    if (breeder instanceof Player) {
+                        Player player = (Player)breeder;
+                        player.sendMessage(color(this.plugin.lang.tr(player, "fauna.barn.breed_fail")));
                     }
 
                 } else if (this.fauna.getBoolean("stables.breeding.barn_bonus_enabled", true)) {
@@ -277,6 +314,9 @@ public final class StableBarnService implements Listener {
         }
     }
 
+    /**
+     * 在幼崽位置额外生成若干只幼年动物并播放心形粒子与音效。
+     */
     private void spawnBonusBabies(EntityBreedEvent e, int amount) {
         if (amount > 0) {
             Entity child = e.getEntity();
@@ -300,6 +340,9 @@ public final class StableBarnService implements Listener {
         }
     }
 
+    /**
+     * 死亡监听：动物在谷仓内死亡时额外掉落对应产物。
+     */
     @EventHandler(
         priority = EventPriority.HIGHEST,
         ignoreCancelled = true
@@ -346,6 +389,9 @@ public final class StableBarnService implements Listener {
         }
     }
 
+    /**
+     * 剪毛监听：羊在谷仓内被剪毛时额外掉落羊毛。
+     */
     @EventHandler(
         priority = EventPriority.HIGHEST,
         ignoreCancelled = true
@@ -353,9 +399,9 @@ public final class StableBarnService implements Listener {
     public void onShear(PlayerShearEntityEvent e) {
         if (this.enabled()) {
             if (this.fauna.getBoolean("stables.drops.enabled", true)) {
-                Entity var3 = e.getEntity();
-                if (var3 instanceof Sheep) {
-                    Sheep sheep = (Sheep)var3;
+                Entity entity = e.getEntity();
+                if (entity instanceof Sheep) {
+                    Sheep sheep = (Sheep)entity;
                     if (this.isInBarn(sheep.getLocation())) {
                         int extra = this.randRange("stables.drops.sheep.extra_wool_min", "stables.drops.sheep.extra_wool_max", 1, 2);
                         if (extra > 0) {
@@ -368,31 +414,37 @@ public final class StableBarnService implements Listener {
         }
     }
 
-    private Material woolFromColor(DyeColor c) {
-        Material var10000;
-        switch (c) {
-            case WHITE -> var10000 = Material.WHITE_WOOL;
-            case ORANGE -> var10000 = Material.ORANGE_WOOL;
-            case MAGENTA -> var10000 = Material.MAGENTA_WOOL;
-            case LIGHT_BLUE -> var10000 = Material.LIGHT_BLUE_WOOL;
-            case YELLOW -> var10000 = Material.YELLOW_WOOL;
-            case LIME -> var10000 = Material.LIME_WOOL;
-            case PINK -> var10000 = Material.PINK_WOOL;
-            case GRAY -> var10000 = Material.GRAY_WOOL;
-            case LIGHT_GRAY -> var10000 = Material.LIGHT_GRAY_WOOL;
-            case CYAN -> var10000 = Material.CYAN_WOOL;
-            case PURPLE -> var10000 = Material.PURPLE_WOOL;
-            case BLUE -> var10000 = Material.BLUE_WOOL;
-            case BROWN -> var10000 = Material.BROWN_WOOL;
-            case GREEN -> var10000 = Material.GREEN_WOOL;
-            case RED -> var10000 = Material.RED_WOOL;
-            case BLACK -> var10000 = Material.BLACK_WOOL;
+    /**
+     * 把染料颜色映射为对应颜色的羊毛材质。
+     */
+    private Material woolFromColor(DyeColor dyeColor) {
+        Material wool;
+        switch (dyeColor) {
+            case WHITE -> wool = Material.WHITE_WOOL;
+            case ORANGE -> wool = Material.ORANGE_WOOL;
+            case MAGENTA -> wool = Material.MAGENTA_WOOL;
+            case LIGHT_BLUE -> wool = Material.LIGHT_BLUE_WOOL;
+            case YELLOW -> wool = Material.YELLOW_WOOL;
+            case LIME -> wool = Material.LIME_WOOL;
+            case PINK -> wool = Material.PINK_WOOL;
+            case GRAY -> wool = Material.GRAY_WOOL;
+            case LIGHT_GRAY -> wool = Material.LIGHT_GRAY_WOOL;
+            case CYAN -> wool = Material.CYAN_WOOL;
+            case PURPLE -> wool = Material.PURPLE_WOOL;
+            case BLUE -> wool = Material.BLUE_WOOL;
+            case BROWN -> wool = Material.BROWN_WOOL;
+            case GREEN -> wool = Material.GREEN_WOOL;
+            case RED -> wool = Material.RED_WOOL;
+            case BLACK -> wool = Material.BLACK_WOOL;
             default -> throw new MatchException((String)null, (Throwable)null);
         }
 
-        return var10000;
+        return wool;
     }
 
+    /**
+     * 按配置的最小/最大值区间随机取整数。
+     */
     private int randRange(String minKey, String maxKey, int defMin, int defMax) {
         int min = this.fauna.getInt(minKey, defMin);
         int max = this.fauna.getInt(maxKey, defMax);
@@ -403,6 +455,9 @@ public final class StableBarnService implements Listener {
         return ThreadLocalRandom.current().nextInt(min, max + 1);
     }
 
+    /**
+     * 启动（或重置）冬季任务（当前为空实现）。
+     */
     private void startWinterTask() {
         if (this.winterTask != null) {
             this.winterTask.cancel();
@@ -411,6 +466,9 @@ public final class StableBarnService implements Listener {
         this.winterTask = null;
     }
 
+    /**
+     * 启动马匹扫描任务，分批更新每匹马的耐力与亲密度。
+     */
     private void startHorseTask() {
         if (this.horseTask != null) {
             this.horseTask.cancel();
@@ -447,6 +505,9 @@ public final class StableBarnService implements Listener {
         }
     }
 
+    /**
+     * 更新单匹马的耐力：骑乘/移动消耗、静止与谷仓恢复，并处理疲惫减速与回血。
+     */
     private void tickHorse(Horse h) {
         PersistentDataContainer pdc = h.getPersistentDataContainer();
         double max = this.fauna.getDouble("horse_stable.stamina.max", (double)100.0F);
@@ -457,7 +518,7 @@ public final class StableBarnService implements Listener {
         double recTh = this.fauna.getDouble("horse_stable.stamina.recover_threshold", (double)35.0F);
         double tiredMul = this.fauna.getDouble("horse_stable.stamina.tired_speed_multiplier", 0.7);
         double stamina = (Double)pdc.getOrDefault(this.HORSE_STAMINA, PersistentDataType.DOUBLE, max);
-        boolean ridden = h.getPassengers().stream().anyMatch((px) -> px instanceof Player);
+        boolean ridden = h.getPassengers().stream().anyMatch((passenger) -> passenger instanceof Player);
         boolean moving = h.getVelocity().lengthSquared() > 0.01;
         boolean inBarn = this.isInBarn(h.getLocation());
         if (ridden) {
@@ -481,9 +542,9 @@ public final class StableBarnService implements Listener {
             this.applyTiredSpeed(h, tiredMul);
             pdc.set(this.HORSE_TIRED, PersistentDataType.BYTE, (byte)1);
 
-            for(Entity p : h.getPassengers()) {
-                if (p instanceof Player) {
-                    Player pl = (Player)p;
+            for(Entity passenger : h.getPassengers()) {
+                if (passenger instanceof Player) {
+                    Player pl = (Player)passenger;
                     pl.sendMessage(color(this.plugin.lang.tr(pl, "fauna.horse.tired")));
                     break;
                 }
@@ -508,6 +569,9 @@ public final class StableBarnService implements Listener {
         this.tickHorseAffinity(h, ridden, moving, inBarn);
     }
 
+    /**
+     * 更新单匹马的亲密度并根据进度应用属性加成。
+     */
     private void tickHorseAffinity(Horse h, boolean ridden, boolean moving, boolean inBarn) {
         if (this.fauna.getBoolean("horse_stable.affinity.enabled", true)) {
             PersistentDataContainer pdc = h.getPersistentDataContainer();
@@ -545,6 +609,9 @@ public final class StableBarnService implements Listener {
         }
     }
 
+    /**
+     * 当亲密度跨越阈值时，向骑手播报并播放粒子音效。
+     */
     private void maybeNotifyHorseAffinity(Horse h, double affinity, double notifyEvery) {
         PersistentDataContainer pdc = h.getPersistentDataContainer();
         int step = (int)Math.floor(affinity / notifyEvery);
@@ -558,8 +625,8 @@ public final class StableBarnService implements Listener {
             for(Entity passenger : h.getPassengers()) {
                 if (passenger instanceof Player) {
                     Player player = (Player)passenger;
-                    String var10001 = this.trimDouble(affinity);
-                    player.sendMessage(color("&d❤ Afinidad del caballo: &f" + var10001));
+                    String affinityText = this.trimDouble(affinity);
+                    player.sendMessage(color("&d❤ Afinidad del caballo: &f" + affinityText));
                     break;
                 }
             }
@@ -567,6 +634,9 @@ public final class StableBarnService implements Listener {
 
     }
 
+    /**
+     * 按亲密度进度为马匹施加/更新速度与生命上限修饰符。
+     */
     private void applyHorseAffinityBonuses(Horse h, double progress) {
         progress = this.clamp(progress, (double)0.0F, (double)1.0F);
         double speedBonusAtMax = Math.max((double)0.0F, this.fauna.getDouble("horse_stable.affinity.speed_bonus_at_max", 0.12));
@@ -599,6 +669,9 @@ public final class StableBarnService implements Listener {
 
     }
 
+    /**
+     * 为疲惫的马匹施加移动速度减速修饰符。
+     */
     private void applyTiredSpeed(Horse h, double multiplier) {
         AttributeInstance a = h.getAttribute(Attribute.MOVEMENT_SPEED);
         if (a != null) {
@@ -609,6 +682,9 @@ public final class StableBarnService implements Listener {
         }
     }
 
+    /**
+     * 移除马匹的疲惫减速修饰符。
+     */
     private void clearTiredSpeed(Horse h) {
         AttributeInstance a = h.getAttribute(Attribute.MOVEMENT_SPEED);
         if (a != null) {
@@ -616,6 +692,9 @@ public final class StableBarnService implements Listener {
         }
     }
 
+    /**
+     * 移除属性上指定 UUID 的全部修饰符。
+     */
     private void removeModifier(AttributeInstance attr, UUID uuid) {
         for(AttributeModifier mod : new ArrayList<>(attr.getModifiers())) {
             if (uuid.equals(mod.getUniqueId())) {
@@ -625,6 +704,9 @@ public final class StableBarnService implements Listener {
 
     }
 
+    /**
+     * 启动动物 AI 任务：按季节让动物向庇护/阴凉处移动。
+     */
     private void startAiTask() {
         if (this.aiTask != null) {
             this.aiTask.cancel();
@@ -669,6 +751,9 @@ public final class StableBarnService implements Listener {
         }
     }
 
+    /**
+     * 动物 AI：冬季寻找庇护、夏季白昼寻找阴凉并朝目标轻微移动。
+     */
     private void tickAnimalAI(Animals a, Season season) {
         boolean winterSeek = this.fauna.getBoolean("fauna_ai.winter_seek_shelter", true);
         boolean summerSeek = this.fauna.getBoolean("fauna_ai.summer_seek_shade", true);
@@ -697,6 +782,9 @@ public final class StableBarnService implements Listener {
         }
     }
 
+    /**
+     * 在附近随机采样寻找有顶棚的位置，评分时优先谷仓且偏好较近者。
+     */
     private Location findShelterSpot(Location origin, int radius, int samples, boolean preferBarn) {
         World w = origin.getWorld();
         if (w == null) {
@@ -732,6 +820,9 @@ public final class StableBarnService implements Listener {
         }
     }
 
+    /**
+     * 朝目标方向给动物施加一个受限的水平速度推挤。
+     */
     private void nudgeTowards(Animals a, Location target, double strength) {
         if (target != null) {
             Location loc = a.getLocation();
@@ -745,18 +836,30 @@ public final class StableBarnService implements Listener {
         }
     }
 
+    /**
+     * 把数值限制在 [min,max] 区间。
+     */
     private double clamp(double v, double min, double max) {
         return Math.max(min, Math.min(max, v));
     }
 
-    private double clamp01(double v) {
-        return this.clamp(v, (double)0.0F, (double)1.0F);
+    /**
+     * 把数值限制在 [0,1] 区间。
+     */
+    private double clamp01(double value) {
+        return this.clamp(value, (double)0.0F, (double)1.0F);
     }
 
+    /**
+     * 把数值格式化为保留一位小数的字符串。
+     */
     private String trimDouble(double value) {
         return String.format(Locale.US, "%.1f", value);
     }
 
+    /**
+     * 通过反射从插件中解析当前季节（兼容多种方法/字段命名）。
+     */
     private Season currentSeason() {
         try {
             for(String m : List.of("getSeasons", "getSeasonService", "seasons", "seasonService")) {
@@ -767,10 +870,10 @@ public final class StableBarnService implements Listener {
                     if (s != null) {
                         return s;
                     }
-                } catch (NoSuchMethodException var7) {
+                } catch (NoSuchMethodException ignoredNoMethod) {
                 }
             }
-        } catch (Throwable var9) {
+        } catch (Throwable ignoredOuterThrowable) {
         }
 
         try {
@@ -783,15 +886,18 @@ public final class StableBarnService implements Listener {
                     if (s != null) {
                         return s;
                     }
-                } catch (NoSuchFieldException var6) {
+                } catch (NoSuchFieldException ignoredNoField) {
                 }
             }
-        } catch (Throwable var8) {
+        } catch (Throwable ignoredFieldThrowable) {
         }
 
         return null;
     }
 
+    /**
+     * 从季节服务对象上通过反射调用并解析当前季节。
+     */
     private Season seasonFromService(Object service) {
         if (service == null) {
             return null;
@@ -805,7 +911,7 @@ public final class StableBarnService implements Listener {
                             Season s = (Season)out;
                             return s;
                         }
-                    } catch (NoSuchMethodException var8) {
+                    } catch (NoSuchMethodException ignoredWorldMethod) {
                     }
 
                     try {
@@ -815,10 +921,10 @@ public final class StableBarnService implements Listener {
                             Season s = (Season)out2;
                             return s;
                         }
-                    } catch (NoSuchMethodException var7) {
+                    } catch (NoSuchMethodException ignoredNoArgMethod) {
                     }
                 }
-            } catch (Throwable var9) {
+            } catch (Throwable ignoredOuter) {
             }
 
             return null;

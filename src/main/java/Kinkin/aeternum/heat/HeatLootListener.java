@@ -24,6 +24,13 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.EnchantmentStorageMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 
+/**
+ * 炎热世界战利品监听器。
+ *
+ * <p>当炎热世界（默认 {@code aeternum_heat}，可通过 {@code heat_loot.worlds} 配置）中的容器
+ * 生成战利品时，清空原版战利品并替换为高等级附魔装备/材料等自定义战利品。
+ * 掉落数量、装备池与附魔等级等均由配置项控制，并复用全局附魔等级上限设置。</p>
+ */
 public final class HeatLootListener implements Listener {
     private static final String DEFAULT_HEAT_WORLD = "aeternum_heat";
     private final AeternumSeasonsPlugin plugin;
@@ -42,19 +49,20 @@ public final class HeatLootListener implements Listener {
         HandlerList.unregisterAll(this);
     }
 
+    /** 监听战利品生成，将炎热世界容器的战利品替换为自定义战利品。 */
     @EventHandler(
         ignoreCancelled = true,
         priority = EventPriority.HIGHEST
     )
-    public void onLoot(LootGenerateEvent e) {
+    public void onLoot(LootGenerateEvent event) {
         if (this.plugin.getConfig().getBoolean("heat_loot.enabled", true)) {
-            Location loc = e.getLootContext().getLocation();
-            if (loc != null) {
-                World w = loc.getWorld();
-                if (w != null) {
-                    if (this.isHeatWorld(w.getName())) {
-                        if (e.getInventoryHolder() instanceof Container) {
-                            List<ItemStack> loot = e.getLoot();
+            Location location = event.getLootContext().getLocation();
+            if (location != null) {
+                World world = location.getWorld();
+                if (world != null) {
+                    if (this.isHeatWorld(world.getName())) {
+                        if (event.getInventoryHolder() instanceof Container) {
+                            List<ItemStack> loot = event.getLoot();
                             loot.clear();
                             int minItems = this.plugin.getConfig().getInt("heat_loot.items_per_chest.min", 3);
                             int maxItems = this.plugin.getConfig().getInt("heat_loot.items_per_chest.max", 6);
@@ -71,11 +79,12 @@ public final class HeatLootListener implements Listener {
         }
     }
 
+    /** 判断世界名是否属于配置的炎热世界集合（未配置时回退默认世界名）。 */
     private boolean isHeatWorld(String worldName) {
         List<String> worlds = this.plugin.getConfig().getStringList("heat_loot.worlds");
         if (worlds != null && !worlds.isEmpty()) {
-            for(String s : worlds) {
-                if (s != null && !s.isBlank() && worldName.equalsIgnoreCase(s.trim())) {
+            for(String worldEntry : worlds) {
+                if (worldEntry != null && !worldEntry.isBlank() && worldName.equalsIgnoreCase(worldEntry.trim())) {
                     return true;
                 }
             }
@@ -86,15 +95,16 @@ public final class HeatLootListener implements Listener {
         }
     }
 
+    /** 从配置的装备池中随机生成一件（或附魔书）战利品。 */
     private ItemStack generateHeatLoot() {
         List<String> poolCfg = this.plugin.getConfig().getStringList("heat_loot.gear_pool");
         List<Material> pool = new ArrayList();
         if (poolCfg != null && !poolCfg.isEmpty()) {
-            for(String s : poolCfg) {
-                if (s != null) {
+            for(String entry : poolCfg) {
+                if (entry != null) {
                     try {
-                        pool.add(Material.valueOf(s.trim().toUpperCase(Locale.ROOT)));
-                    } catch (IllegalArgumentException var6) {
+                        pool.add(Material.valueOf(entry.trim().toUpperCase(Locale.ROOT)));
+                    } catch (IllegalArgumentException ignored) {
                     }
                 }
             }
@@ -104,13 +114,13 @@ public final class HeatLootListener implements Listener {
             pool = Arrays.asList(Material.DIAMOND_SWORD, Material.DIAMOND_PICKAXE, Material.DIAMOND_AXE, Material.DIAMOND_CHESTPLATE, Material.DIAMOND_LEGGINGS, Material.DIAMOND_HELMET, Material.DIAMOND_BOOTS, Material.NETHERITE_SCRAP, Material.NETHERITE_INGOT, Material.ENCHANTED_GOLDEN_APPLE, Material.BOOK);
         }
 
-        Material m = (Material)pool.get(this.random.nextInt(pool.size()));
+        Material material = (Material)pool.get(this.random.nextInt(pool.size()));
         ItemStack item;
-        if (m == Material.BOOK) {
+        if (material == Material.BOOK) {
             item = this.createCrazyBook();
         } else {
-            item = new ItemStack(m);
-            if (m == Material.NETHERITE_SCRAP || m == Material.NETHERITE_INGOT || m == Material.ENCHANTED_GOLDEN_APPLE) {
+            item = new ItemStack(material);
+            if (material == Material.NETHERITE_SCRAP || material == Material.NETHERITE_INGOT || material == Material.ENCHANTED_GOLDEN_APPLE) {
                 return item;
             }
 
@@ -120,6 +130,7 @@ public final class HeatLootListener implements Listener {
         return item;
     }
 
+    /** 依装备类型为其添加若干高等级附魔（受配置数量与等级上限约束）。 */
     private void addHighLevelEnchants(ItemStack item) {
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
@@ -188,6 +199,7 @@ public final class HeatLootListener implements Listener {
         }
     }
 
+    /** 生成一本附带多条高等级附魔的“疯狂附魔书”。 */
     private ItemStack createCrazyBook() {
         ItemStack book = new ItemStack(Material.ENCHANTED_BOOK);
         ItemMeta rawMeta = book.getItemMeta();
@@ -224,6 +236,7 @@ public final class HeatLootListener implements Listener {
         }
     }
 
+    /** 按全局附魔上限（含按附魔键覆盖）裁剪期望等级。 */
     private int capEnchantLevel(Enchantment ench, int desired) {
         if (!this.plugin.getConfig().getBoolean("enchants.caps.enabled", true)) {
             return desired;
@@ -242,6 +255,7 @@ public final class HeatLootListener implements Listener {
         }
     }
 
+    /** 读取某附魔的覆盖上限配置（支持完整键、小写简单键与大写简单键）。 */
     private Integer readOverrideCap(Enchantment ench) {
         ConfigurationSection sec = this.plugin.getConfig().getConfigurationSection("enchants.caps.overrides");
         if (sec == null) {
@@ -262,11 +276,12 @@ public final class HeatLootListener implements Listener {
         }
     }
 
+    /** 返回 [min, max] 区间内的随机整数（会自动纠正颠倒的边界）。 */
     private int randBetween(int min, int max) {
         if (max < min) {
-            int t = min;
+            int temp = min;
             min = max;
-            max = t;
+            max = temp;
         }
 
         return min == max ? min : min + this.random.nextInt(max - min + 1);

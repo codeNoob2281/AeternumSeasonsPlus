@@ -5,11 +5,24 @@ import java.util.function.UnaryOperator;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
+/**
+ * 村民作物库存整理工具。
+ *
+ * <p>遍历村民背包中的物品，用给定的“规范化”函数（{@link UnaryOperator}）将每个物品转换为
+ * 规范形式，并将可以被合并的同类堆叠合并到靠前的槽位中。整个过程不改变无法识别的物品。</p>
+ */
 final class VillagerCropInventory {
     VillagerCropInventory() {
         super();
     }
 
+    /**
+     * 规范化并合并库存中的物品。
+     *
+     * @param inventory 目标库存
+     * @param canonicalize 将单个物品转换为规范形式；返回 null 表示保留原物品
+     * @return 若库存内容发生改变则返回 true
+     */
     static boolean normalize(Inventory inventory, UnaryOperator<ItemStack> canonicalize) {
         ItemStack[] original = inventory.getContents();
         ItemStack[] result = original.clone();

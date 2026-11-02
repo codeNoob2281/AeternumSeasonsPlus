@@ -15,6 +15,15 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
 
+/**
+ * 生物群系伪装下的自然生成守卫（BiomeSpoofSpawnGuard）。
+ *
+ * <p>生物群系伪装会让服务端看到被替换后的群系，可能使本不该出现的生物（如丛林豹猫、雪原北极熊等）
+ * 在自然生成时出现在错误环境。本监听器在主世界自然/区块生成生物时，查询该位置的“原始真实群系”，
+ * 若该生物不属于原始群系的栖息地，则取消这次生成，从而让伪装只影响视觉而不破坏生态生成。</p>
+ *
+ * <p>依赖 {@link BiomeSpoofAdapter} 提供的原始群系近似查询，以及 Bukkit 事件系统。</p>
+ */
 public final class BiomeSpoofSpawnGuard implements Listener {
     private final AeternumSeasonsPlugin plugin;
     private final BiomeSpoofAdapter spoof;
@@ -26,18 +35,24 @@ public final class BiomeSpoofSpawnGuard implements Listener {
         this.spoof = spoof;
     }
 
+    /** 启用或停用本守卫。 */
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
     }
 
+    /** 向 Bukkit 注册本监听器。 */
     public void register() {
         Bukkit.getPluginManager().registerEvents(this, this.plugin);
     }
 
+    /** 从 Bukkit 注销本监听器。 */
     public void unregister() {
         HandlerList.unregisterAll(this);
     }
 
+    /**
+     * 监听生物生成：对受群系限制的自然/区块生成生物，若其原始群系并非其栖息地则取消生成。
+     */
     @EventHandler(
         priority = EventPriority.HIGH,
         ignoreCancelled = true
@@ -62,8 +77,9 @@ public final class BiomeSpoofSpawnGuard implements Listener {
         }
     }
 
+    /** 判断该生物类型是否属于需要按群系限制的自然生成生物。 */
     private boolean hasBiomeRestrictedNaturalSpawn(EntityType type) {
-        boolean var10000;
+        boolean restricted;
         switch (type) {
             case OCELOT:
             case PARROT:
@@ -81,69 +97,70 @@ public final class BiomeSpoofSpawnGuard implements Listener {
             case STRAY:
             case BOGGED:
             case DROWNED:
-                var10000 = true;
+                restricted = true;
                 break;
             default:
-                var10000 = false;
+                restricted = false;
         }
 
-        return var10000;
+        return restricted;
     }
 
+    /** 判断给定生物类型是否栖息于给定原始群系（群系名做关键词匹配）。 */
     public static boolean isOriginalHabitat(EntityType type, Biome biome) {
         if (biome == null) {
             return false;
         } else {
             String name = biome.name().toUpperCase(Locale.ROOT);
-            boolean var10000;
+            boolean habitat;
             switch (type) {
                 case OCELOT:
                 case PARROT:
                 case PANDA:
-                    var10000 = name.contains("JUNGLE");
+                    habitat = name.contains("JUNGLE");
                     break;
                 case MOOSHROOM:
-                    var10000 = name.equals("MUSHROOM_FIELDS");
+                    habitat = name.equals("MUSHROOM_FIELDS");
                     break;
                 case POLAR_BEAR:
-                    var10000 = name.equals("SNOWY_PLAINS") || name.equals("ICE_SPIKES") || name.contains("FROZEN_OCEAN");
+                    habitat = name.equals("SNOWY_PLAINS") || name.equals("ICE_SPIKES") || name.contains("FROZEN_OCEAN");
                     break;
                 case GOAT:
-                    var10000 = name.equals("SNOWY_SLOPES") || name.equals("JAGGED_PEAKS") || name.equals("FROZEN_PEAKS");
+                    habitat = name.equals("SNOWY_SLOPES") || name.equals("JAGGED_PEAKS") || name.equals("FROZEN_PEAKS");
                     break;
                 case FROG:
                 case BOGGED:
-                    var10000 = name.contains("SWAMP") || name.contains("MANGROVE");
+                    habitat = name.contains("SWAMP") || name.contains("MANGROVE");
                     break;
                 case AXOLOTL:
-                    var10000 = name.equals("LUSH_CAVES");
+                    habitat = name.equals("LUSH_CAVES");
                     break;
                 case TROPICAL_FISH:
-                    var10000 = name.equals("LUSH_CAVES") || name.contains("WARM_OCEAN") || name.contains("LUKEWARM_OCEAN");
+                    habitat = name.equals("LUSH_CAVES") || name.contains("WARM_OCEAN") || name.contains("LUKEWARM_OCEAN");
                     break;
                 case PUFFERFISH:
-                    var10000 = name.contains("WARM_OCEAN") || name.contains("LUKEWARM_OCEAN");
+                    habitat = name.contains("WARM_OCEAN") || name.contains("LUKEWARM_OCEAN");
                     break;
                 case TURTLE:
-                    var10000 = name.contains("BEACH");
+                    habitat = name.contains("BEACH");
                     break;
                 case ARMADILLO:
-                    var10000 = name.contains("SAVANNA") || name.contains("BADLANDS");
+                    habitat = name.contains("SAVANNA") || name.contains("BADLANDS");
                     break;
                 case HUSK:
-                    var10000 = name.contains("DESERT");
+                    habitat = name.contains("DESERT");
                     break;
                 case STRAY:
-                    var10000 = name.contains("SNOW") || name.contains("FROZEN") || name.equals("ICE_SPIKES") || name.equals("GROVE");
+                    habitat = name.contains("SNOW") || name.contains("FROZEN") || name.equals("ICE_SPIKES") || name.equals("GROVE");
                     break;
                 case DROWNED:
-                    var10000 = name.contains("OCEAN") || name.contains("RIVER");
+                    habitat = name.contains("OCEAN") || name.contains("RIVER");
                     break;
                 default:
-                    var10000 = true;
+                    habitat = true;
             }
 
-            return var10000;
+            return habitat;
         }
     }
 }

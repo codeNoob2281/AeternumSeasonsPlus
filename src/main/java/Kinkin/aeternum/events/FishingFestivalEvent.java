@@ -24,16 +24,34 @@ import org.bukkit.event.player.PlayerFishEvent.State;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.EnchantmentStorageMeta;
 
+/**
+ * 钓鱼节事件（Fishing Festival）。
+ *
+ * <p>每年最多触发若干次。事件期间，玩家主世界钓鱼成功时有几率获得：
+ * <ul>
+ *     <li>额外的“宝藏”掉落（附魔书、矿石、海产、附魔钓竿等）；</li>
+ *     <li>双倍渔获。</li>
+ * </ul>
+ * 附魔“海之眷顾”与“诱饵”会按等级提升宝藏概率与双倍概率；触发时会有水花粒子与音效。</p>
+ */
 public final class FishingFestivalEvent implements SeasonalEvent {
     private final AeternumSeasonsPlugin plugin;
     private boolean enabled;
+    /** 是否启用全局粒子特效。 */
     private boolean globalParticlesEnabled;
+    /** 事件最短持续天数。 */
     private int minDur;
+    /** 事件最长持续天数。 */
     private int maxDur;
+    /** 每天触发事件的基础概率。 */
     private double baseChance;
+    /** 每年最多触发次数。 */
     private int maxPerYear;
+    /** 触发额外宝藏的概率。 */
     private double treasureChance;
+    /** 触发双倍渔获的概率。 */
     private double doubleCatchChance;
+    /** 记录每年已触发次数。 */
     private final Map<Integer, Integer> usedPerYear = new HashMap();
 
     public FishingFestivalEvent(AeternumSeasonsPlugin plugin) {
@@ -42,16 +60,17 @@ public final class FishingFestivalEvent implements SeasonalEvent {
         this.reloadFromConfig();
     }
 
+    /** 从 events.yml 重新读取本事件的配置项。 */
     private void reloadFromConfig() {
-        FileConfiguration y = YamlEvents.get(this.plugin);
-        this.enabled = y.getBoolean("events.fishing.enabled", true);
-        this.globalParticlesEnabled = y.getBoolean("events.visual_effects.particles_enabled", true);
-        this.minDur = y.getInt("events.fishing.min_duration_days", 1);
-        this.maxDur = y.getInt("events.fishing.max_duration_days", 2);
-        this.baseChance = y.getDouble("events.fishing.base_chance_per_day", 0.1);
-        this.maxPerYear = y.getInt("events.fishing.max_per_year", 3);
-        this.treasureChance = y.getDouble("events.fishing.treasure_chance", 0.4);
-        this.doubleCatchChance = y.getDouble("events.fishing.double_catch_chance", 0.35);
+        FileConfiguration config = YamlEvents.get(this.plugin);
+        this.enabled = config.getBoolean("events.fishing.enabled", true);
+        this.globalParticlesEnabled = config.getBoolean("events.visual_effects.particles_enabled", true);
+        this.minDur = config.getInt("events.fishing.min_duration_days", 1);
+        this.maxDur = config.getInt("events.fishing.max_duration_days", 2);
+        this.baseChance = config.getDouble("events.fishing.base_chance_per_day", 0.1);
+        this.maxPerYear = config.getInt("events.fishing.max_per_year", 3);
+        this.treasureChance = config.getDouble("events.fishing.treasure_chance", 0.4);
+        this.doubleCatchChance = config.getDouble("events.fishing.double_catch_chance", 0.35);
     }
 
     public String getId() {
@@ -74,11 +93,12 @@ public final class FishingFestivalEvent implements SeasonalEvent {
         return this.maxDur;
     }
 
-    public boolean canStartToday(CalendarState st, EventContext ctx) {
+    /** 判定是否可开始：已启用、本年次数未超上限且通过基础概率。 */
+    public boolean canStartToday(CalendarState state, EventContext context) {
         if (!this.enabled) {
             return false;
         } else {
-            int used = (Integer)this.usedPerYear.getOrDefault(st.year, 0);
+            int used = (Integer)this.usedPerYear.getOrDefault(state.year, 0);
             if (used >= this.maxPerYear) {
                 return false;
             } else {
@@ -87,44 +107,47 @@ public final class FishingFestivalEvent implements SeasonalEvent {
         }
     }
 
-    public void onStart(CalendarState st, EventContext ctx) {
-        this.usedPerYear.put(st.year, (Integer)this.usedPerYear.getOrDefault(st.year, 0) + 1);
+    /** 事件开始：累计本年触发次数，并向全服玩家发送标题。 */
+    public void onStart(CalendarState state, EventContext context) {
+        this.usedPerYear.put(state.year, (Integer)this.usedPerYear.getOrDefault(state.year, 0) + 1);
 
-        for(Player p : Bukkit.getOnlinePlayers()) {
-            String title = this.plugin.lang.tr(p, "event.fishing.title");
-            String sub = this.plugin.lang.tr(p, "event.fishing.subtitle");
-            p.sendTitle(title, sub, 20, 80, 40);
+        for(Player player : Bukkit.getOnlinePlayers()) {
+            String title = this.plugin.lang.tr(player, "event.fishing.title");
+            String sub = this.plugin.lang.tr(player, "event.fishing.subtitle");
+            player.sendTitle(title, sub, 20, 80, 40);
         }
 
     }
 
-    public void onEnd(CalendarState st, EventContext ctx) {
-        for(Player p : Bukkit.getOnlinePlayers()) {
-            p.sendMessage(this.plugin.lang.tr(p, "event.fishing.end"));
+    /** 事件结束：向全服玩家发送结束提示。 */
+    public void onEnd(CalendarState state, EventContext context) {
+        for(Player player : Bukkit.getOnlinePlayers()) {
+            player.sendMessage(this.plugin.lang.tr(player, "event.fishing.end"));
         }
 
     }
 
-    public void onDayTick(CalendarState st, EventContext ctx) {
+    public void onDayTick(CalendarState state, EventContext context) {
     }
 
-    public void onTick(CalendarState st, EventContext ctx) {
+    public void onTick(CalendarState state, EventContext context) {
     }
 
+    /** 监听钓鱼成功：按概率给予额外宝藏与双倍渔获，并播放特效。 */
     @EventHandler
-    public void onFish(PlayerFishEvent e) {
-        if (e.getState() == State.CAUGHT_FISH) {
-            Player p = e.getPlayer();
-            if (p.getWorld().getEnvironment() == Environment.NORMAL) {
+    public void onFish(PlayerFishEvent event) {
+        if (event.getState() == State.CAUGHT_FISH) {
+            Player player = event.getPlayer();
+            if (player.getWorld().getEnvironment() == Environment.NORMAL) {
                 if (this.globalParticlesEnabled) {
-                    p.getWorld().spawnParticle(Particle.SPLASH, e.getHook().getLocation(), 16, 0.35, 0.12, 0.35, 0.03);
+                    player.getWorld().spawnParticle(Particle.SPLASH, event.getHook().getLocation(), 16, 0.35, 0.12, 0.35, 0.03);
                 }
 
-                Entity caught = e.getCaught();
+                Entity caught = event.getCaught();
                 if (caught instanceof Item) {
                     Item item = (Item)caught;
                     ItemStack original = item.getItemStack().clone();
-                    ItemStack rod = this.getFishingRod(p);
+                    ItemStack rod = this.getFishingRod(player);
                     int luck = 0;
                     int lure = 0;
                     if (rod != null) {
@@ -140,14 +163,14 @@ public final class FishingFestivalEvent implements SeasonalEvent {
                     boolean goodRod = luck + lure >= 2;
                     if (Math.random() < treasureEffChance) {
                         ItemStack treasure = this.randomTreasure(goodRod);
-                        p.getInventory().addItem(new ItemStack[]{treasure});
-                        p.playSound(p.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 0.6F, 1.5F);
+                        player.getInventory().addItem(new ItemStack[]{treasure});
+                        player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 0.6F, 1.5F);
                         didSomething = true;
                     }
 
                     if (Math.random() < doubleEffChance) {
-                        p.getInventory().addItem(new ItemStack[]{original});
-                        p.playSound(p.getLocation(), Sound.ENTITY_FISHING_BOBBER_RETRIEVE, 0.7F, 1.2F);
+                        player.getInventory().addItem(new ItemStack[]{original});
+                        player.playSound(player.getLocation(), Sound.ENTITY_FISHING_BOBBER_RETRIEVE, 0.7F, 1.2F);
                         didSomething = true;
                     }
 
@@ -160,52 +183,55 @@ public final class FishingFestivalEvent implements SeasonalEvent {
         }
     }
 
-    private ItemStack getFishingRod(Player p) {
-        ItemStack main = p.getInventory().getItemInMainHand();
+    /** 获取玩家主手或副手中的钓鱼竿，没有则返回 null。 */
+    private ItemStack getFishingRod(Player player) {
+        ItemStack main = player.getInventory().getItemInMainHand();
         if (main != null && main.getType() == Material.FISHING_ROD) {
             return main;
         } else {
-            ItemStack off = p.getInventory().getItemInOffHand();
+            ItemStack off = player.getInventory().getItemInOffHand();
             return off != null && off.getType() == Material.FISHING_ROD ? off : null;
         }
     }
 
+    /** 依据概率与钓竿品质随机生成一份“宝藏”物品。 */
     private ItemStack randomTreasure(boolean goodRod) {
-        double r = Math.random();
+        double roll = Math.random();
         ThreadLocalRandom rng = ThreadLocalRandom.current();
         if (!goodRod) {
-            if (r < 0.4) {
+            if (roll < 0.4) {
                 return new ItemStack(Material.EXPERIENCE_BOTTLE, rng.nextInt(3, 7));
-            } else if (r < (double)0.75F) {
+            } else if (roll < (double)0.75F) {
                 return Math.random() < 0.6 ? new ItemStack(Material.NAUTILUS_SHELL, 1) : new ItemStack(Material.NAME_TAG, 1);
-            } else if (r < 0.9) {
+            } else if (roll < 0.9) {
                 return Math.random() < 0.7 ? new ItemStack(Material.EMERALD, rng.nextInt(1, 4)) : new ItemStack(Material.DIAMOND, 1);
             } else {
                 return Math.random() < 0.7 ? new ItemStack(Material.SADDLE, 1) : new ItemStack(Material.BONE_BLOCK, rng.nextInt(1, 3));
             }
-        } else if (r < 0.1) {
+        } else if (roll < 0.1) {
             return this.randomBlockOre(rng);
-        } else if (r < 0.3) {
+        } else if (roll < 0.3) {
             return this.randomValuableBook(rng);
-        } else if (r < (double)0.5F) {
+        } else if (roll < (double)0.5F) {
             return this.randomSeaStuff(rng);
-        } else if (r < 0.65) {
+        } else if (roll < 0.65) {
             return this.randomOreTreasure(rng);
-        } else if (r < 0.8) {
+        } else if (roll < 0.8) {
             return Math.random() < 0.8 ? this.randomEnchantedRod(rng) : new ItemStack(Material.HEART_OF_THE_SEA, 1);
         } else {
             return Math.random() < 0.6 ? new ItemStack(Material.EXPERIENCE_BOTTLE, rng.nextInt(6, 12)) : new ItemStack(Material.NAUTILUS_SHELL, rng.nextInt(1, 3));
         }
     }
 
+    /** 随机生成矿石类宝藏。 */
     private ItemStack randomOreTreasure(ThreadLocalRandom rng) {
-        double r = Math.random();
-        if (r < 0.45) {
+        double roll = Math.random();
+        if (roll < 0.45) {
             return new ItemStack(Material.DIAMOND, rng.nextInt(1, 3));
-        } else if (r < (double)0.75F) {
+        } else if (roll < (double)0.75F) {
             Material metal = rng.nextBoolean() ? Material.IRON_INGOT : Material.GOLD_INGOT;
             return new ItemStack(metal, rng.nextInt(5, 13));
-        } else if (r < 0.9) {
+        } else if (roll < 0.9) {
             return new ItemStack(Material.NETHERITE_SCRAP, 1);
         } else {
             Material block = rng.nextBoolean() ? Material.REDSTONE_BLOCK : Material.LAPIS_BLOCK;
@@ -213,6 +239,7 @@ public final class FishingFestivalEvent implements SeasonalEvent {
         }
     }
 
+    /** 随机生成矿石方块类宝藏。 */
     private ItemStack randomBlockOre(ThreadLocalRandom rng) {
         if (Math.random() < 0.15) {
             return new ItemStack(Material.ANCIENT_DEBRIS, 1);
@@ -223,15 +250,16 @@ public final class FishingFestivalEvent implements SeasonalEvent {
         }
     }
 
+    /** 随机生成海洋类宝藏（海绵、海晶石、海晶灯、珊瑚块）。 */
     private ItemStack randomSeaStuff(ThreadLocalRandom rng) {
-        double r = Math.random();
-        if (r < 0.35) {
+        double roll = Math.random();
+        if (roll < 0.35) {
             Material sponge = Math.random() < 0.7 ? Material.SPONGE : Material.WET_SPONGE;
             return new ItemStack(sponge, 1);
-        } else if (r < 0.65) {
+        } else if (roll < 0.65) {
             Material prismarine = Math.random() < (double)0.5F ? Material.PRISMARINE : Material.DARK_PRISMARINE;
             return new ItemStack(prismarine, rng.nextInt(5, 11));
-        } else if (r < 0.85) {
+        } else if (roll < 0.85) {
             return new ItemStack(Material.SEA_LANTERN, rng.nextInt(1, 4));
         } else {
             Material[] corals = new Material[]{Material.TUBE_CORAL_BLOCK, Material.BRAIN_CORAL_BLOCK, Material.BUBBLE_CORAL_BLOCK, Material.FIRE_CORAL_BLOCK};
@@ -240,6 +268,7 @@ public final class FishingFestivalEvent implements SeasonalEvent {
         }
     }
 
+    /** 随机生成一本附魔书（可能包含多个附魔）。 */
     private ItemStack randomValuableBook(ThreadLocalRandom rng) {
         ItemStack book = new ItemStack(Material.ENCHANTED_BOOK);
         EnchantmentStorageMeta meta = (EnchantmentStorageMeta)book.getItemMeta();
@@ -258,7 +287,7 @@ public final class FishingFestivalEvent implements SeasonalEvent {
             enchantmentLevels.put(Enchantment.PROTECTION, new int[]{1, 4});
             enchantmentLevels.put(Enchantment.PROJECTILE_PROTECTION, new int[]{1, 4});
             enchantmentLevels.put(Enchantment.VANISHING_CURSE, new int[]{1, 1});
-            List<Enchantment> availableEnchants = (List)enchantmentLevels.keySet().stream().filter((e) -> !e.equals(Enchantment.MENDING)).collect(Collectors.toList());
+            List<Enchantment> availableEnchants = (List)enchantmentLevels.keySet().stream().filter((enchantment) -> !enchantment.equals(Enchantment.MENDING)).collect(Collectors.toList());
             if (Math.random() < 0.15) {
                 meta.addStoredEnchant(Enchantment.MENDING, 1, true);
             }
@@ -291,6 +320,7 @@ public final class FishingFestivalEvent implements SeasonalEvent {
         }
     }
 
+    /** 随机生成一把附魔钓鱼竿。 */
     private ItemStack randomEnchantedRod(ThreadLocalRandom rng) {
         ItemStack rod = new ItemStack(Material.FISHING_ROD);
         int luckLvl = rng.nextInt(1, 3);

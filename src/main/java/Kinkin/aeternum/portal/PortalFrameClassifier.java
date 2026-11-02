@@ -9,11 +9,20 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Orientable;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * 传送门框架材质分类器。
+ *
+ * <p>通过统计传送门包围盒四周方块的组成，将门分为原版（黑曜石）、
+ * 霜原（萤石）、炽热（下界疣块）以及两者混合的自定义门，或未知类型。
+ * 同时提供在指定位置附近查找最近传送门方块、计算传送落点与读取朝向的工具，
+ * 被 {@link VanillaPortalIsolation} 等逻辑复用。</p>
+ */
 final class PortalFrameClassifier {
     private PortalFrameClassifier() {
         super();
     }
 
+    /** 分类给定传送门方块的框架类型；无法识别时返回 {@link Type#UNKNOWN}。 */
     static Type classify(@Nullable Block portalBlock) {
         Bounds bounds = bounds(portalBlock);
         if (bounds == null) {
@@ -73,6 +82,7 @@ final class PortalFrameClassifier {
         }
     }
 
+    /** 在给定位置周围指定半径内查找距离最近的传送门方块。 */
     static @Nullable Block findPortalBlock(Location location, int radius) {
         World world = location.getWorld();
         if (world == null) {
@@ -103,6 +113,7 @@ final class PortalFrameClassifier {
         }
     }
 
+    /** 依据传送门包围盒计算其中心落点（门内中心略高于底部）。 */
     static @Nullable Location teleportLocation(@Nullable Block portalBlock) {
         Bounds bounds = bounds(portalBlock);
         if (bounds == null) {
@@ -114,11 +125,12 @@ final class PortalFrameClassifier {
         }
     }
 
+    /** 读取传送门方块朝向；无法读取时回退为 X 轴。 */
     static Axis axis(@Nullable Block portalBlock) {
         if (portalBlock != null) {
-            BlockData var2 = portalBlock.getBlockData();
-            if (var2 instanceof Orientable) {
-                Orientable orientable = (Orientable)var2;
+            BlockData blockData = portalBlock.getBlockData();
+            if (blockData instanceof Orientable) {
+                Orientable orientable = (Orientable)blockData;
                 return orientable.getAxis();
             }
         }
@@ -126,10 +138,12 @@ final class PortalFrameClassifier {
         return Axis.X;
     }
 
+    /** 比较两个材质是否相同，相同返回 1，否则返回 0（用于计数累加）。 */
     private static int count(Material actual, Material expected) {
         return actual == expected ? 1 : 0;
     }
 
+    /** 计算传送门方块所在门的轴对齐包围盒；非传送门方块返回 null。 */
     private static @Nullable Bounds bounds(@Nullable Block portalBlock) {
         if (portalBlock != null && portalBlock.getType() == Material.NETHER_PORTAL) {
             World world = portalBlock.getWorld();
@@ -174,6 +188,7 @@ final class PortalFrameClassifier {
         }
     }
 
+    /** 传送门框架类型。 */
     static enum Type {
         VANILLA,
         FROST,
@@ -184,6 +199,7 @@ final class PortalFrameClassifier {
         private Type() {
         }
 
+        /** 是否为自定义门（霜原、炽热或两者混合）。 */
         boolean isCustom() {
             return this == FROST || this == HEAT || this == CUSTOM_MIXED;
         }
@@ -194,6 +210,7 @@ final class PortalFrameClassifier {
         }
     }
 
+    /** 传送门的轴对齐包围盒（含朝向与各轴最小/最大坐标）。 */
     private static record Bounds(Axis axis, int minX, int maxX, int minY, int maxY, int minZ, int maxZ) {
         private Bounds {
         }

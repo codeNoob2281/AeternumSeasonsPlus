@@ -20,18 +20,39 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.inventory.ItemStack;
 
+/**
+ * 采矿祝福事件（Mining Blessing）。
+ *
+ * <p>每年最多触发若干次。事件期间，玩家在主世界破坏矿石时有几率获得：
+ * <ul>
+ *     <li>额外的矿石主产物；</li>
+ *     <li>稀有额外掉落（钻石矿给钻石，其它给粗铁）；</li>
+ *     <li>额外的经验掉落。</li>
+ * </ul>
+ * 触发额外矿石时会播放暴击粒子。</p>
+ */
 public final class MiningBlessingEvent implements SeasonalEvent {
     private final AeternumSeasonsPlugin plugin;
     private boolean enabled;
+    /** 是否启用全局粒子特效。 */
     private boolean globalParticlesEnabled;
+    /** 事件最短持续天数。 */
     private int minDur;
+    /** 事件最长持续天数。 */
     private int maxDur;
+    /** 每天触发事件的基础概率。 */
     private double baseChance;
+    /** 每年最多触发次数。 */
     private int maxPerYear;
+    /** 额外矿石掉落概率。 */
     private double extraOreChance;
+    /** 额外经验掉落概率。 */
     private double expBoostChance;
+    /** 稀有额外掉落概率。 */
     private double rareBonusChance;
+    /** 记录每年已触发次数。 */
     private final Map<Integer, Integer> usedPerYear = new HashMap();
+    /** 受本事件加成的矿石材质集合。 */
     private final Set<Material> oreTypes;
 
     public MiningBlessingEvent(AeternumSeasonsPlugin plugin) {
@@ -41,17 +62,18 @@ public final class MiningBlessingEvent implements SeasonalEvent {
         this.reloadFromConfig();
     }
 
+    /** 从 events.yml 重新读取本事件的配置项。 */
     private void reloadFromConfig() {
-        FileConfiguration y = YamlEvents.get(this.plugin);
-        this.enabled = y.getBoolean("events.mining.enabled", true);
-        this.globalParticlesEnabled = y.getBoolean("events.visual_effects.particles_enabled", true);
-        this.minDur = y.getInt("events.mining.min_duration_days", 2);
-        this.maxDur = y.getInt("events.mining.max_duration_days", 3);
-        this.baseChance = y.getDouble("events.mining.base_chance_per_day", 0.12);
-        this.maxPerYear = y.getInt("events.mining.max_per_year", 3);
-        this.extraOreChance = y.getDouble("events.mining.extra_ore_chance", 0.35);
-        this.expBoostChance = y.getDouble("events.mining.exp_boost_chance", 0.4);
-        this.rareBonusChance = y.getDouble("events.mining.rare_bonus_chance", 0.05);
+        FileConfiguration config = YamlEvents.get(this.plugin);
+        this.enabled = config.getBoolean("events.mining.enabled", true);
+        this.globalParticlesEnabled = config.getBoolean("events.visual_effects.particles_enabled", true);
+        this.minDur = config.getInt("events.mining.min_duration_days", 2);
+        this.maxDur = config.getInt("events.mining.max_duration_days", 3);
+        this.baseChance = config.getDouble("events.mining.base_chance_per_day", 0.12);
+        this.maxPerYear = config.getInt("events.mining.max_per_year", 3);
+        this.extraOreChance = config.getDouble("events.mining.extra_ore_chance", 0.35);
+        this.expBoostChance = config.getDouble("events.mining.exp_boost_chance", 0.4);
+        this.rareBonusChance = config.getDouble("events.mining.rare_bonus_chance", 0.05);
     }
 
     public String getId() {
@@ -74,11 +96,12 @@ public final class MiningBlessingEvent implements SeasonalEvent {
         return this.maxDur;
     }
 
-    public boolean canStartToday(CalendarState st, EventContext ctx) {
+    /** 判定是否可开始：已启用、本年次数未超上限且通过基础概率。 */
+    public boolean canStartToday(CalendarState state, EventContext context) {
         if (!this.enabled) {
             return false;
         } else {
-            int used = (Integer)this.usedPerYear.getOrDefault(st.year, 0);
+            int used = (Integer)this.usedPerYear.getOrDefault(state.year, 0);
             if (used >= this.maxPerYear) {
                 return false;
             } else {
@@ -87,60 +110,63 @@ public final class MiningBlessingEvent implements SeasonalEvent {
         }
     }
 
-    public void onStart(CalendarState st, EventContext ctx) {
-        this.usedPerYear.put(st.year, (Integer)this.usedPerYear.getOrDefault(st.year, 0) + 1);
+    /** 事件开始：累计本年触发次数，并向全服玩家发送标题。 */
+    public void onStart(CalendarState state, EventContext context) {
+        this.usedPerYear.put(state.year, (Integer)this.usedPerYear.getOrDefault(state.year, 0) + 1);
 
-        for(Player p : Bukkit.getOnlinePlayers()) {
-            String title = this.plugin.lang.tr(p, "event.mining.title");
-            String sub = this.plugin.lang.tr(p, "event.mining.subtitle");
-            p.sendTitle(title, sub, 20, 80, 40);
+        for(Player player : Bukkit.getOnlinePlayers()) {
+            String title = this.plugin.lang.tr(player, "event.mining.title");
+            String sub = this.plugin.lang.tr(player, "event.mining.subtitle");
+            player.sendTitle(title, sub, 20, 80, 40);
         }
 
     }
 
-    public void onEnd(CalendarState st, EventContext ctx) {
-        for(Player p : Bukkit.getOnlinePlayers()) {
-            p.sendMessage(this.plugin.lang.tr(p, "event.mining.end"));
+    /** 事件结束：向全服玩家发送结束提示。 */
+    public void onEnd(CalendarState state, EventContext context) {
+        for(Player player : Bukkit.getOnlinePlayers()) {
+            player.sendMessage(this.plugin.lang.tr(player, "event.mining.end"));
         }
 
     }
 
-    public void onDayTick(CalendarState st, EventContext ctx) {
+    public void onDayTick(CalendarState state, EventContext context) {
     }
 
-    public void onTick(CalendarState st, EventContext ctx) {
+    public void onTick(CalendarState state, EventContext context) {
     }
 
+    /** 监听方块破坏：主世界破坏矿石时按概率给予额外矿石、稀有掉落与额外经验。 */
     @EventHandler
-    public void onBreak(BlockBreakEvent e) {
-        if (!e.isCancelled()) {
-            Block b = e.getBlock();
-            if (this.oreTypes.contains(b.getType())) {
-                Player p = e.getPlayer();
-                if (p.getWorld().getEnvironment() == Environment.NORMAL) {
+    public void onBreak(BlockBreakEvent event) {
+        if (!event.isCancelled()) {
+            Block block = event.getBlock();
+            if (this.oreTypes.contains(block.getType())) {
+                Player player = event.getPlayer();
+                if (player.getWorld().getEnvironment() == Environment.NORMAL) {
                     if (this.globalParticlesEnabled) {
-                        b.getWorld().spawnParticle(Particle.CRIT, b.getLocation().add((double)0.5F, (double)0.5F, (double)0.5F), 8, 0.2, 0.2, 0.2, 0.01);
+                        block.getWorld().spawnParticle(Particle.CRIT, block.getLocation().add((double)0.5F, (double)0.5F, (double)0.5F), 8, 0.2, 0.2, 0.2, 0.01);
                     }
 
-                    ItemStack tool = p.getInventory().getItemInMainHand();
+                    ItemStack tool = player.getInventory().getItemInMainHand();
                     if (Math.random() < this.extraOreChance) {
-                        ItemStack extra = this.getPrimaryDrop(b, tool, p);
+                        ItemStack extra = this.getPrimaryDrop(block, tool, player);
                         if (extra != null) {
                             extra.setAmount(1);
-                            b.getWorld().dropItemNaturally(b.getLocation(), extra);
+                            block.getWorld().dropItemNaturally(block.getLocation(), extra);
                         }
                     }
 
                     if (Math.random() < this.rareBonusChance) {
-                        ItemStack bonus = this.getRareBonusDrop(b);
+                        ItemStack bonus = this.getRareBonusDrop(block);
                         if (bonus != null) {
-                            b.getWorld().dropItemNaturally(b.getLocation(), bonus);
+                            block.getWorld().dropItemNaturally(block.getLocation(), bonus);
                         }
                     }
 
                     if (Math.random() < this.expBoostChance) {
                         int extraXp = 2 + (new Random()).nextInt(4);
-                        e.setExpToDrop(e.getExpToDrop() + extraXp);
+                        event.setExpToDrop(event.getExpToDrop() + extraXp);
                     }
 
                 }
@@ -148,27 +174,28 @@ public final class MiningBlessingEvent implements SeasonalEvent {
         }
     }
 
-    private ItemStack getPrimaryDrop(Block b, ItemStack tool, Player p) {
+    /** 获取方块被工具破坏时应掉落的主产物副本；无法获取时按材质查表兜底。 */
+    private ItemStack getPrimaryDrop(Block block, ItemStack tool, Player player) {
         Collection<ItemStack> drops;
         if (tool != null) {
             try {
-                drops = b.getDrops(tool, p);
-            } catch (Throwable var7) {
-                drops = b.getDrops(tool);
+                drops = block.getDrops(tool, player);
+            } catch (Throwable ignored) {
+                drops = block.getDrops(tool);
             }
         } else {
-            drops = b.getDrops();
+            drops = block.getDrops();
         }
 
-        for(ItemStack it : drops) {
-            if (it != null && it.getType() != Material.AIR && it.getAmount() > 0) {
-                return it.clone();
+        for(ItemStack drop : drops) {
+            if (drop != null && drop.getType() != Material.AIR && drop.getAmount() > 0) {
+                return drop.clone();
             }
         }
 
-        Material m = b.getType();
+        Material type = block.getType();
         Material result;
-        switch (m) {
+        switch (type) {
             case COAL_ORE:
             case DEEPSLATE_COAL_ORE:
                 result = Material.COAL;
@@ -208,8 +235,9 @@ public final class MiningBlessingEvent implements SeasonalEvent {
         return new ItemStack(result, 1);
     }
 
-    private ItemStack getRareBonusDrop(Block b) {
-        Material type = b.getType();
+    /** 生成稀有额外掉落的物品（钻石矿给钻石，其它给粗铁）。 */
+    private ItemStack getRareBonusDrop(Block block) {
+        Material type = block.getType();
         return type != Material.DIAMOND_ORE && type != Material.DEEPSLATE_DIAMOND_ORE ? new ItemStack(Material.RAW_IRON, 1) : new ItemStack(Material.DIAMOND, 1);
     }
 }

@@ -45,6 +45,18 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.projectiles.ProjectileSource;
 
+/**
+ * 炎热维度怪物变种监听器。
+ *
+ * <p>在炎热世界 {@code aeternum_heat} 中，为敌对生物打上 {@code heat_variant} 标签（“变种”），
+ * 并为其赋予对应的元素强化：</p>
+ * <ul>
+ *     <li>骷髅射出的火焰箭会点燃地面并灼烧目标；</li>
+ *     <li>僵尸/猪灵等近战命中附加基础火焰与范围爆炸点燃；</li>
+ *     <li>蜘蛛命中生成火焰、末影人命中附带灼烧，苦力怕爆炸会留下岩浆与火焰，末影人传送会引燃周围玩家。</li>
+ * </ul>
+ * <p>所有变种识别均依赖持久化数据键，确保只强化一次。</p>
+ */
 public final class HeatVariantListener implements Listener {
     private static final String HEAT_WORLD_NAME = "aeternum_heat";
     private final AeternumSeasonsPlugin plugin;
@@ -67,60 +79,66 @@ public final class HeatVariantListener implements Listener {
         HandlerList.unregisterAll(this);
     }
 
-    private boolean inHeatWorld(Entity e) {
-        World w = e.getWorld();
-        return w != null && w.getName().equalsIgnoreCase("aeternum_heat");
+    /** 判断实体是否位于炎热世界。 */
+    private boolean inHeatWorld(Entity entity) {
+        World world = entity.getWorld();
+        return world != null && world.getName().equalsIgnoreCase("aeternum_heat");
     }
 
-    private boolean isHostile(LivingEntity e) {
-        return e instanceof Monster || e instanceof Slime || e instanceof Phantom;
+    /** 判断生物是否为敌对生物（怪物、史莱姆或幻翼）。 */
+    private boolean isHostile(LivingEntity entity) {
+        return entity instanceof Monster || entity instanceof Slime || entity instanceof Phantom;
     }
 
-    private void markVariant(LivingEntity e) {
-        PersistentDataContainer pdc = e.getPersistentDataContainer();
+    /** 为生物打上变种标签。 */
+    private void markVariant(LivingEntity entity) {
+        PersistentDataContainer pdc = entity.getPersistentDataContainer();
         pdc.set(this.VARIANT_KEY, PersistentDataType.BYTE, (byte)1);
     }
 
-    private boolean isVariant(Entity e) {
-        PersistentDataContainer pdc = e.getPersistentDataContainer();
-        Byte b = (Byte)pdc.get(this.VARIANT_KEY, PersistentDataType.BYTE);
-        return b != null && b == 1;
+    /** 判断实体是否为变种生物。 */
+    private boolean isVariant(Entity entity) {
+        PersistentDataContainer pdc = entity.getPersistentDataContainer();
+        Byte flag = (Byte)pdc.get(this.VARIANT_KEY, PersistentDataType.BYTE);
+        return flag != null && flag == 1;
     }
 
+    /** 监听生物生成：在炎热世界中标记新出现的敌对生物并保证其基础生命值。 */
     @EventHandler(
         ignoreCancelled = true,
         priority = EventPriority.NORMAL
     )
     public void onSpawn(CreatureSpawnEvent e) {
-        LivingEntity le = e.getEntity();
-        if (this.inHeatWorld(le)) {
-            if (this.isHostile(le)) {
-                if (!this.isVariant(le)) {
-                    this.markVariant(le);
-                    le.getWorld().spawnParticle(Particle.FLAME, le.getLocation().add((double)0.0F, (double)1.0F, (double)0.0F), 16, 0.4, 0.4, 0.4, 0.02);
+        LivingEntity entity = e.getEntity();
+        if (this.inHeatWorld(entity)) {
+            if (this.isHostile(entity)) {
+                if (!this.isVariant(entity)) {
+                    this.markVariant(entity);
+                    entity.getWorld().spawnParticle(Particle.FLAME, entity.getLocation().add((double)0.0F, (double)1.0F, (double)0.0F), 16, 0.4, 0.4, 0.4, 0.02);
                 }
 
-                AttributeInstance hp = le.getAttribute(Attribute.MAX_HEALTH);
-                if (hp != null && hp.getBaseValue() < (double)1.0F) {
-                    hp.setBaseValue((double)20.0F);
-                    le.setHealth((double)20.0F);
+                AttributeInstance maxHealth = entity.getAttribute(Attribute.MAX_HEALTH);
+                if (maxHealth != null && maxHealth.getBaseValue() < (double)1.0F) {
+                    maxHealth.setBaseValue((double)20.0F);
+                    entity.setHealth((double)20.0F);
                 }
 
             }
         }
     }
 
+    /** 监听骷髅射箭：变种骷髅的箭矢会被点燃并打上标记。 */
     @EventHandler(
         ignoreCancelled = true,
         priority = EventPriority.NORMAL
     )
     public void onShoot(EntityShootBowEvent e) {
-        LivingEntity var3 = e.getEntity();
-        if (var3 instanceof Skeleton sk) {
+        LivingEntity entity = e.getEntity();
+        if (entity instanceof Skeleton sk) {
             if (this.inHeatWorld(sk) && this.isVariant(sk)) {
-                Entity var4 = e.getProjectile();
-                if (var4 instanceof Arrow) {
-                    Arrow arrow = (Arrow)var4;
+                Entity projectile = e.getProjectile();
+                if (projectile instanceof Arrow) {
+                    Arrow arrow = (Arrow)projectile;
                     arrow.setFireTicks(200);
                     arrow.setCritical(true);
                     PersistentDataContainer pdc = arrow.getPersistentDataContainer();
@@ -130,59 +148,61 @@ public final class HeatVariantListener implements Listener {
         }
     }
 
+    /** 监听箭矢命中：被标记的火焰箭会点燃落点并灼烧命中的生物。 */
     @EventHandler(
         ignoreCancelled = true,
         priority = EventPriority.NORMAL
     )
     public void onArrowHit(ProjectileHitEvent e) {
-        Projectile var3 = e.getEntity();
-        if (var3 instanceof Arrow arrow) {
+        Projectile projectile = e.getEntity();
+        if (projectile instanceof Arrow arrow) {
             PersistentDataContainer pdc = arrow.getPersistentDataContainer();
             Byte tag = (Byte)pdc.get(this.ARROW_KEY, PersistentDataType.BYTE);
             if (tag != null && tag == 1) {
-                World w = arrow.getWorld();
+                World world = arrow.getWorld();
                 Location hitLoc = arrow.getLocation();
-                Block b = w.getBlockAt(hitLoc);
-                if (b.getType().isAir() || b.isPassable()) {
-                    b.setType(Material.FIRE, false);
+                Block block = world.getBlockAt(hitLoc);
+                if (block.getType().isAir() || block.isPassable()) {
+                    block.setType(Material.FIRE, false);
                 }
 
-                Entity var9 = e.getHitEntity();
-                if (var9 instanceof LivingEntity) {
-                    LivingEntity victim = (LivingEntity)var9;
+                Entity hitEntity = e.getHitEntity();
+                if (hitEntity instanceof LivingEntity) {
+                    LivingEntity victim = (LivingEntity)hitEntity;
                     victim.setFireTicks(Math.max(victim.getFireTicks(), 100));
                     victim.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 40, 0, true, true, true));
                 }
 
-                w.spawnParticle(Particle.FLAME, hitLoc, 24, 0.4, 0.4, 0.4, 0.02);
+                world.spawnParticle(Particle.FLAME, hitLoc, 24, 0.4, 0.4, 0.4, 0.02);
             }
         }
     }
 
+    /** 监听变种生物命中玩家/生物，按怪物种类施加对应的元素效果。 */
     @EventHandler(
         ignoreCancelled = true,
         priority = EventPriority.NORMAL
     )
     public void onHit(EntityDamageByEntityEvent e) {
         LivingEntity attacker = null;
-        Entity var6 = e.getDamager();
-        if (var6 instanceof LivingEntity le) {
-            attacker = le;
+        Entity damager = e.getDamager();
+        if (damager instanceof LivingEntity livingDamager) {
+            attacker = livingDamager;
         } else {
-            var6 = e.getDamager();
-            if (var6 instanceof Projectile proj) {
-                ProjectileSource var10 = proj.getShooter();
-                if (var10 instanceof LivingEntity le2) {
-                    attacker = le2;
+            damager = e.getDamager();
+            if (damager instanceof Projectile projectile) {
+                ProjectileSource shooter = projectile.getShooter();
+                if (shooter instanceof LivingEntity shooterLiving) {
+                    attacker = shooterLiving;
                 }
             }
         }
 
         if (attacker != null) {
             if (this.inHeatWorld(attacker) && this.isVariant(attacker)) {
-                Entity var8 = e.getEntity();
-                if (var8 instanceof LivingEntity) {
-                    LivingEntity victim = (LivingEntity)var8;
+                Entity entity = e.getEntity();
+                if (entity instanceof LivingEntity) {
+                    LivingEntity victim = (LivingEntity)entity;
                     this.applyBaseFireHit(attacker, victim, e);
                     if (!(attacker instanceof Zombie) && !(attacker instanceof PigZombie) && !(attacker instanceof Piglin) && !(attacker instanceof PiglinBrute)) {
                         if (!(attacker instanceof Spider) && !(attacker instanceof CaveSpider)) {
@@ -201,6 +221,7 @@ public final class HeatVariantListener implements Listener {
         }
     }
 
+    /** 基础火焰命中：点燃目标并放大伤害（创造/旁观玩家除外）。 */
     private void applyBaseFireHit(LivingEntity attacker, LivingEntity victim, EntityDamageByEntityEvent e) {
         if (victim instanceof Player pl) {
             GameMode gm = pl.getGameMode();
@@ -214,13 +235,14 @@ public final class HeatVariantListener implements Listener {
         victim.getWorld().spawnParticle(Particle.FLAME, victim.getLocation().add((double)0.0F, (double)1.0F, (double)0.0F), 12, 0.3, 0.3, 0.3, 0.01);
     }
 
+    /** 烈焰近战：以目标为中心引爆并点燃周围除攻击者外的生物。 */
     private void applyBruteIgnis(LivingEntity victim, LivingEntity attacker) {
-        World w = victim.getWorld();
+        World world = victim.getWorld();
         Location loc = victim.getLocation();
         double radius = (double)1.5F;
-        w.spawnParticle(Particle.EXPLOSION, loc.clone().add((double)0.0F, (double)0.5F, (double)0.0F), 1, (double)0.0F, (double)0.0F, (double)0.0F, (double)0.0F);
+        world.spawnParticle(Particle.EXPLOSION, loc.clone().add((double)0.0F, (double)0.5F, (double)0.0F), 1, (double)0.0F, (double)0.0F, (double)0.0F, (double)0.0F);
 
-        for(Entity nearby : w.getNearbyEntities(loc, radius, radius, radius)) {
+        for(Entity nearby : world.getNearbyEntities(loc, radius, radius, radius)) {
             if (nearby instanceof LivingEntity le) {
                 if (!le.equals(attacker)) {
                     if (nearby instanceof Player) {
@@ -238,8 +260,9 @@ public final class HeatVariantListener implements Listener {
 
     }
 
+    /** 岩浆蜘蛛：在目标周围随机生成火焰并播放岩浆粒子。 */
     private void applyMagmaSpider(LivingEntity victim) {
-        World w = victim.getWorld();
+        World world = victim.getWorld();
         Location loc = victim.getLocation();
         int count = 6 + this.random.nextInt(5);
 
@@ -247,33 +270,35 @@ public final class HeatVariantListener implements Listener {
             double dx = (this.random.nextDouble() - (double)0.5F) * (double)2.0F;
             double dz = (this.random.nextDouble() - (double)0.5F) * (double)2.0F;
             Location spot = loc.clone().add(dx, (double)0.0F, dz);
-            Block b = w.getBlockAt(spot);
-            if (b.getType().isAir() || b.isPassable()) {
-                b.setType(Material.FIRE, false);
+            Block block = world.getBlockAt(spot);
+            if (block.getType().isAir() || block.isPassable()) {
+                block.setType(Material.FIRE, false);
             }
         }
 
-        w.spawnParticle(Particle.LAVA, loc.add((double)0.0F, 0.2, (double)0.0F), 12, 0.4, 0.2, 0.4, 0.02);
+        world.spawnParticle(Particle.LAVA, loc.add((double)0.0F, 0.2, (double)0.0F), 12, 0.4, 0.2, 0.4, 0.02);
     }
 
+    /** 余烬末影人：点燃目标、造成额外伤害并播放火焰粒子。 */
     private void applyEmberEnderman(LivingEntity victim) {
-        World w = victim.getWorld();
+        World world = victim.getWorld();
         Location loc = victim.getLocation();
         victim.setFireTicks(Math.max(victim.getFireTicks(), 80));
         victim.damage((double)0.5F);
-        w.spawnParticle(Particle.FLAME, loc.add((double)0.0F, (double)1.0F, (double)0.0F), 24, 0.6, 0.6, 0.6, 0.02);
+        world.spawnParticle(Particle.FLAME, loc.add((double)0.0F, (double)1.0F, (double)0.0F), 24, 0.6, 0.6, 0.6, 0.02);
     }
 
+    /** 监听苦力怕爆炸：变种苦力怕改为生成岩浆与火焰而非破坏方块。 */
     @EventHandler(
         ignoreCancelled = true,
         priority = EventPriority.HIGHEST
     )
     public void onExplode(EntityExplodeEvent e) {
-        Entity var3 = e.getEntity();
-        if (var3 instanceof Creeper creeper) {
+        Entity entity = e.getEntity();
+        if (entity instanceof Creeper creeper) {
             if (this.inHeatWorld(creeper) && this.isVariant(creeper)) {
                 Location loc = creeper.getLocation();
-                World w = loc.getWorld();
+                World world = loc.getWorld();
                 e.blockList().clear();
                 double radius = (double)3.0F;
 
@@ -281,43 +306,44 @@ public final class HeatVariantListener implements Listener {
                     for(double z = -radius; z <= radius; ++z) {
                         if (!(x * x + z * z > radius * radius)) {
                             Location spot = loc.clone().add(x, (double)0.0F, z);
-                            Block b = w.getBlockAt(spot);
-                            if (b.getType().isAir() || b.isPassable()) {
+                            Block block = world.getBlockAt(spot);
+                            if (block.getType().isAir() || block.isPassable()) {
                                 if (this.random.nextDouble() < (double)0.25F) {
-                                    b.setType(Material.MAGMA_BLOCK, false);
+                                    block.setType(Material.MAGMA_BLOCK, false);
                                 } else {
-                                    b.setType(Material.FIRE, false);
+                                    block.setType(Material.FIRE, false);
                                 }
                             }
                         }
                     }
                 }
 
-                w.spawnParticle(Particle.LAVA, loc.add((double)0.0F, (double)0.5F, (double)0.0F), 40, 1.2, 0.6, 1.2, 0.05);
+                world.spawnParticle(Particle.LAVA, loc.add((double)0.0F, (double)0.5F, (double)0.0F), 40, 1.2, 0.6, 1.2, 0.05);
             }
         }
     }
 
+    /** 监听末影人传送：变种末影人传送时留下烟雾并在落点引燃周围玩家。 */
     @EventHandler(
         ignoreCancelled = true,
         priority = EventPriority.NORMAL
     )
     public void onTeleport(EntityTeleportEvent e) {
-        Entity var3 = e.getEntity();
-        if (var3 instanceof Enderman ender) {
+        Entity entity = e.getEntity();
+        if (entity instanceof Enderman ender) {
             if (this.inHeatWorld(ender) && this.isVariant(ender)) {
-                World w = ender.getWorld();
+                World world = ender.getWorld();
                 Location from = e.getFrom();
                 Location to = e.getTo();
                 if (from != null) {
-                    w.spawnParticle(Particle.CAMPFIRE_COSY_SMOKE, from.clone().add((double)0.0F, (double)1.0F, (double)0.0F), 20, (double)0.5F, (double)0.5F, (double)0.5F, 0.02);
+                    world.spawnParticle(Particle.CAMPFIRE_COSY_SMOKE, from.clone().add((double)0.0F, (double)1.0F, (double)0.0F), 20, (double)0.5F, (double)0.5F, (double)0.5F, 0.02);
                 }
 
                 if (to != null) {
-                    w.spawnParticle(Particle.FLAME, to.clone().add((double)0.0F, (double)1.0F, (double)0.0F), 30, 0.6, 0.6, 0.6, 0.02);
+                    world.spawnParticle(Particle.FLAME, to.clone().add((double)0.0F, (double)1.0F, (double)0.0F), 30, 0.6, 0.6, 0.6, 0.02);
                     double radius = (double)3.0F;
 
-                    for(Entity ent : w.getNearbyEntities(to, radius, radius, radius)) {
+                    for(Entity ent : world.getNearbyEntities(to, radius, radius, radius)) {
                         if (ent instanceof Player) {
                             Player p = (Player)ent;
                             if (p.getGameMode() != GameMode.CREATIVE && p.getGameMode() != GameMode.SPECTATOR) {

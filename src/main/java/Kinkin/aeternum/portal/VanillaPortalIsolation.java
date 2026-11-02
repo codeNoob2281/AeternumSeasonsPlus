@@ -17,6 +17,14 @@ import org.bukkit.event.entity.EntityPortalEvent;
 import org.bukkit.event.player.PlayerPortalEvent;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * 原版传送门隔离器。
+ *
+ * <p>当玩家/实体使用原版（黑曜石框）传送门前往的目标位置恰好落在自定义门上时，
+ * 本监听器会将其重定向到附近（或新建）的原版传送门，避免原版传送与自定义门混淆。
+ * 它通过 {@link PortalFrameClassifier} 判断源门与目标门的类型，并借助
+ * {@link PortalBuildProtection} 选择安全建造点。依赖 {@link AeternumSeasonsPlugin} 的日志服务。</p>
+ */
 public final class VanillaPortalIsolation implements Listener {
     private static final int DESTINATION_PROBE_RADIUS = 8;
     private static final int VANILLA_SEARCH_RADIUS = 16;
@@ -24,11 +32,13 @@ public final class VanillaPortalIsolation implements Listener {
     private final AeternumSeasonsPlugin plugin;
     private boolean registered;
 
+    /** 创建隔离器（不立即注册监听）。 */
     public VanillaPortalIsolation(AeternumSeasonsPlugin plugin) {
         super();
         this.plugin = plugin;
     }
 
+    /** 幂等地将本监听器注册到服务器的事件总线。 */
     public void register() {
         if (!this.registered) {
             this.registered = true;
@@ -36,11 +46,16 @@ public final class VanillaPortalIsolation implements Listener {
         }
     }
 
+    /** 注销事件监听。 */
     public void unregister() {
         this.registered = false;
         HandlerList.unregisterAll(this);
     }
 
+    /**
+     * 玩家传送门事件处理：若检测到原版门通往自定义门，则改派到隔离后的原版落点；
+     * 无法找到落点时取消传送。
+     */
     @EventHandler(
         ignoreCancelled = true,
         priority = EventPriority.HIGHEST
@@ -60,6 +75,7 @@ public final class VanillaPortalIsolation implements Listener {
         }
     }
 
+    /** 实体传送门事件处理：与玩家逻辑一致，将实体改派到隔离后的原版落点或取消。 */
     @EventHandler(
         ignoreCancelled = true,
         priority = EventPriority.HIGHEST
@@ -75,6 +91,14 @@ public final class VanillaPortalIsolation implements Listener {
         }
     }
 
+    /**
+     * 判定并隔离一次原版传送：仅当源门为原版门、目标处为自定义门时拦截，
+     * 并尝试在目标附近寻找或新建原版门作为落点。
+     *
+     * @param from                  源位置
+     * @param requestedDestination  原版逻辑给出的目标位置（可空）
+     * @return 隔离结果；包含是否拦截与实际落点
+     */
     private IsolationResult isolateVanillaRoute(Location from, @Nullable Location requestedDestination) {
         if (requestedDestination != null && requestedDestination.getWorld() != null) {
             Block sourcePortal = PortalFrameClassifier.findPortalBlock(from, 2);
@@ -95,9 +119,9 @@ public final class VanillaPortalIsolation implements Listener {
                     }
 
                     if (vanilla == null) {
-                        Logger var10000 = this.plugin.getLogger();
-                        String var10001 = destinationWorld.getName();
-                        var10000.warning("[PortalIsolation] Could not isolate vanilla portal near " + var10001 + " " + requestedDestination.getBlockX() + "," + requestedDestination.getBlockY() + "," + requestedDestination.getBlockZ());
+                        Logger logger = this.plugin.getLogger();
+                        String worldName = destinationWorld.getName();
+                        logger.warning("[PortalIsolation] Could not isolate vanilla portal near " + worldName + " " + requestedDestination.getBlockX() + "," + requestedDestination.getBlockY() + "," + requestedDestination.getBlockZ());
                     }
 
                     return new IsolationResult(true, vanilla);
@@ -108,6 +132,7 @@ public final class VanillaPortalIsolation implements Listener {
         }
     }
 
+    /** 在给定中心周围指定水平半径、纵向 ±48 的范围内查找最近的原版传送门落点。 */
     private @Nullable Location findNearbyVanillaPortal(Location center, int radius) {
         World world = center.getWorld();
         if (world == null) {
@@ -143,6 +168,7 @@ public final class VanillaPortalIsolation implements Listener {
         }
     }
 
+    /** 在目标世界选择安全站点并建造一座分离的原版门，返回其传送落点。 */
     private @Nullable Location buildSeparatedVanillaPortal(World world, Location preferred, Axis axis) {
         int x = preferred.getBlockX();
         int z = preferred.getBlockZ();
@@ -157,6 +183,7 @@ public final class VanillaPortalIsolation implements Listener {
         }
     }
 
+    /** 在指定中心/底部高度以黑曜石框建造一座 2x3 的原版门并点亮，返回黑洞门方块。 */
     private Block buildPortal(World world, int centerX, int bottomY, int centerZ, Axis axis) {
         int width = 2;
         int height = 3;
@@ -186,6 +213,7 @@ public final class VanillaPortalIsolation implements Listener {
         return world.getBlockAt(x0, bottomY, z0);
     }
 
+    /** 隔离结果：是否拦截，以及（可空）实际落点。 */
     private static record IsolationResult(boolean intercepted, @Nullable Location destination) {
         private static final IsolationResult NOT_INTERCEPTED = new IsolationResult(false, (Location)null);
 

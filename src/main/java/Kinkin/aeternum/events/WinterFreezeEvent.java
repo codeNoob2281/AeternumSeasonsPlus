@@ -20,18 +20,36 @@ import org.bukkit.entity.Player;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
+/**
+ * 寒冬冰封事件（Winter Freeze）。
+ *
+ * <p>仅在冬季发生，每个冬季最多触发配置的次数，且需过了季节前 1/3 才可能开始。
+ * 事件激活期间，主世界中未穿戴足够护甲、且附近没有热源方块的玩家会持续受到
+ * 减速、挖掘疲劳与少量冰冻伤害；护甲足够时仅受轻微减速。配置来自
+ * {@link YamlEvents} 读取的 {@code events.yml}。</p>
+ */
 public final class WinterFreezeEvent implements SeasonalEvent {
     private final AeternumSeasonsPlugin plugin;
     private boolean enabled;
+    /** 是否启用全局粒子效果。 */
     private boolean globalParticlesEnabled;
+    /** 每个冬季最多触发次数。 */
     private int maxPerWinter;
+    /** 事件最短持续天数。 */
     private int minDur;
+    /** 事件最长持续天数。 */
     private int maxDur;
+    /** 每天触发事件的基础概率。 */
     private double baseChance;
+    /** 每 tick 造成的冰冻伤害。 */
     private double damagePerTick;
+    /** 免于冰冻伤害所需的最少护甲件数。 */
     private int minArmorPieces;
+    /** 搜索热源方块的半径（格）。 */
     private int heatRadius;
+    /** 视为热源的方块类型集合。 */
     private Set<Material> heatBlocks;
+    /** 记录每个“年份_季节”已触发次数。 */
     private final Map<String, Integer> timesPerWinterKey = new HashMap();
 
     public WinterFreezeEvent(AeternumSeasonsPlugin plugin) {
@@ -40,23 +58,24 @@ public final class WinterFreezeEvent implements SeasonalEvent {
         this.reloadFromConfig();
     }
 
+    /** 从 events.yml 重新读取本事件的配置项。 */
     private void reloadFromConfig() {
-        FileConfiguration y = YamlEvents.get(this.plugin);
-        this.enabled = y.getBoolean("events.winter_freeze.enabled", true);
-        this.globalParticlesEnabled = y.getBoolean("events.visual_effects.particles_enabled", true);
-        this.maxPerWinter = y.getInt("events.winter_freeze.max_per_winter", 1);
-        this.minDur = y.getInt("events.winter_freeze.min_duration_days", 4);
-        this.maxDur = y.getInt("events.winter_freeze.max_duration_days", 7);
-        this.baseChance = y.getDouble("events.winter_freeze.base_chance_per_day", 0.15);
-        this.damagePerTick = y.getDouble("events.winter_freeze.damage_per_tick", (double)0.5F);
-        this.minArmorPieces = y.getInt("events.winter_freeze.min_armor_pieces", 2);
-        this.heatRadius = y.getInt("events.winter_freeze.heat_radius_blocks", 5);
+        FileConfiguration config = YamlEvents.get(this.plugin);
+        this.enabled = config.getBoolean("events.winter_freeze.enabled", true);
+        this.globalParticlesEnabled = config.getBoolean("events.visual_effects.particles_enabled", true);
+        this.maxPerWinter = config.getInt("events.winter_freeze.max_per_winter", 1);
+        this.minDur = config.getInt("events.winter_freeze.min_duration_days", 4);
+        this.maxDur = config.getInt("events.winter_freeze.max_duration_days", 7);
+        this.baseChance = config.getDouble("events.winter_freeze.base_chance_per_day", 0.15);
+        this.damagePerTick = config.getDouble("events.winter_freeze.damage_per_tick", (double)0.5F);
+        this.minArmorPieces = config.getInt("events.winter_freeze.min_armor_pieces", 2);
+        this.heatRadius = config.getInt("events.winter_freeze.heat_radius_blocks", 5);
         this.heatBlocks = new HashSet();
 
-        for(String s : y.getStringList("events.winter_freeze.heat_block_types")) {
+        for(String materialName : config.getStringList("events.winter_freeze.heat_block_types")) {
             try {
-                this.heatBlocks.add(Material.valueOf(s.toUpperCase(Locale.ROOT)));
-            } catch (IllegalArgumentException var5) {
+                this.heatBlocks.add(Material.valueOf(materialName.toUpperCase(Locale.ROOT)));
+            } catch (IllegalArgumentException ignored) {
             }
         }
 
@@ -91,21 +110,22 @@ public final class WinterFreezeEvent implements SeasonalEvent {
         return this.maxDur;
     }
 
-    public boolean canStartToday(CalendarState st, EventContext ctx) {
+    /** 仅限冬季、未超过本冬配额、已过季节前 1/3，并通过概率判定时才允许开始。 */
+    public boolean canStartToday(CalendarState state, EventContext context) {
         if (!this.enabled) {
             return false;
-        } else if (st.season != Season.WINTER) {
+        } else if (state.season != Season.WINTER) {
             return false;
         } else {
-            int var10000 = st.year;
-            String key = var10000 + "_" + st.season.name();
+            int year = state.year;
+            String key = year + "_" + state.season.name();
             int used = (Integer)this.timesPerWinterKey.getOrDefault(key, 0);
             if (used >= this.maxPerWinter) {
                 return false;
             } else {
-                int daysPerSeason = ctx.seasons().getDaysPerSeason();
+                int daysPerSeason = context.seasons().getDaysPerSeason();
                 int minStartDay = Math.max(2, daysPerSeason / 3);
-                if (st.day < minStartDay) {
+                if (state.day < minStartDay) {
                     return false;
                 } else {
                     return Math.random() < this.baseChance;
@@ -114,104 +134,111 @@ public final class WinterFreezeEvent implements SeasonalEvent {
         }
     }
 
-    public void onStart(CalendarState st, EventContext ctx) {
-        int var10000 = st.year;
-        String key = var10000 + "_" + st.season.name();
+    /** 事件开始时累加本冬触发次数、播放寒潮音效并向所有玩家发送标题。 */
+    public void onStart(CalendarState state, EventContext context) {
+        int year = state.year;
+        String key = year + "_" + state.season.name();
         this.timesPerWinterKey.put(key, (Integer)this.timesPerWinterKey.getOrDefault(key, 0) + 1);
 
-        for(World w : ctx.overworlds()) {
-            w.playSound(w.getSpawnLocation(), Sound.WEATHER_RAIN_ABOVE, 0.6F, 0.5F);
+        for(World world : context.overworlds()) {
+            world.playSound(world.getSpawnLocation(), Sound.WEATHER_RAIN_ABOVE, 0.6F, 0.5F);
         }
 
-        for(Player p : Bukkit.getOnlinePlayers()) {
-            String title = this.plugin.lang.tr(p, "event.winter_freeze.title");
-            String sub = this.plugin.lang.tr(p, "event.winter_freeze.subtitle");
-            p.sendTitle(title, sub, 20, 80, 40);
-        }
-
-    }
-
-    public void onEnd(CalendarState st, EventContext ctx) {
-        for(Player p : Bukkit.getOnlinePlayers()) {
-            p.sendMessage(this.plugin.lang.tr(p, "event.winter_freeze.end"));
+        for(Player player : Bukkit.getOnlinePlayers()) {
+            String title = this.plugin.lang.tr(player, "event.winter_freeze.title");
+            String subtitle = this.plugin.lang.tr(player, "event.winter_freeze.subtitle");
+            player.sendTitle(title, subtitle, 20, 80, 40);
         }
 
     }
 
-    public void onDayTick(CalendarState st, EventContext ctx) {
+    /** 事件结束时通知所有在线玩家。 */
+    public void onEnd(CalendarState state, EventContext context) {
+        for(Player player : Bukkit.getOnlinePlayers()) {
+            player.sendMessage(this.plugin.lang.tr(player, "event.winter_freeze.end"));
+        }
+
     }
 
-    public void onTick(CalendarState st, EventContext ctx) {
-        for(Player p : Bukkit.getOnlinePlayers()) {
-            if (p.getWorld().getEnvironment() == Environment.NORMAL && !p.isDead() && p.getGameMode() != GameMode.CREATIVE && p.getGameMode() != GameMode.SPECTATOR && !this.isNearHeat(p)) {
-                int armorScore = this.countArmorPieces(p);
+    public void onDayTick(CalendarState state, EventContext context) {
+    }
+
+    /** 每个 tick 检查主世界玩家，按护甲件数与是否靠近热源决定冰冻程度。 */
+    public void onTick(CalendarState state, EventContext context) {
+        for(Player player : Bukkit.getOnlinePlayers()) {
+            if (player.getWorld().getEnvironment() == Environment.NORMAL && !player.isDead() && player.getGameMode() != GameMode.CREATIVE && player.getGameMode() != GameMode.SPECTATOR && !this.isNearHeat(player)) {
+                int armorScore = this.countArmorPieces(player);
                 if (armorScore >= this.minArmorPieces) {
-                    this.maybeApplyLightChill(p);
+                    this.maybeApplyLightChill(player);
                 } else {
-                    this.applyFreezeDamage(p);
+                    this.applyFreezeDamage(player);
                 }
             }
         }
 
     }
 
-    private void applyFreezeDamage(Player p) {
+    /** 对护甲不足的玩家施加冰冻伤害、减速与挖掘疲劳，并定时提示。 */
+    private void applyFreezeDamage(Player player) {
         if (this.globalParticlesEnabled) {
-            p.getWorld().spawnParticle(Particle.SNOWFLAKE, p.getLocation().add((double)0.0F, (double)1.0F, (double)0.0F), 10, (double)0.5F, 0.8, (double)0.5F, 0.01);
+            player.getWorld().spawnParticle(Particle.SNOWFLAKE, player.getLocation().add((double)0.0F, (double)1.0F, (double)0.0F), 10, (double)0.5F, 0.8, (double)0.5F, 0.01);
         }
 
-        p.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 60, 2, true, false, true));
-        p.addPotionEffect(new PotionEffect(PotionEffectType.MINING_FATIGUE, 60, 3, true, false, true));
-        if (p.getHealth() > this.damagePerTick + (double)0.5F) {
-            p.damage(this.damagePerTick);
+        player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 60, 2, true, false, true));
+        player.addPotionEffect(new PotionEffect(PotionEffectType.MINING_FATIGUE, 60, 3, true, false, true));
+        if (player.getHealth() > this.damagePerTick + (double)0.5F) {
+            player.damage(this.damagePerTick);
         }
 
-        if (p.getTicksLived() % 60 == 0) {
-            p.sendMessage(this.plugin.lang.tr(p, "event.winter_freeze.freezing"));
-        }
-
-    }
-
-    private void maybeApplyLightChill(Player p) {
-        p.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 60, 1, true, false, true));
-        if (p.getTicksLived() % 100 == 0) {
+        if (player.getTicksLived() % 60 == 0) {
+            player.sendMessage(this.plugin.lang.tr(player, "event.winter_freeze.freezing"));
         }
 
     }
 
-    private int countArmorPieces(Player p) {
-        int c = 0;
-        if (p.getInventory().getHelmet() != null) {
-            ++c;
+    /** 对护甲足够的玩家仅施加轻微减速。 */
+    private void maybeApplyLightChill(Player player) {
+        player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 60, 1, true, false, true));
+        if (player.getTicksLived() % 100 == 0) {
         }
 
-        if (p.getInventory().getChestplate() != null) {
-            ++c;
-        }
-
-        if (p.getInventory().getLeggings() != null) {
-            ++c;
-        }
-
-        if (p.getInventory().getBoots() != null) {
-            ++c;
-        }
-
-        return c;
     }
 
-    private boolean isNearHeat(Player p) {
-        World w = p.getWorld();
-        int px = p.getLocation().getBlockX();
-        int py = p.getLocation().getBlockY();
-        int pz = p.getLocation().getBlockZ();
-        int r = this.heatRadius;
+    /** 统计玩家当前穿戴的护甲件数（头盔/胸甲/护腿/靴子）。 */
+    private int countArmorPieces(Player player) {
+        int count = 0;
+        if (player.getInventory().getHelmet() != null) {
+            ++count;
+        }
 
-        for(int x = -r; x <= r; ++x) {
+        if (player.getInventory().getChestplate() != null) {
+            ++count;
+        }
+
+        if (player.getInventory().getLeggings() != null) {
+            ++count;
+        }
+
+        if (player.getInventory().getBoots() != null) {
+            ++count;
+        }
+
+        return count;
+    }
+
+    /** 判断玩家附近（含上下一定范围）是否存在热源方块。 */
+    private boolean isNearHeat(Player player) {
+        World world = player.getWorld();
+        int playerX = player.getLocation().getBlockX();
+        int playerY = player.getLocation().getBlockY();
+        int playerZ = player.getLocation().getBlockZ();
+        int radius = this.heatRadius;
+
+        for(int x = -radius; x <= radius; ++x) {
             for(int y = -2; y <= 2; ++y) {
-                for(int z = -r; z <= r; ++z) {
-                    Material m = w.getBlockAt(px + x, py + y, pz + z).getType();
-                    if (this.heatBlocks.contains(m)) {
+                for(int z = -radius; z <= radius; ++z) {
+                    Material material = world.getBlockAt(playerX + x, playerY + y, playerZ + z).getType();
+                    if (this.heatBlocks.contains(material)) {
                         return true;
                     }
                 }

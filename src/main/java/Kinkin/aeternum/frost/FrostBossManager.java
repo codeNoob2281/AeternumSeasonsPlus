@@ -43,6 +43,20 @@ import org.bukkit.projectiles.ProjectileSource;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 
+/**
+ * 永霜世界首领「格拉西利斯（Glacialis）」管理器。
+ *
+ * <p>职责包括：
+ * <ul>
+ *     <li>以定时任务监听永霜世界日历跨天，按概率在玩家附近生成一只被特殊标记、属性强化的
+ *     凋灵首领（生命 600、攻击 20、移速提升）；</li>
+ *     <li>约束首领行为：爆炸时不破坏方块而是铺撒细雪并冻结附近玩家，且不可改变方块；</li>
+ *     <li>首领死亡时清空常规掉落，改为掉落「冰川之核」与若干「永霜碎片」；</li>
+ *     <li>注册并校验「永霜护甲」合成配方（以永霜碎片与冰川之核为材料），
+ *     并通过持久化标记区分正版材料，防止伪造。</li>
+ * </ul>
+ * 依赖 {@link AeternumSeasonsPlugin}（插件、语言、配置）与 {@link SeasonService}（日历状态）。</p>
+ */
 public final class FrostBossManager implements Listener {
     private static final String FROST_WORLD_NAME = "aeternum_frost";
     private static final double DAILY_BOSS_CHANCE = 0.37;
@@ -80,6 +94,9 @@ public final class FrostBossManager implements Listener {
 
     }
 
+    /**
+     * 启动每 10 秒轮询一次的日历任务：当永霜世界的日期（天/年）发生变化时触发每日逻辑。
+     */
     private void startCalendarTask() {
         this.calendarTask = (new BukkitRunnable() {
             private int lastDay = -1;
@@ -88,12 +105,12 @@ public final class FrostBossManager implements Listener {
             public void run() {
                 World frost = Bukkit.getWorld("aeternum_frost");
                 if (frost != null) {
-                    CalendarState st = FrostBossManager.this.seasonService.getStateCopy(frost);
-                    if (st != null) {
-                        if (st.day != this.lastDay || st.year != this.lastYear) {
-                            this.lastDay = st.day;
-                            this.lastYear = st.year;
-                            FrostBossManager.this.onNewDay(st);
+                    CalendarState state = FrostBossManager.this.seasonService.getStateCopy(frost);
+                    if (state != null) {
+                        if (state.day != this.lastDay || state.year != this.lastYear) {
+                            this.lastDay = state.day;
+                            this.lastYear = state.year;
+                            FrostBossManager.this.onNewDay(state);
                         }
 
                     }
@@ -102,6 +119,9 @@ public final class FrostBossManager implements Listener {
         }).runTaskTimer(this.plugin, 200L, 200L);
     }
 
+    /**
+     * 每日检查：若当前无存活首领，且永霜世界有玩家，则按概率挑选一名玩家在其附近生成首领。
+     */
     private void onNewDay(CalendarState state) {
         if (this.currentBossId != null) {
             Entity existing = this.findCurrentBoss();
@@ -124,84 +144,102 @@ public final class FrostBossManager implements Listener {
         }
     }
 
-    private void spawnGlacialisNear(Player p) {
-        World w = p.getWorld();
-        Location base = p.getLocation();
+    /**
+     * 在目标玩家所在位置上方约 15 格（不超过世界最高限制）生成并初始化首领，同时广播提示。
+     */
+    private void spawnGlacialisNear(Player player) {
+        World world = player.getWorld();
+        Location base = player.getLocation();
         Location spawn = base.clone();
-        int y = w.getHighestBlockYAt(base) + 15;
-        y = Math.min(y, w.getMaxHeight() - 5);
+        int y = world.getHighestBlockYAt(base) + 15;
+        y = Math.min(y, world.getMaxHeight() - 5);
         spawn.setY((double)y);
-        Wither boss = (Wither)w.spawn(spawn, Wither.class, (wtr) -> {
-            this.markAsBoss(wtr);
-            this.buffBossStats(wtr);
-            String name = this.plugin.lang.tr(p, "boss.glacialis.name");
-            wtr.setCustomName(name);
-            wtr.setCustomNameVisible(true);
-            wtr.setRemoveWhenFarAway(false);
+        Wither boss = (Wither)world.spawn(spawn, Wither.class, (wither) -> {
+            this.markAsBoss(wither);
+            this.buffBossStats(wither);
+            String name = this.plugin.lang.tr(player, "boss.glacialis.name");
+            wither.setCustomName(name);
+            wither.setCustomNameVisible(true);
+            wither.setRemoveWhenFarAway(false);
         });
         this.currentBossId = boss.getUniqueId();
-        String msg = this.plugin.lang.tr(p, "boss.glacialis.spawn");
+        String msg = this.plugin.lang.tr(player, "boss.glacialis.spawn");
 
-        for(Player pl : w.getPlayers()) {
-            pl.sendMessage(msg);
-            pl.playSound(boss.getLocation(), Sound.ENTITY_WITHER_SPAWN, 1.0F, 0.5F);
+        for(Player online : world.getPlayers()) {
+            online.sendMessage(msg);
+            online.playSound(boss.getLocation(), Sound.ENTITY_WITHER_SPAWN, 1.0F, 0.5F);
         }
 
     }
 
-    private void markAsBoss(Entity e) {
-        e.getPersistentDataContainer().set(this.BOSS_KEY, PersistentDataType.BYTE, (byte)1);
+    /**
+     * 在实体的持久化数据中写入首领标记。
+     */
+    private void markAsBoss(Entity entity) {
+        entity.getPersistentDataContainer().set(this.BOSS_KEY, PersistentDataType.BYTE, (byte)1);
     }
 
-    private boolean isBoss(Entity e) {
-        PersistentDataContainer pdc = e.getPersistentDataContainer();
-        Byte b = (Byte)pdc.get(this.BOSS_KEY, PersistentDataType.BYTE);
-        return b != null && b == 1;
+    /**
+     * 判断实体是否带有首领标记。
+     */
+    private boolean isBoss(Entity entity) {
+        PersistentDataContainer pdc = entity.getPersistentDataContainer();
+        Byte flag = (Byte)pdc.get(this.BOSS_KEY, PersistentDataType.BYTE);
+        return flag != null && flag == 1;
     }
 
+    /**
+     * 通过已记录的首领 UUID 查找当前首领实体，不存在则返回 null。
+     */
     private Entity findCurrentBoss() {
         return this.currentBossId == null ? null : Bukkit.getEntity(this.currentBossId);
     }
 
-    private void buffBossStats(LivingEntity ent) {
-        AttributeInstance maxHealth = ent.getAttribute(Attribute.MAX_HEALTH);
+    /**
+     * 强化首领属性：生命 600、攻击 20、移速提升 20%。
+     */
+    private void buffBossStats(LivingEntity entity) {
+        AttributeInstance maxHealth = entity.getAttribute(Attribute.MAX_HEALTH);
         if (maxHealth != null) {
             maxHealth.setBaseValue((double)600.0F);
-            ent.setHealth(maxHealth.getBaseValue());
+            entity.setHealth(maxHealth.getBaseValue());
         }
 
-        AttributeInstance attack = ent.getAttribute(Attribute.ATTACK_DAMAGE);
+        AttributeInstance attack = entity.getAttribute(Attribute.ATTACK_DAMAGE);
         if (attack != null) {
             attack.setBaseValue((double)20.0F);
         }
 
-        AttributeInstance movement = ent.getAttribute(Attribute.MOVEMENT_SPEED);
+        AttributeInstance movement = entity.getAttribute(Attribute.MOVEMENT_SPEED);
         if (movement != null) {
             movement.setBaseValue(movement.getBaseValue() * 1.2);
         }
 
     }
 
+    /**
+     * 首领（或其发射的凋灵头颅）爆炸时：取消方块破坏，在落点铺撒细雪、冻结附近玩家并播放特效。
+     */
     @EventHandler(
         ignoreCancelled = true,
         priority = EventPriority.HIGH
     )
-    public void onBossExplode(EntityExplodeEvent e) {
-        Entity source = e.getEntity();
+    public void onBossExplode(EntityExplodeEvent event) {
+        Entity source = event.getEntity();
         Entity owner = null;
         if (source instanceof Wither wither) {
             owner = wither;
         } else if (source instanceof WitherSkull skull) {
-            ProjectileSource var7 = skull.getShooter();
-            if (var7 instanceof Entity shooter) {
-                owner = shooter;
+            ProjectileSource shooter = skull.getShooter();
+            if (shooter instanceof Entity shooterEntity) {
+                owner = shooterEntity;
             }
         }
 
         if (owner instanceof Wither wither) {
             if (this.isBoss(wither)) {
-                e.blockList().clear();
-                World w = source.getWorld();
+                event.blockList().clear();
+                World world = source.getWorld();
                 Location center = source.getLocation();
                 int radius = 4;
 
@@ -212,8 +250,8 @@ public final class FrostBossManager implements Listener {
                             int x = center.getBlockX() + dx;
                             int z = center.getBlockZ() + dz;
                             int y = center.getBlockY();
-                            Block ground = w.getBlockAt(x, y - 1, z);
-                            Block target = w.getBlockAt(x, y, z);
+                            Block ground = world.getBlockAt(x, y - 1, z);
+                            Block target = world.getBlockAt(x, y, z);
                             if (target.getType().isAir() && ground.getType().isSolid()) {
                                 target.setType(Material.POWDER_SNOW, false);
                             }
@@ -221,69 +259,78 @@ public final class FrostBossManager implements Listener {
                     }
                 }
 
-                for(Entity ent : w.getNearbyEntities(center, (double)5.0F, (double)5.0F, (double)5.0F)) {
-                    if (ent instanceof Player) {
-                        Player pl = (Player)ent;
-                        pl.setFreezeTicks(Math.min(pl.getFreezeTicks() + 100, 200));
+                for(Entity nearby : world.getNearbyEntities(center, (double)5.0F, (double)5.0F, (double)5.0F)) {
+                    if (nearby instanceof Player) {
+                        Player player = (Player)nearby;
+                        player.setFreezeTicks(Math.min(player.getFreezeTicks() + 100, 200));
                     }
                 }
 
-                w.spawnParticle(Particle.SNOWFLAKE, center, 120, (double)2.0F, (double)1.0F, (double)2.0F, 0.1);
-                w.playSound(center, Sound.BLOCK_POWDER_SNOW_FALL, 1.5F, 0.7F);
+                world.spawnParticle(Particle.SNOWFLAKE, center, 120, (double)2.0F, (double)1.0F, (double)2.0F, 0.1);
+                world.playSound(center, Sound.BLOCK_POWDER_SNOW_FALL, 1.5F, 0.7F);
                 return;
             }
         }
 
     }
 
+    /**
+     * 首领凋灵尝试改变方块时取消该行为。
+     */
     @EventHandler(
         ignoreCancelled = true,
         priority = EventPriority.HIGH
     )
-    public void onBossChangeBlock(EntityChangeBlockEvent e) {
-        Entity var3 = e.getEntity();
-        if (var3 instanceof Wither wither) {
+    public void onBossChangeBlock(EntityChangeBlockEvent event) {
+        Entity entity = event.getEntity();
+        if (entity instanceof Wither wither) {
             if (this.isBoss(wither)) {
-                e.setCancelled(true);
+                event.setCancelled(true);
             }
         }
     }
 
+    /**
+     * 首领死亡时清空默认掉落，改为掉落冰川之核与随机数量的永霜碎片，并广播挑战完成。
+     */
     @EventHandler(
         ignoreCancelled = true,
         priority = EventPriority.HIGH
     )
-    public void onBossDeath(EntityDeathEvent e) {
-        LivingEntity var3 = e.getEntity();
-        if (var3 instanceof Wither wither) {
+    public void onBossDeath(EntityDeathEvent event) {
+        LivingEntity entity = event.getEntity();
+        if (entity instanceof Wither wither) {
             if (this.isBoss(wither)) {
                 this.currentBossId = null;
-                e.getDrops().clear();
-                World w = wither.getWorld();
+                event.getDrops().clear();
+                World world = wither.getWorld();
                 Location loc = wither.getLocation();
                 Player killer = wither.getKiller();
-                w.dropItemNaturally(loc, this.createGlacialisCore(killer));
+                world.dropItemNaturally(loc, this.createGlacialisCore(killer));
                 int shards = 4 + (new Random()).nextInt(3);
 
                 for(int i = 0; i < shards; ++i) {
-                    w.dropItemNaturally(loc, this.createEverfrostShard(killer));
+                    world.dropItemNaturally(loc, this.createEverfrostShard(killer));
                 }
 
                 String msg = this.plugin.lang.tr((Player)null, "boss.glacialis.defeated");
 
-                for(Player p : w.getPlayers()) {
-                    p.sendMessage(msg);
-                    p.playSound(loc, Sound.UI_TOAST_CHALLENGE_COMPLETE, 1.0F, 1.2F);
+                for(Player player : world.getPlayers()) {
+                    player.sendMessage(msg);
+                    player.playSound(loc, Sound.UI_TOAST_CHALLENGE_COMPLETE, 1.0F, 1.2F);
                 }
 
-                e.setDroppedExp(300);
+                event.setDroppedExp(300);
             }
         }
     }
 
+    /**
+     * 生成一个「永霜碎片」物品（海晶碎片外观，带本地化名称/描述与材料标记）。
+     */
     public ItemStack createEverfrostShard(Player viewer) {
-        ItemStack it = new ItemStack(Material.PRISMARINE_SHARD);
-        ItemMeta meta = it.getItemMeta();
+        ItemStack item = new ItemStack(Material.PRISMARINE_SHARD);
+        ItemMeta meta = item.getItemMeta();
         if (meta != null) {
             meta.setDisplayName(this.plugin.lang.tr(viewer, "item.everfrost_shard.name"));
             List<String> lore = new ArrayList();
@@ -291,15 +338,18 @@ public final class FrostBossManager implements Listener {
             lore.add(this.plugin.lang.tr(viewer, "item.everfrost_shard.lore_line2"));
             meta.setLore(lore);
             meta.getPersistentDataContainer().set(this.EVERFROST_SHARD_KEY, PersistentDataType.BYTE, (byte)1);
-            it.setItemMeta(meta);
+            item.setItemMeta(meta);
         }
 
-        return it;
+        return item;
     }
 
+    /**
+     * 生成一个「冰川之核」物品（海洋之心外观，带本地化名称/描述与材料标记）。
+     */
     public ItemStack createGlacialisCore(Player viewer) {
-        ItemStack it = new ItemStack(Material.HEART_OF_THE_SEA);
-        ItemMeta meta = it.getItemMeta();
+        ItemStack item = new ItemStack(Material.HEART_OF_THE_SEA);
+        ItemMeta meta = item.getItemMeta();
         if (meta != null) {
             meta.setDisplayName(this.plugin.lang.tr(viewer, "item.glacialis_core.name"));
             List<String> lore = new ArrayList();
@@ -307,15 +357,18 @@ public final class FrostBossManager implements Listener {
             lore.add(this.plugin.lang.tr(viewer, "item.glacialis_core.lore_line2"));
             meta.setLore(lore);
             meta.getPersistentDataContainer().set(this.GLACIALIS_CORE_KEY, PersistentDataType.BYTE, (byte)1);
-            it.setItemMeta(meta);
+            item.setItemMeta(meta);
         }
 
-        return it;
+        return item;
     }
 
-    private ItemStack createHeatArmorPiece(Player viewer, Material mat, String nameKeyPrefix) {
-        ItemStack it = new ItemStack(mat);
-        ItemMeta meta = it.getItemMeta();
+    /**
+     * 生成一件「永霜护甲」部件（指定材质，名称/描述由语言键前缀拼装，带护甲标记）。
+     */
+    private ItemStack createHeatArmorPiece(Player viewer, Material material, String nameKeyPrefix) {
+        ItemStack item = new ItemStack(material);
+        ItemMeta meta = item.getItemMeta();
         if (meta != null) {
             meta.setDisplayName(this.plugin.lang.tr(viewer, nameKeyPrefix + ".name"));
             List<String> lore = new ArrayList();
@@ -323,99 +376,118 @@ public final class FrostBossManager implements Listener {
             lore.add(this.plugin.lang.tr(viewer, nameKeyPrefix + ".lore_line2"));
             meta.setLore(lore);
             meta.getPersistentDataContainer().set(this.HEAT_ARMOR_KEY, PersistentDataType.BYTE, (byte)1);
-            it.setItemMeta(meta);
+            item.setItemMeta(meta);
         }
 
-        return it;
+        return item;
     }
 
+    /**
+     * 注册永霜护甲四件套（头盔、胸甲、护腿、靴子）的合成配方。
+     */
     private void registerRecipes() {
-        ShapedRecipe rHelmet = new ShapedRecipe(new NamespacedKey(this.plugin, "everfrost_helmet"), this.createHeatArmorPiece((Player)null, Material.DIAMOND_HELMET, "item.heat_armor.helmet"));
-        rHelmet.shape(new String[]{"SSS", "SCS", " H "});
-        rHelmet.setIngredient('S', Material.PRISMARINE_SHARD);
-        rHelmet.setIngredient('C', Material.HEART_OF_THE_SEA);
-        rHelmet.setIngredient('H', Material.DIAMOND_HELMET);
-        Bukkit.addRecipe(rHelmet);
-        ShapedRecipe rChest = new ShapedRecipe(new NamespacedKey(this.plugin, "everfrost_chest"), this.createHeatArmorPiece((Player)null, Material.DIAMOND_CHESTPLATE, "item.heat_armor.chest"));
-        rChest.shape(new String[]{" C ", "SAS", "S S"});
-        rChest.setIngredient('S', Material.PRISMARINE_SHARD);
-        rChest.setIngredient('C', Material.HEART_OF_THE_SEA);
-        rChest.setIngredient('A', Material.DIAMOND_CHESTPLATE);
-        Bukkit.addRecipe(rChest);
-        ShapedRecipe rLegs = new ShapedRecipe(new NamespacedKey(this.plugin, "everfrost_legs"), this.createHeatArmorPiece((Player)null, Material.DIAMOND_LEGGINGS, "item.heat_armor.legs"));
-        rLegs.shape(new String[]{"SCS", "SAS", "SAS"});
-        rLegs.setIngredient('S', Material.PRISMARINE_SHARD);
-        rLegs.setIngredient('C', Material.HEART_OF_THE_SEA);
-        rLegs.setIngredient('A', Material.DIAMOND_LEGGINGS);
-        Bukkit.addRecipe(rLegs);
-        ShapedRecipe rBoots = new ShapedRecipe(new NamespacedKey(this.plugin, "everfrost_boots"), this.createHeatArmorPiece((Player)null, Material.DIAMOND_BOOTS, "item.heat_armor.boots"));
-        rBoots.shape(new String[]{" C ", "SAS", "S S"});
-        rBoots.setIngredient('S', Material.PRISMARINE_SHARD);
-        rBoots.setIngredient('C', Material.HEART_OF_THE_SEA);
-        rBoots.setIngredient('A', Material.DIAMOND_BOOTS);
-        Bukkit.addRecipe(rBoots);
+        ShapedRecipe helmetRecipe = new ShapedRecipe(new NamespacedKey(this.plugin, "everfrost_helmet"), this.createHeatArmorPiece((Player)null, Material.DIAMOND_HELMET, "item.heat_armor.helmet"));
+        helmetRecipe.shape(new String[]{"SSS", "SCS", " H "});
+        helmetRecipe.setIngredient('S', Material.PRISMARINE_SHARD);
+        helmetRecipe.setIngredient('C', Material.HEART_OF_THE_SEA);
+        helmetRecipe.setIngredient('H', Material.DIAMOND_HELMET);
+        Bukkit.addRecipe(helmetRecipe);
+        ShapedRecipe chestRecipe = new ShapedRecipe(new NamespacedKey(this.plugin, "everfrost_chest"), this.createHeatArmorPiece((Player)null, Material.DIAMOND_CHESTPLATE, "item.heat_armor.chest"));
+        chestRecipe.shape(new String[]{" C ", "SAS", "S S"});
+        chestRecipe.setIngredient('S', Material.PRISMARINE_SHARD);
+        chestRecipe.setIngredient('C', Material.HEART_OF_THE_SEA);
+        chestRecipe.setIngredient('A', Material.DIAMOND_CHESTPLATE);
+        Bukkit.addRecipe(chestRecipe);
+        ShapedRecipe legsRecipe = new ShapedRecipe(new NamespacedKey(this.plugin, "everfrost_legs"), this.createHeatArmorPiece((Player)null, Material.DIAMOND_LEGGINGS, "item.heat_armor.legs"));
+        legsRecipe.shape(new String[]{"SCS", "SAS", "SAS"});
+        legsRecipe.setIngredient('S', Material.PRISMARINE_SHARD);
+        legsRecipe.setIngredient('C', Material.HEART_OF_THE_SEA);
+        legsRecipe.setIngredient('A', Material.DIAMOND_LEGGINGS);
+        Bukkit.addRecipe(legsRecipe);
+        ShapedRecipe bootsRecipe = new ShapedRecipe(new NamespacedKey(this.plugin, "everfrost_boots"), this.createHeatArmorPiece((Player)null, Material.DIAMOND_BOOTS, "item.heat_armor.boots"));
+        bootsRecipe.shape(new String[]{" C ", "SAS", "S S"});
+        bootsRecipe.setIngredient('S', Material.PRISMARINE_SHARD);
+        bootsRecipe.setIngredient('C', Material.HEART_OF_THE_SEA);
+        bootsRecipe.setIngredient('A', Material.DIAMOND_BOOTS);
+        Bukkit.addRecipe(bootsRecipe);
     }
 
-    public boolean isHeatArmorPiece(ItemStack it) {
-        if (it == null) {
+    /**
+     * 判断物品是否为带护甲标记的永霜护甲部件。
+     */
+    public boolean isHeatArmorPiece(ItemStack item) {
+        if (item == null) {
             return false;
-        } else if (!it.hasItemMeta()) {
+        } else if (!item.hasItemMeta()) {
             return false;
         } else {
-            ItemMeta meta = it.getItemMeta();
+            ItemMeta meta = item.getItemMeta();
             if (meta == null) {
                 return false;
             } else {
-                Byte b = (Byte)meta.getPersistentDataContainer().get(this.HEAT_ARMOR_KEY, PersistentDataType.BYTE);
-                return b != null && b == 1;
+                Byte flag = (Byte)meta.getPersistentDataContainer().get(this.HEAT_ARMOR_KEY, PersistentDataType.BYTE);
+                return flag != null && flag == 1;
             }
         }
     }
 
-    private boolean hasFlag(ItemStack it, NamespacedKey key) {
-        if (it != null && it.hasItemMeta()) {
-            ItemMeta meta = it.getItemMeta();
+    /**
+     * 判断物品是否带有指定键的持久化标记（值等于 1）。
+     */
+    private boolean hasFlag(ItemStack item, NamespacedKey key) {
+        if (item != null && item.hasItemMeta()) {
+            ItemMeta meta = item.getItemMeta();
             if (meta == null) {
                 return false;
             } else {
-                Byte b = (Byte)meta.getPersistentDataContainer().get(key, PersistentDataType.BYTE);
-                return b != null && b == 1;
+                Byte flag = (Byte)meta.getPersistentDataContainer().get(key, PersistentDataType.BYTE);
+                return flag != null && flag == 1;
             }
         } else {
             return false;
         }
     }
 
-    private boolean isEverfrostRecipe(Recipe r) {
-        if (!(r instanceof ShapedRecipe sr)) {
+    /**
+     * 判断配方是否为名称以 {@code everfrost_} 开头的永霜护甲配方。
+     */
+    private boolean isEverfrostRecipe(Recipe recipe) {
+        if (!(recipe instanceof ShapedRecipe shapedRecipe)) {
             return false;
         } else {
-            NamespacedKey k = sr.getKey();
-            return k != null && k.getKey() != null && k.getKey().startsWith("everfrost_");
+            NamespacedKey key = shapedRecipe.getKey();
+            return key != null && key.getKey() != null && key.getKey().startsWith("everfrost_");
         }
     }
 
-    private Player firstViewer(PrepareItemCraftEvent e) {
-        for(HumanEntity he : e.getViewers()) {
-            if (he instanceof Player p) {
-                return p;
+    /**
+     * 从合成界面查看者中取出第一个玩家（用于本地化显示）。
+     */
+    private Player firstViewer(PrepareItemCraftEvent event) {
+        for(HumanEntity viewer : event.getViewers()) {
+            if (viewer instanceof Player player) {
+                return player;
             }
         }
 
         return null;
     }
 
+    /**
+     * 校验合成矩阵中的材料是否均带有正确的持久化标记：海晶碎片须为永霜碎片，
+     * 海洋之心须为冰川之核，其余材料忽略。
+     */
     private boolean matrixHasValidPdc(ItemStack[] matrix) {
         if (matrix == null) {
             return false;
         } else {
-            for(ItemStack it : matrix) {
-                if (it != null && it.getType() != Material.AIR) {
-                    if (it.getType() == Material.PRISMARINE_SHARD) {
-                        if (!this.hasFlag(it, this.EVERFROST_SHARD_KEY)) {
+            for(ItemStack item : matrix) {
+                if (item != null && item.getType() != Material.AIR) {
+                    if (item.getType() == Material.PRISMARINE_SHARD) {
+                        if (!this.hasFlag(item, this.EVERFROST_SHARD_KEY)) {
                             return false;
                         }
-                    } else if (it.getType() == Material.HEART_OF_THE_SEA && !this.hasFlag(it, this.GLACIALIS_CORE_KEY)) {
+                    } else if (item.getType() == Material.HEART_OF_THE_SEA && !this.hasFlag(item, this.GLACIALIS_CORE_KEY)) {
                         return false;
                     }
                 }
@@ -425,52 +497,61 @@ public final class FrostBossManager implements Listener {
         }
     }
 
-    private ItemStack localizedResultFor(Recipe r, Player viewer) {
-        if (r instanceof ShapedRecipe) {
-            ShapedRecipe sr = (ShapedRecipe)r;
-            ItemStack var10000;
-            switch (sr.getKey().getKey()) {
-                case "everfrost_helmet" -> var10000 = this.createHeatArmorPiece(viewer, Material.DIAMOND_HELMET, "item.heat_armor.helmet");
-                case "everfrost_chest" -> var10000 = this.createHeatArmorPiece(viewer, Material.DIAMOND_CHESTPLATE, "item.heat_armor.chest");
-                case "everfrost_legs" -> var10000 = this.createHeatArmorPiece(viewer, Material.DIAMOND_LEGGINGS, "item.heat_armor.legs");
-                case "everfrost_boots" -> var10000 = this.createHeatArmorPiece(viewer, Material.DIAMOND_BOOTS, "item.heat_armor.boots");
-                default -> var10000 = null;
+    /**
+     * 根据配方键返回对应的本地化护甲成品；非永霜护甲配方返回 null。
+     */
+    private ItemStack localizedResultFor(Recipe recipe, Player viewer) {
+        if (recipe instanceof ShapedRecipe) {
+            ShapedRecipe shapedRecipe = (ShapedRecipe)recipe;
+            ItemStack result;
+            switch (shapedRecipe.getKey().getKey()) {
+                case "everfrost_helmet" -> result = this.createHeatArmorPiece(viewer, Material.DIAMOND_HELMET, "item.heat_armor.helmet");
+                case "everfrost_chest" -> result = this.createHeatArmorPiece(viewer, Material.DIAMOND_CHESTPLATE, "item.heat_armor.chest");
+                case "everfrost_legs" -> result = this.createHeatArmorPiece(viewer, Material.DIAMOND_LEGGINGS, "item.heat_armor.legs");
+                case "everfrost_boots" -> result = this.createHeatArmorPiece(viewer, Material.DIAMOND_BOOTS, "item.heat_armor.boots");
+                default -> result = null;
             }
 
-            return var10000;
+            return result;
         } else {
             return null;
         }
     }
 
+    /**
+     * 预览合成结果时：若材料标记无效则清空结果，否则替换为本地化成品。
+     */
     @EventHandler(
         ignoreCancelled = true
     )
-    public void onPrepareEverfrostCraft(PrepareItemCraftEvent e) {
-        Recipe r = e.getRecipe();
-        if (this.isEverfrostRecipe(r)) {
-            CraftingInventory inv = e.getInventory();
-            ItemStack[] matrix = inv.getMatrix();
+    public void onPrepareEverfrostCraft(PrepareItemCraftEvent event) {
+        Recipe recipe = event.getRecipe();
+        if (this.isEverfrostRecipe(recipe)) {
+            CraftingInventory inventory = event.getInventory();
+            ItemStack[] matrix = inventory.getMatrix();
             if (!this.matrixHasValidPdc(matrix)) {
-                inv.setResult((ItemStack)null);
+                inventory.setResult((ItemStack)null);
             } else {
-                Player viewer = this.firstViewer(e);
-                inv.setResult(this.localizedResultFor(r, viewer));
+                Player viewer = this.firstViewer(event);
+                inventory.setResult(this.localizedResultFor(recipe, viewer));
             }
         }
     }
 
+    /**
+     * 实际合成时再次校验材料标记，无效则取消合成并清空结果，防止伪造材料。
+     */
     @EventHandler(
         ignoreCancelled = true
     )
-    public void onCraftEverfrost(CraftItemEvent e) {
-        Recipe r = e.getRecipe();
-        if (this.isEverfrostRecipe(r)) {
-            CraftingInventory inv = e.getInventory();
-            if (inv instanceof CraftingInventory) {
-                if (!this.matrixHasValidPdc(inv.getMatrix())) {
-                    e.setCancelled(true);
-                    inv.setResult((ItemStack)null);
+    public void onCraftEverfrost(CraftItemEvent event) {
+        Recipe recipe = event.getRecipe();
+        if (this.isEverfrostRecipe(recipe)) {
+            CraftingInventory inventory = event.getInventory();
+            if (inventory instanceof CraftingInventory) {
+                if (!this.matrixHasValidPdc(inventory.getMatrix())) {
+                    event.setCancelled(true);
+                    inventory.setResult((ItemStack)null);
                 }
 
             }

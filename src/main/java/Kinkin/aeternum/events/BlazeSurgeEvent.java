@@ -21,15 +21,32 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
+/**
+ * 烈焰狂潮事件（Blaze Surge）。
+ *
+ * <p>当有玩家身处下界时，有一定概率触发本事件。事件激活期间：
+ * <ul>
+ *     <li>下界自然生成的烈焰人有概率被强化——附加速度效果、发光、并提升最大生命值；</li>
+ *     <li>玩家击杀烈焰人时，有概率额外掉落若干烈焰棒并伴随火焰粒子。</li>
+ * </ul>
+ * 各概率与掉落数量均来自 events.yml 配置。</p>
+ */
 public final class BlazeSurgeEvent implements SeasonalEvent {
     private final AeternumSeasonsPlugin plugin;
     private boolean enabled;
+    /** 事件最短持续天数。 */
     private int minDur;
+    /** 事件最长持续天数。 */
     private int maxDur;
+    /** 每天触发事件的基础概率。 */
     private double baseChance;
+    /** 击杀烈焰人额外掉落烈焰棒的概率。 */
     private double extraRodChance;
+    /** 额外掉落烈焰棒的最小数量。 */
     private int extraRodMin;
+    /** 额外掉落烈焰棒的最大数量。 */
     private int extraRodMax;
+    /** 自然生成的烈焰人被强化的概率。 */
     private double buffedBlazeChance;
 
     public BlazeSurgeEvent(AeternumSeasonsPlugin plugin) {
@@ -38,16 +55,17 @@ public final class BlazeSurgeEvent implements SeasonalEvent {
         this.reloadFromConfig();
     }
 
+    /** 从 events.yml 重新读取本事件的配置项。 */
     private void reloadFromConfig() {
-        FileConfiguration y = YamlEvents.get(this.plugin);
-        this.enabled = y.getBoolean("events.blaze_surge.enabled", true);
-        this.minDur = y.getInt("events.blaze_surge.min_duration_days", 1);
-        this.maxDur = y.getInt("events.blaze_surge.max_duration_days", 2);
-        this.baseChance = y.getDouble("events.blaze_surge.base_chance_per_day", 0.08);
-        this.extraRodChance = y.getDouble("events.blaze_surge.extra_rod_chance", 0.35);
-        this.extraRodMin = y.getInt("events.blaze_surge.extra_rod_min", 1);
-        this.extraRodMax = y.getInt("events.blaze_surge.extra_rod_max", 2);
-        this.buffedBlazeChance = y.getDouble("events.blaze_surge.buffed_blaze_chance", 0.3);
+        FileConfiguration config = YamlEvents.get(this.plugin);
+        this.enabled = config.getBoolean("events.blaze_surge.enabled", true);
+        this.minDur = config.getInt("events.blaze_surge.min_duration_days", 1);
+        this.maxDur = config.getInt("events.blaze_surge.max_duration_days", 2);
+        this.baseChance = config.getDouble("events.blaze_surge.base_chance_per_day", 0.08);
+        this.extraRodChance = config.getDouble("events.blaze_surge.extra_rod_chance", 0.35);
+        this.extraRodMin = config.getInt("events.blaze_surge.extra_rod_min", 1);
+        this.extraRodMax = config.getInt("events.blaze_surge.extra_rod_max", 2);
+        this.buffedBlazeChance = config.getDouble("events.blaze_surge.buffed_blaze_chance", 0.3);
     }
 
     public String getId() {
@@ -70,11 +88,12 @@ public final class BlazeSurgeEvent implements SeasonalEvent {
         return this.maxDur;
     }
 
-    public boolean canStartToday(CalendarState st, EventContext ctx) {
+    /** 仅当有玩家位于下界、且通过基础概率判定时才允许开始。 */
+    public boolean canStartToday(CalendarState state, EventContext context) {
         if (!this.enabled) {
             return false;
         } else {
-            boolean someoneInNether = Bukkit.getOnlinePlayers().stream().anyMatch((p) -> p.getWorld().getEnvironment() == Environment.NETHER);
+            boolean someoneInNether = Bukkit.getOnlinePlayers().stream().anyMatch((player) -> player.getWorld().getEnvironment() == Environment.NETHER);
             if (!someoneInNether) {
                 return false;
             } else {
@@ -83,34 +102,37 @@ public final class BlazeSurgeEvent implements SeasonalEvent {
         }
     }
 
-    public void onStart(CalendarState st, EventContext ctx) {
-        for(Player p : Bukkit.getOnlinePlayers()) {
-            if (p.getWorld().getEnvironment() == Environment.NETHER) {
-                p.sendTitle(this.plugin.lang.tr(p, "event.blaze_surge.title"), this.plugin.lang.tr(p, "event.blaze_surge.subtitle"), 20, 80, 40);
+    /** 事件开始时向下界玩家发送标题提示。 */
+    public void onStart(CalendarState state, EventContext context) {
+        for(Player player : Bukkit.getOnlinePlayers()) {
+            if (player.getWorld().getEnvironment() == Environment.NETHER) {
+                player.sendTitle(this.plugin.lang.tr(player, "event.blaze_surge.title"), this.plugin.lang.tr(player, "event.blaze_surge.subtitle"), 20, 80, 40);
             }
         }
 
     }
 
-    public void onEnd(CalendarState st, EventContext ctx) {
-        for(Player p : Bukkit.getOnlinePlayers()) {
-            if (p.getWorld().getEnvironment() == Environment.NETHER) {
-                p.sendMessage(this.plugin.lang.tr(p, "event.blaze_surge.end"));
+    /** 事件结束时向下界玩家发送结束提示。 */
+    public void onEnd(CalendarState state, EventContext context) {
+        for(Player player : Bukkit.getOnlinePlayers()) {
+            if (player.getWorld().getEnvironment() == Environment.NETHER) {
+                player.sendMessage(this.plugin.lang.tr(player, "event.blaze_surge.end"));
             }
         }
 
     }
 
-    public void onDayTick(CalendarState st, EventContext ctx) {
+    public void onDayTick(CalendarState state, EventContext context) {
     }
 
-    public void onTick(CalendarState st, EventContext ctx) {
+    public void onTick(CalendarState state, EventContext context) {
     }
 
+    /** 监听生物生成：下界自然生成烈焰人时，按概率强化其属性。 */
     @EventHandler
-    public void onSpawn(CreatureSpawnEvent e) {
-        LivingEntity var3 = e.getEntity();
-        if (var3 instanceof Blaze blaze) {
+    public void onSpawn(CreatureSpawnEvent event) {
+        LivingEntity entity = event.getEntity();
+        if (entity instanceof Blaze blaze) {
             if (blaze.getWorld().getEnvironment() == Environment.NETHER) {
                 if (!(Math.random() > this.buffedBlazeChance)) {
                     blaze.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 3600, 0, true, false, true));
@@ -126,16 +148,17 @@ public final class BlazeSurgeEvent implements SeasonalEvent {
         }
     }
 
+    /** 监听烈焰人死亡：玩家击杀时按概率额外掉落烈焰棒并播放火焰粒子。 */
     @EventHandler
-    public void onDeath(EntityDeathEvent e) {
-        LivingEntity var3 = e.getEntity();
-        if (var3 instanceof Blaze blaze) {
+    public void onDeath(EntityDeathEvent event) {
+        LivingEntity entity = event.getEntity();
+        if (entity instanceof Blaze blaze) {
             if (blaze.getWorld().getEnvironment() == Environment.NETHER) {
                 if (blaze.getKiller() != null) {
                     if (!(Math.random() > this.extraRodChance)) {
                         ThreadLocalRandom rnd = ThreadLocalRandom.current();
                         int amt = this.extraRodMax <= this.extraRodMin ? this.extraRodMin : rnd.nextInt(this.extraRodMin, this.extraRodMax + 1);
-                        e.getDrops().add(new ItemStack(Material.BLAZE_ROD, Math.max(1, amt)));
+                        event.getDrops().add(new ItemStack(Material.BLAZE_ROD, Math.max(1, amt)));
                         blaze.getWorld().spawnParticle(Particle.FLAME, blaze.getLocation().add((double)0.0F, (double)1.0F, (double)0.0F), 12, 0.3, 0.4, 0.3, 0.01);
                     }
                 }
