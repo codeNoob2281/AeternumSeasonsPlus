@@ -1,19 +1,8 @@
-package Kinkin.aeternum.fauna;
+package kinkin.aeternum.fauna;
 
-import Kinkin.aeternum.AeternumSeasonsPlugin;
-import Kinkin.aeternum.util.PlatformScheduler;
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ThreadLocalRandom;
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.NamespacedKey;
-import org.bukkit.World;
+import kinkin.aeternum.AeternumSeasonsPlugin;
+import kinkin.aeternum.util.PlatformScheduler;
+import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.TileState;
@@ -29,23 +18,20 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
-import org.bukkit.event.inventory.ClickType;
-import org.bukkit.event.inventory.InventoryAction;
-import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.event.inventory.InventoryCloseEvent;
-import org.bukkit.event.inventory.InventoryDragEvent;
-import org.bukkit.event.inventory.InventoryMoveItemEvent;
-import org.bukkit.event.inventory.InventoryType;
-import org.bukkit.event.inventory.PrepareItemCraftEvent;
+import org.bukkit.event.inventory.*;
 import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.inventory.CraftingInventory;
-import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.InventoryHolder;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.ShapedRecipe;
+import org.bukkit.inventory.*;
 import org.bukkit.inventory.meta.EnchantmentStorageMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * 鱼陷阱（Fish Trap）服务。
@@ -77,7 +63,9 @@ public final class FishTrapService implements Listener, Runnable {
         this.trapKey = new NamespacedKey(plugin, "fish_trap");
     }
 
-    /** 加载配置与数据、注册事件监听、注册配方并启动周期捕捞任务。 */
+    /**
+     * 加载配置与数据、注册事件监听、注册配方并启动周期捕捞任务。
+     */
     public void register() {
         this.loadFauna();
         this.loadData();
@@ -86,7 +74,9 @@ public final class FishTrapService implements Listener, Runnable {
         this.startTask();
     }
 
-    /** 取消周期任务、保存数据并注销事件监听。 */
+    /**
+     * 取消周期任务、保存数据并注销事件监听。
+     */
     public void unregister() {
         if (this.task != null) {
             this.task.cancel();
@@ -97,14 +87,18 @@ public final class FishTrapService implements Listener, Runnable {
         HandlerList.unregisterAll(this);
     }
 
-    /** 重新加载配置、重新注册配方并重启周期任务。 */
+    /**
+     * 重新加载配置、重新注册配方并重启周期任务。
+     */
     public void reload() {
         this.loadFauna();
         this.registerRecipe();
         this.startTask();
     }
 
-    /** 确保数据目录存在，并在 fauna.yml 缺失时尝试落盘默认资源或创建空文件。 */
+    /**
+     * 确保数据目录存在，并在 fauna.yml 缺失时尝试落盘默认资源或创建空文件。
+     */
     private void loadFauna() {
         if (!this.plugin.getDataFolder().exists()) {
             this.plugin.getDataFolder().mkdirs();
@@ -125,12 +119,16 @@ public final class FishTrapService implements Listener, Runnable {
         this.fauna = YamlConfiguration.loadConfiguration(this.faunaFile);
     }
 
-    /** 返回当前加载的 fauna.yml 配置。 */
+    /**
+     * 返回当前加载的 fauna.yml 配置。
+     */
     private FileConfiguration fauna() {
         return this.fauna;
     }
 
-    /** 按配置的秒数换算为 tick 周期并（重新）启动全局捕捞任务。 */
+    /**
+     * 按配置的秒数换算为 tick 周期并（重新）启动全局捕捞任务。
+     */
     private void startTask() {
         if (this.task != null) {
             this.task.cancel();
@@ -141,7 +139,9 @@ public final class FishTrapService implements Listener, Runnable {
         this.task = PlatformScheduler.runGlobalTimer(this.plugin, this, periodTicks, periodTicks);
     }
 
-    /** 若启用合成，则注册“鱼陷阱”物品的合成配方（先移除旧配方避免重复）。 */
+    /**
+     * 若启用合成，则注册“鱼陷阱”物品的合成配方（先移除旧配方避免重复）。
+     */
     private void registerRecipe() {
         if (this.fauna().getBoolean("fish_trap.crafting", true)) {
             NamespacedKey key = new NamespacedKey(this.plugin, "fish_trap_item");
@@ -160,10 +160,12 @@ public final class FishTrapService implements Listener, Runnable {
         }
     }
 
-    /** 合成结果监听：把鱼陷阱物品的结果替换为按玩家语言本地化的物品。 */
+    /**
+     * 合成结果监听：把鱼陷阱物品的结果替换为按玩家语言本地化的物品。
+     */
     @EventHandler(
-        priority = EventPriority.HIGHEST,
-        ignoreCancelled = true
+            priority = EventPriority.HIGHEST,
+            ignoreCancelled = true
     )
     public void onPrepareCraft(PrepareItemCraftEvent e) {
         CraftingInventory inventory = e.getInventory();
@@ -174,7 +176,7 @@ public final class FishTrapService implements Listener, Runnable {
                 if (!ci.getViewers().isEmpty()) {
                     Object viewer = ci.getViewers().get(0);
                     if (viewer instanceof Player) {
-                        Player player = (Player)viewer;
+                        Player player = (Player) viewer;
                         ci.setResult(this.createTrapItem(player));
                     }
                 }
@@ -182,7 +184,9 @@ public final class FishTrapService implements Listener, Runnable {
         }
     }
 
-    /** 创建按指定玩家语言本地化的鱼陷阱物品。 */
+    /**
+     * 创建按指定玩家语言本地化的鱼陷阱物品。
+     */
     private ItemStack createTrapItem(Player p) {
         ItemStack it = new ItemStack(Material.BARREL);
         ItemMeta meta = it.getItemMeta();
@@ -195,13 +199,15 @@ public final class FishTrapService implements Listener, Runnable {
                 meta.setLore(List.of(loreLine));
             }
 
-            meta.getPersistentDataContainer().set(this.trapKey, PersistentDataType.BYTE, (byte)1);
+            meta.getPersistentDataContainer().set(this.trapKey, PersistentDataType.BYTE, (byte) 1);
             it.setItemMeta(meta);
             return it;
         }
     }
 
-    /** 创建使用服务端语言（无特定玩家）的鱼陷阱物品。 */
+    /**
+     * 创建使用服务端语言（无特定玩家）的鱼陷阱物品。
+     */
     private ItemStack createTrapItem() {
         ItemStack it = new ItemStack(Material.BARREL);
         ItemMeta meta = it.getItemMeta();
@@ -211,25 +217,29 @@ public final class FishTrapService implements Listener, Runnable {
             meta.setLore(List.of(loreLine));
         }
 
-        meta.getPersistentDataContainer().set(this.trapKey, PersistentDataType.BYTE, (byte)1);
+        meta.getPersistentDataContainer().set(this.trapKey, PersistentDataType.BYTE, (byte) 1);
         it.setItemMeta(meta);
         return it;
     }
 
-    /** 判断物品是否为鱼陷阱（木桶且带陷阱标记）。 */
+    /**
+     * 判断物品是否为鱼陷阱（木桶且带陷阱标记）。
+     */
     private boolean isTrapItem(ItemStack it) {
         if (it != null && it.getType() == Material.BARREL) {
             ItemMeta meta = it.getItemMeta();
-            return meta == null ? false : meta.getPersistentDataContainer().has(this.trapKey, PersistentDataType.BYTE);
+            return meta != null && meta.getPersistentDataContainer().has(this.trapKey, PersistentDataType.BYTE);
         } else {
             return false;
         }
     }
 
-    /** 放置监听：校验相邻水域数量，通过后登记陷阱数据；不足则取消放置并提示。 */
+    /**
+     * 放置监听：校验相邻水域数量，通过后登记陷阱数据；不足则取消放置并提示。
+     */
     @EventHandler(
-        priority = EventPriority.HIGHEST,
-        ignoreCancelled = true
+            priority = EventPriority.HIGHEST,
+            ignoreCancelled = true
     )
     public void onPlace(BlockPlaceEvent e) {
         if (this.fauna().getBoolean("fish_trap.enabled", true)) {
@@ -252,39 +262,43 @@ public final class FishTrapService implements Listener, Runnable {
         }
     }
 
-    /** 破坏监听：掉落陷阱物品与内部战利品，并删除持久化数据。 */
+    /**
+     * 破坏监听：掉落陷阱物品与内部战利品，并删除持久化数据。
+     */
     @EventHandler(
-        priority = EventPriority.HIGHEST,
-        ignoreCancelled = true
+            priority = EventPriority.HIGHEST,
+            ignoreCancelled = true
     )
     public void onBreak(BlockBreakEvent e) {
         Block b = e.getBlock();
         if (b.getType() == Material.BARREL) {
             if (this.isTrapBlock(b)) {
                 String id = idOf(b.getWorld().getName(), b.getX(), b.getY(), b.getZ());
-                Trap t = (Trap)this.traps.remove(id);
+                Trap t = (Trap) this.traps.remove(id);
                 e.setDropItems(false);
-                b.getWorld().dropItemNaturally(b.getLocation().add((double)0.5F, (double)0.5F, (double)0.5F), this.createTrapItem(e.getPlayer()));
+                b.getWorld().dropItemNaturally(b.getLocation().add((double) 0.5F, (double) 0.5F, (double) 0.5F), this.createTrapItem(e.getPlayer()));
                 if (t != null) {
-                    for(ItemStack it : t.items) {
+                    for (ItemStack it : t.items) {
                         if (it != null && it.getType() != Material.AIR) {
-                            b.getWorld().dropItemNaturally(b.getLocation().add((double)0.5F, (double)0.5F, (double)0.5F), it);
+                            b.getWorld().dropItemNaturally(b.getLocation().add((double) 0.5F, (double) 0.5F, (double) 0.5F), it);
                         }
                     }
                 }
 
                 this.unmarkTrapBlock(b);
-                this.data.set("traps." + id, (Object)null);
+                this.data.set("traps." + id, (Object) null);
                 this.saveData();
                 e.getPlayer().sendMessage(this.plugin.lang.tr(e.getPlayer(), "fishtrap.msg.broken"));
             }
         }
     }
 
-    /** 右键监听：右键鱼陷阱木桶时打开其 GUI。 */
+    /**
+     * 右键监听：右键鱼陷阱木桶时打开其 GUI。
+     */
     @EventHandler(
-        priority = EventPriority.HIGHEST,
-        ignoreCancelled = true
+            priority = EventPriority.HIGHEST,
+            ignoreCancelled = true
     )
     public void onInteract(PlayerInteractEvent e) {
         if (e.getAction() == Action.RIGHT_CLICK_BLOCK) {
@@ -300,10 +314,12 @@ public final class FishTrapService implements Listener, Runnable {
         }
     }
 
-    /** 打开指定鱼陷阱的 GUI，展示其存储的格位并用灰色玻璃板填充剩余位置。 */
+    /**
+     * 打开指定鱼陷阱的 GUI，展示其存储的格位并用灰色玻璃板填充剩余位置。
+     */
     private void openGui(Player p, Block b) {
         String id = idOf(b.getWorld().getName(), b.getX(), b.getY(), b.getZ());
-        Trap t = (Trap)this.traps.get(id);
+        Trap t = (Trap) this.traps.get(id);
         if (t == null) {
             t = new Trap(b.getWorld().getName(), b.getX(), b.getY(), b.getZ(), new ItemStack[this.getTrapSlots()]);
             this.traps.put(id, t);
@@ -315,7 +331,7 @@ public final class FishTrapService implements Listener, Runnable {
         int guiSize = this.getTrapGuiSize();
         Inventory inv = Bukkit.createInventory(new FishTrapHolder(id), guiSize, this.plugin.lang.tr(p, "fishtrap.gui.title"));
 
-        for(int i = 0; i < slots && i < t.items.length; ++i) {
+        for (int i = 0; i < slots && i < t.items.length; ++i) {
             inv.setItem(i, t.items[i]);
         }
 
@@ -326,16 +342,18 @@ public final class FishTrapService implements Listener, Runnable {
             filler.setItemMeta(fm);
         }
 
-        for(int i = slots; i < guiSize; ++i) {
+        for (int i = slots; i < guiSize; ++i) {
             inv.setItem(i, filler);
         }
 
         p.openInventory(inv);
     }
 
-    /** 点击监听：限制鱼陷阱 GUI 的非法操作（填充区、快捷栏交换、移动等）。 */
+    /**
+     * 点击监听：限制鱼陷阱 GUI 的非法操作（填充区、快捷栏交换、移动等）。
+     */
     @EventHandler(
-        ignoreCancelled = true
+            ignoreCancelled = true
     )
     public void onInvClick(InventoryClickEvent e) {
         if (e.getInventory().getHolder() instanceof FishTrapHolder) {
@@ -366,15 +384,17 @@ public final class FishTrapService implements Listener, Runnable {
         }
     }
 
-    /** 拖拽监听：禁止将物品拖入鱼陷阱 GUI 的任意格位。 */
+    /**
+     * 拖拽监听：禁止将物品拖入鱼陷阱 GUI 的任意格位。
+     */
     @EventHandler(
-        ignoreCancelled = true
+            ignoreCancelled = true
     )
     public void onInvDrag(InventoryDragEvent e) {
         if (e.getInventory().getHolder() instanceof FishTrapHolder) {
             int topSize = e.getInventory().getSize();
 
-            for(int slot : e.getRawSlots()) {
+            for (int slot : e.getRawSlots()) {
                 if (slot >= 0 && slot < topSize) {
                     e.setCancelled(true);
                     return;
@@ -384,17 +404,19 @@ public final class FishTrapService implements Listener, Runnable {
         }
     }
 
-    /** 关闭监听：将 GUI 中的物品写回陷阱数据并持久化。 */
+    /**
+     * 关闭监听：将 GUI 中的物品写回陷阱数据并持久化。
+     */
     @EventHandler
     public void onInvClose(InventoryCloseEvent e) {
         InventoryHolder holder = e.getInventory().getHolder();
         if (holder instanceof FishTrapHolder h) {
-            Trap t = (Trap)this.traps.get(h.trapId);
+            Trap t = (Trap) this.traps.get(h.trapId);
             if (t != null) {
                 int slots = this.getTrapSlots();
                 ItemStack[] newItems = new ItemStack[slots];
 
-                for(int i = 0; i < slots && i < e.getInventory().getSize(); ++i) {
+                for (int i = 0; i < slots && i < e.getInventory().getSize(); ++i) {
                     ItemStack it = e.getInventory().getItem(i);
                     newItems[i] = it != null && it.getType() != Material.AIR ? it.clone() : null;
                 }
@@ -405,9 +427,11 @@ public final class FishTrapService implements Listener, Runnable {
         }
     }
 
-    /** 漏斗/运输监听：禁止向鱼陷阱木桶中自动输入物品。 */
+    /**
+     * 漏斗/运输监听：禁止向鱼陷阱木桶中自动输入物品。
+     */
     @EventHandler(
-        ignoreCancelled = true
+            ignoreCancelled = true
     )
     public void onInvMove(InventoryMoveItemEvent e) {
         Inventory dest = e.getDestination();
@@ -423,38 +447,49 @@ public final class FishTrapService implements Listener, Runnable {
         }
     }
 
-    /** 周期任务：对每个已登记陷阱尝试捕捞。 */
+    /**
+     * 周期任务：对每个已登记陷阱尝试捕捞。
+     */
+    @Override
     public void run() {
         if (this.fauna().getBoolean("fish_trap.enabled", true)) {
             if (!this.traps.isEmpty()) {
-                for(Map.Entry<String, Trap> entry : this.traps.entrySet()) {
-                    this.tryCapture((String)entry.getKey(), (Trap)entry.getValue());
+                for (Map.Entry<String, Trap> entry : this.traps.entrySet()) {
+                    this.tryCapture((String) entry.getKey(), (Trap) entry.getValue());
                 }
 
             }
         }
     }
 
-    /** 读取并限制陷阱可用格位数量（1~54）。 */
+    /**
+     * 读取并限制陷阱可用格位数量（1~54）。
+     */
     private int getTrapSlots() {
         int slots = this.fauna().getInt("fish_trap.slots", 6);
         return Math.max(1, Math.min(54, slots));
     }
 
-    /** 依据可用格位推算 GUI 尺寸（9~54，按 9 的整数行向上取整）。 */
+    /**
+     * 依据可用格位推算 GUI 尺寸（9~54，按 9 的整数行向上取整）。
+     */
     private int getTrapGuiSize() {
         int slots = this.getTrapSlots();
-        int rows = (int)Math.ceil((double)slots / (double)9.0F);
+        int rows = (int) Math.ceil((double) slots / (double) 9.0F);
         return Math.max(9, Math.min(54, rows * 9));
     }
 
-    /** 读取并限制每种鱼的最大堆叠数量（1~64）。 */
+    /**
+     * 读取并限制每种鱼的最大堆叠数量（1~64）。
+     */
     private int getMaxFishStack() {
         int max = this.fauna().getInt("fish_trap.max_fish_stack", 16);
         return Math.max(1, Math.min(64, max));
     }
 
-    /** 判断物品是否为可堆叠的鱼类战利品。 */
+    /**
+     * 判断物品是否为可堆叠的鱼类战利品。
+     */
     private boolean isFishLoot(ItemStack item) {
         if (item != null && item.getType() != Material.AIR) {
             return item.getType() == Material.COD || item.getType() == Material.SALMON || item.getType() == Material.TROPICAL_FISH || item.getType() == Material.PUFFERFISH;
@@ -463,7 +498,9 @@ public final class FishTrapService implements Listener, Runnable {
         }
     }
 
-    /** 确保陷阱的物品数组长度与当前配置格位数一致，必要时扩容并保留旧内容。 */
+    /**
+     * 确保陷阱的物品数组长度与当前配置格位数一致，必要时扩容并保留旧内容。
+     */
     private void ensureTrapSize(Trap trap) {
         if (trap != null) {
             int slots = this.getTrapSlots();
@@ -476,7 +513,9 @@ public final class FishTrapService implements Listener, Runnable {
         }
     }
 
-    /** 对单个陷阱尝试捕捞：校验方块仍存在且相邻水域足够，随后掷出战利品并尝试放入。 */
+    /**
+     * 对单个陷阱尝试捕捞：校验方块仍存在且相邻水域足够，随后掷出战利品并尝试放入。
+     */
     private void tryCapture(String id, Trap t) {
         World w = Bukkit.getWorld(t.world);
         if (w != null) {
@@ -486,7 +525,7 @@ public final class FishTrapService implements Listener, Runnable {
                 Block b = w.getBlockAt(t.x, t.y, t.z);
                 if (b.getType() != Material.BARREL) {
                     this.traps.remove(id);
-                    this.data.set("traps." + id, (Object)null);
+                    this.data.set("traps." + id, (Object) null);
                     this.saveData();
                 } else {
                     int req = this.fauna().getInt("fish_trap.required_adjacent_water", 1);
@@ -502,7 +541,9 @@ public final class FishTrapService implements Listener, Runnable {
         }
     }
 
-    /** 将战利品放入陷阱：鱼类按最大堆叠合并，其余物品放入首个空位；返回是否有放入。 */
+    /**
+     * 将战利品放入陷阱：鱼类按最大堆叠合并，其余物品放入首个空位；返回是否有放入。
+     */
     private boolean addLootToTrap(Trap t, ItemStack loot) {
         if (t != null && loot != null && loot.getType() != Material.AIR) {
             this.ensureTrapSize(t);
@@ -510,7 +551,7 @@ public final class FishTrapService implements Listener, Runnable {
                 int maxStack = this.getMaxFishStack();
                 int remaining = loot.getAmount();
 
-                for(int i = 0; i < t.items.length; ++i) {
+                for (int i = 0; i < t.items.length; ++i) {
                     ItemStack current = t.items[i];
                     if (current != null && current.getType() != Material.AIR && this.isFishLoot(current) && current.isSimilar(loot)) {
                         int space = maxStack - current.getAmount();
@@ -525,7 +566,7 @@ public final class FishTrapService implements Listener, Runnable {
                     }
                 }
 
-                while(remaining > 0) {
+                while (remaining > 0) {
                     int empty = this.firstEmptySlot(t.items);
                     if (empty == -1) {
                         return remaining != loot.getAmount();
@@ -553,9 +594,11 @@ public final class FishTrapService implements Listener, Runnable {
         }
     }
 
-    /** 返回物品数组中的首个空位索引，无空位则返回 -1。 */
+    /**
+     * 返回物品数组中的首个空位索引，无空位则返回 -1。
+     */
     private int firstEmptySlot(ItemStack[] items) {
-        for(int i = 0; i < items.length; ++i) {
+        for (int i = 0; i < items.length; ++i) {
             if (items[i] == null || items[i].getType() == Material.AIR) {
                 return i;
             }
@@ -564,7 +607,9 @@ public final class FishTrapService implements Listener, Runnable {
         return -1;
     }
 
-    /** 按鱼/杂物/宝藏的权重掷出一份战利品。 */
+    /**
+     * 按鱼/杂物/宝藏的权重掷出一份战利品。
+     */
     private ItemStack rollLoot() {
         int fishW = this.fauna().getInt("fish_trap.weights.fish", 800);
         int junkW = this.fauna().getInt("fish_trap.weights.junk", 180);
@@ -579,7 +624,9 @@ public final class FishTrapService implements Listener, Runnable {
         }
     }
 
-    /** 随机产出 1~2 条鱼。 */
+    /**
+     * 随机产出 1~2 条鱼。
+     */
     private ItemStack rollFish() {
         Material[] fish = new Material[]{Material.COD, Material.SALMON, Material.TROPICAL_FISH, Material.PUFFERFISH};
         Material material = fish[ThreadLocalRandom.current().nextInt(fish.length)];
@@ -587,7 +634,9 @@ public final class FishTrapService implements Listener, Runnable {
         return new ItemStack(material, amount);
     }
 
-    /** 随机产出 1~2 个杂物。 */
+    /**
+     * 随机产出 1~2 个杂物。
+     */
     private ItemStack rollJunk() {
         Material[] junk = new Material[]{Material.STRING, Material.STICK, Material.BONE, Material.LEATHER, Material.KELP, Material.BAMBOO, Material.GLASS_BOTTLE, Material.TRIPWIRE_HOOK};
         Material material = junk[ThreadLocalRandom.current().nextInt(junk.length)];
@@ -595,7 +644,9 @@ public final class FishTrapService implements Listener, Runnable {
         return new ItemStack(material, amount);
     }
 
-    /** 按固定概率表产出宝藏类物品。 */
+    /**
+     * 按固定概率表产出宝藏类物品。
+     */
     private ItemStack rollTreasure() {
         int roll = ThreadLocalRandom.current().nextInt(100);
         if (roll < 35) {
@@ -609,16 +660,20 @@ public final class FishTrapService implements Listener, Runnable {
         }
     }
 
-    /** 随机产出一件锁链护甲。 */
+    /**
+     * 随机产出一件锁链护甲。
+     */
     private ItemStack rollChainmail() {
         Material[] pieces = new Material[]{Material.CHAINMAIL_HELMET, Material.CHAINMAIL_CHESTPLATE, Material.CHAINMAIL_LEGGINGS, Material.CHAINMAIL_BOOTS};
         return new ItemStack(pieces[ThreadLocalRandom.current().nextInt(pieces.length)], 1);
     }
 
-    /** 产出带随机附魔的附魔书，等级受配置上限约束。 */
+    /**
+     * 产出带随机附魔的附魔书，等级受配置上限约束。
+     */
     private ItemStack rollEnchantedBook() {
         ItemStack book = new ItemStack(Material.ENCHANTED_BOOK, 1);
-        EnchantmentStorageMeta meta = (EnchantmentStorageMeta)book.getItemMeta();
+        EnchantmentStorageMeta meta = (EnchantmentStorageMeta) book.getItemMeta();
         Enchantment ench = this.randomEnchantment();
         int max = Math.max(1, ench.getMaxLevel());
         int cap = Math.max(1, this.fauna().getInt("fish_trap.book_level_cap", 3));
@@ -628,20 +683,24 @@ public final class FishTrapService implements Listener, Runnable {
         return book;
     }
 
-    /** 从全部有效附魔中随机取一个。 */
+    /**
+     * 从全部有效附魔中随机取一个。
+     */
     private Enchantment randomEnchantment() {
         List<Enchantment> list = new ArrayList();
 
-        for(Enchantment e : Enchantment.values()) {
+        for (Enchantment e : Enchantment.values()) {
             if (e != null) {
                 list.add(e);
             }
         }
 
-        return (Enchantment)list.get(ThreadLocalRandom.current().nextInt(list.size()));
+        return (Enchantment) list.get(ThreadLocalRandom.current().nextInt(list.size()));
     }
 
-    /** 统计目标方块四周（水平四向）的水方块数量。 */
+    /**
+     * 统计目标方块四周（水平四向）的水方块数量。
+     */
     private int countAdjacentWater(Block b) {
         int waterCount = 0;
         if (b.getRelative(1, 0, 0).getType() == Material.WATER) {
@@ -663,17 +722,21 @@ public final class FishTrapService implements Listener, Runnable {
         return waterCount;
     }
 
-    /** 在方块持久化数据中打上鱼陷阱标记。 */
+    /**
+     * 在方块持久化数据中打上鱼陷阱标记。
+     */
     private void markTrapBlock(Block b) {
         BlockState st = b.getState();
         if (st instanceof TileState ts) {
-            ts.getPersistentDataContainer().set(this.trapKey, PersistentDataType.BYTE, (byte)1);
+            ts.getPersistentDataContainer().set(this.trapKey, PersistentDataType.BYTE, (byte) 1);
             ts.update(true, false);
         }
 
     }
 
-    /** 移除方块的鱼陷阱标记。 */
+    /**
+     * 移除方块的鱼陷阱标记。
+     */
     private void unmarkTrapBlock(Block b) {
         BlockState st = b.getState();
         if (st instanceof TileState ts) {
@@ -683,7 +746,9 @@ public final class FishTrapService implements Listener, Runnable {
 
     }
 
-    /** 判断方块是否带有鱼陷阱标记。 */
+    /**
+     * 判断方块是否带有鱼陷阱标记。
+     */
     private boolean isTrapBlock(Block b) {
         BlockState st = b.getState();
         if (st instanceof TileState ts) {
@@ -693,7 +758,9 @@ public final class FishTrapService implements Listener, Runnable {
         }
     }
 
-    /** 从 fish_traps.yml 读取所有陷阱记录并重建内存映射。 */
+    /**
+     * 从 fish_traps.yml 读取所有陷阱记录并重建内存映射。
+     */
     private void loadData() {
         this.dataFile = new File(this.plugin.getDataFolder(), "fish_traps.yml");
         if (!this.dataFile.exists()) {
@@ -708,7 +775,7 @@ public final class FishTrapService implements Listener, Runnable {
         this.traps.clear();
         ConfigurationSection sec = this.data.getConfigurationSection("traps");
         if (sec != null) {
-            for(String id : sec.getKeys(false)) {
+            for (String id : sec.getKeys(false)) {
                 String base = "traps." + id + ".";
                 String world = this.data.getString(base + "world");
                 int x = this.data.getInt(base + "x");
@@ -717,10 +784,10 @@ public final class FishTrapService implements Listener, Runnable {
                 List<?> list = this.data.getList(base + "items", List.of());
                 ItemStack[] items = new ItemStack[this.getTrapSlots()];
 
-                for(int i = 0; i < items.length && i < list.size(); ++i) {
+                for (int i = 0; i < items.length && i < list.size(); ++i) {
                     Object o = list.get(i);
                     if (o instanceof ItemStack) {
-                        ItemStack it = (ItemStack)o;
+                        ItemStack it = (ItemStack) o;
                         items[i] = it;
                     }
                 }
@@ -731,9 +798,11 @@ public final class FishTrapService implements Listener, Runnable {
         }
     }
 
-    /** 将单个陷阱的数据写回配置并保存文件。 */
+    /**
+     * 将单个陷阱的数据写回配置并保存文件。
+     */
     private void saveTrap(String id) {
-        Trap t = (Trap)this.traps.get(id);
+        Trap t = (Trap) this.traps.get(id);
         if (t != null) {
             String base = "traps." + id + ".";
             this.data.set(base + "world", t.world);
@@ -743,7 +812,7 @@ public final class FishTrapService implements Listener, Runnable {
             this.ensureTrapSize(t);
             List<ItemStack> list = new ArrayList();
 
-            for(int i = 0; i < t.items.length; ++i) {
+            for (int i = 0; i < t.items.length; ++i) {
                 list.add(t.items[i]);
             }
 
@@ -752,7 +821,9 @@ public final class FishTrapService implements Listener, Runnable {
         }
     }
 
-    /** 保存 fish_traps.yml 到磁盘，忽略 IO 异常。 */
+    /**
+     * 保存 fish_traps.yml 到磁盘，忽略 IO 异常。
+     */
     private void saveData() {
         if (this.data != null && this.dataFile != null) {
             try {
@@ -763,12 +834,16 @@ public final class FishTrapService implements Listener, Runnable {
         }
     }
 
-    /** 生成陷阱的唯一标识“世界名:x:y:z”。 */
+    /**
+     * 生成陷阱的唯一标识“世界名:x:y:z”。
+     */
     private static String idOf(String world, int x, int y, int z) {
         return world + ":" + x + ":" + y + ":" + z;
     }
 
-    /** 单个鱼陷阱的运行时数据：世界名、方块坐标与其物品格位。 */
+    /**
+     * 单个鱼陷阱的运行时数据：世界名、方块坐标与其物品格位。
+     */
     private static final class Trap {
         final String world;
         final int x;
@@ -786,7 +861,9 @@ public final class FishTrapService implements Listener, Runnable {
         }
     }
 
-    /** 鱼陷阱 GUI 的背包持有者，携带陷阱标识以便关闭时回写。 */
+    /**
+     * 鱼陷阱 GUI 的背包持有者，携带陷阱标识以便关闭时回写。
+     */
     private static final class FishTrapHolder implements InventoryHolder {
         final String trapId;
 
@@ -795,6 +872,7 @@ public final class FishTrapService implements Listener, Runnable {
             this.trapId = trapId;
         }
 
+        @Override
         public Inventory getInventory() {
             return null;
         }

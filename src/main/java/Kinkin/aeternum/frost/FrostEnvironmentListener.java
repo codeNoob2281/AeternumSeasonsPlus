@@ -1,11 +1,7 @@
-package Kinkin.aeternum.frost;
+package kinkin.aeternum.frost;
 
-import Kinkin.aeternum.AeternumSeasonsPlugin;
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.Particle;
-import org.bukkit.World;
+import kinkin.aeternum.AeternumSeasonsPlugin;
+import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.event.HandlerList;
@@ -37,6 +33,7 @@ public final class FrostEnvironmentListener implements Listener, Runnable {
     public void register() {
         Bukkit.getPluginManager().registerEvents(this, this.plugin);
         this.task = (new BukkitRunnable() {
+            @Override
             public void run() {
                 FrostEnvironmentListener.this.run();
             }
@@ -54,12 +51,13 @@ public final class FrostEnvironmentListener implements Listener, Runnable {
     /**
      * 每周期遍历永霜世界的在线玩家，生成寒气并为每人结算寒冷效果。
      */
+    @Override
     public void run() {
         World world = Bukkit.getWorld("aeternum_frost");
         if (world != null) {
             boolean storm = world.hasStorm();
 
-            for(Player player : world.getPlayers()) {
+            for (Player player : world.getPlayers()) {
                 this.spawnColdBreath(player);
                 this.applyCold(player, storm);
             }
@@ -99,8 +97,8 @@ public final class FrostEnvironmentListener implements Listener, Runnable {
                         player.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 80, 0, true, true, true));
                     }
 
-                    if (storm && player.getHealth() > (double)1.0F) {
-                        player.damage((double)1.0F);
+                    if (storm && player.getHealth() > (double) 1.0F) {
+                        player.damage((double) 1.0F);
                     }
                 } else {
                     if (player.getFreezeTicks() > 0) {
@@ -193,9 +191,9 @@ public final class FrostEnvironmentListener implements Listener, Runnable {
             int baseY = loc.getBlockY();
             int baseZ = loc.getBlockZ();
 
-            for(int x = baseX - radius; x <= baseX + radius; ++x) {
-                for(int y = baseY - radius; y <= baseY + radius; ++y) {
-                    for(int z = baseZ - radius; z <= baseZ + radius; ++z) {
+            for (int x = baseX - radius; x <= baseX + radius; ++x) {
+                for (int y = baseY - radius; y <= baseY + radius; ++y) {
+                    for (int z = baseZ - radius; z <= baseZ + radius; ++z) {
                         Block block = world.getBlockAt(x, y, z);
                         if (this.isHotBlock(block.getType())) {
                             return true;
@@ -247,12 +245,12 @@ public final class FrostEnvironmentListener implements Listener, Runnable {
         Location eye = player.getEyeLocation().clone();
         World world = eye.getWorld();
         if (world != null) {
-            Vector dir = eye.getDirection().normalize().multiply((double)0.25F);
+            Vector dir = eye.getDirection().normalize().multiply((double) 0.25F);
             Location pos = eye.clone();
 
-            for(int i = 0; i < 6; ++i) {
+            for (int i = 0; i < 6; ++i) {
                 pos.add(dir);
-                world.spawnParticle(Particle.SNOWFLAKE, pos.getX(), pos.getY(), pos.getZ(), 1, 0.03, 0.03, 0.03, (double)0.0F);
+                world.spawnParticle(Particle.SNOWFLAKE, pos.getX(), pos.getY(), pos.getZ(), 1, 0.03, 0.03, 0.03, (double) 0.0F);
             }
 
         }

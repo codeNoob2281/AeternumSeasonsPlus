@@ -1,4 +1,4 @@
-package Kinkin.aeternum.food;
+package kinkin.aeternum.food;
 
 import org.bukkit.NamespacedKey;
 
@@ -12,7 +12,9 @@ public final class VillageFoodLoot {
         super();
     }
 
-    /** 判断给定战利品表的键是否以 {@code chests/village/} 开头（即村庄宝箱）。 */
+    /**
+     * 判断给定战利品表的键是否以 {@code chests/village/} 开头（即村庄宝箱）。
+     */
     public static boolean matches(NamespacedKey key) {
         return key != null && key.getKey().startsWith("chests/village/");
     }

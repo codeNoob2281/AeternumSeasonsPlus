@@ -1,34 +1,16 @@
-package Kinkin.aeternum.events;
+package kinkin.aeternum.events;
 
-import Kinkin.aeternum.AeternumSeasonsPlugin;
-import Kinkin.aeternum.calendar.CalendarState;
-import Kinkin.aeternum.calendar.Season;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.ThreadLocalRandom;
-import java.util.function.Consumer;
-import org.bukkit.Bukkit;
-import org.bukkit.GameMode;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.NamespacedKey;
-import org.bukkit.Particle;
-import org.bukkit.Sound;
-import org.bukkit.World;
+import kinkin.aeternum.AeternumSeasonsPlugin;
+import kinkin.aeternum.calendar.CalendarState;
+import kinkin.aeternum.calendar.Season;
+import org.bukkit.*;
 import org.bukkit.World.Environment;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.block.Block;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.enchantments.Enchantment;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.EntityType;
-import org.bukkit.entity.LivingEntity;
-import org.bukkit.entity.Player;
-import org.bukkit.entity.Wither;
+import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
@@ -37,6 +19,10 @@ import org.bukkit.inventory.meta.EnchantmentStorageMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.scheduler.BukkitTask;
+
+import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Consumer;
 
 /**
  * 凋灵失控事件（Wither Loose）。
@@ -54,54 +40,100 @@ import org.bukkit.scheduler.BukkitTask;
 public final class WitherLooseEvent implements SeasonalEvent {
     private final AeternumSeasonsPlugin plugin;
     private boolean enabled;
-    /** 事件最短持续天数。 */
+    /**
+     * 事件最短持续天数。
+     */
     private int minDur;
-    /** 事件最长持续天数。 */
+    /**
+     * 事件最长持续天数。
+     */
     private int maxDur;
-    /** 每天触发事件的基础概率。 */
+    /**
+     * 每天触发事件的基础概率。
+     */
     private double baseChance;
-    /** 挑选目标玩家的最少数量。 */
+    /**
+     * 挑选目标玩家的最少数量。
+     */
     private int minTargets;
-    /** 挑选目标玩家的最多数量。 */
+    /**
+     * 挑选目标玩家的最多数量。
+     */
     private int maxTargets;
-    /** 是否只挑选生存/冒险模式的玩家。 */
+    /**
+     * 是否只挑选生存/冒险模式的玩家。
+     */
     private boolean onlySurvivalAdventure;
-    /** 事件开始到生成凋灵的延迟秒数。 */
+    /**
+     * 事件开始到生成凋灵的延迟秒数。
+     */
     private int spawnDelaySeconds;
-    /** 倒计时提示的间隔秒数。 */
+    /**
+     * 倒计时提示的间隔秒数。
+     */
     private int countdownIntervalSeconds;
-    /** 生成时距目标玩家的最小距离。 */
+    /**
+     * 生成时距目标玩家的最小距离。
+     */
     private int spawnMinDistance;
-    /** 生成时距目标玩家的最大距离。 */
+    /**
+     * 生成时距目标玩家的最大距离。
+     */
     private int spawnMaxDistance;
-    /** 凋灵的最大生命值。 */
+    /**
+     * 凋灵的最大生命值。
+     */
     private double witherMaxHealth;
-    /** 凋灵是否发光。 */
+    /**
+     * 凋灵是否发光。
+     */
     private boolean witherGlowing;
-    /** 凋灵无伤多少秒后自动清除。 */
+    /**
+     * 凋灵无伤多少秒后自动清除。
+     */
     private int idleKillSeconds;
-    /** 空闲检测的间隔秒数。 */
+    /**
+     * 空闲检测的间隔秒数。
+     */
     private int idleCheckSeconds;
-    /** 额外掉落下界合金碎片的概率。 */
+    /**
+     * 额外掉落下界合金碎片的概率。
+     */
     private double extraLootChanceScrap;
-    /** 额外掉落下界合金碎片的最少数量。 */
+    /**
+     * 额外掉落下界合金碎片的最少数量。
+     */
     private int extraLootScrapMin;
-    /** 额外掉落下界合金碎片的最多数量。 */
+    /**
+     * 额外掉落下界合金碎片的最多数量。
+     */
     private int extraLootScrapMax;
-    /** 额外掉落火焰保护附魔书的概率。 */
+    /**
+     * 额外掉落火焰保护附魔书的概率。
+     */
     private double extraLootChanceFireProtBook;
-    /** 额外掉落恶魂之泪的概率。 */
+    /**
+     * 额外掉落恶魂之泪的概率。
+     */
     private double extraLootChanceGhastTear;
-    /** 本次事件选中的目标玩家 UUID 列表。 */
+    /**
+     * 本次事件选中的目标玩家 UUID 列表。
+     */
     private final List<UUID> targets = new ArrayList();
     private BukkitTask countdownTask;
     private BukkitTask spawnTask;
-    /** 当前存活的事件凋灵 UUID。 */
+    /**
+     * 当前存活的事件凋灵 UUID。
+     */
     private UUID activeWitherId = null;
-    /** 凋灵最近一次受到伤害的时间戳（毫秒）。 */
+    /**
+     * 凋灵最近一次受到伤害的时间戳（毫秒）。
+     */
     private long lastDamageAtMs = 0L;
     private BukkitTask idleTask = null;
-    /** 用于标记事件凋灵的持久化数据键。 */
+    /**
+     * 用于标记事件凋灵的持久化数据键。
+     */
     private final NamespacedKey witherMarkKey;
 
     public WitherLooseEvent(AeternumSeasonsPlugin plugin) {
@@ -111,7 +143,9 @@ public final class WitherLooseEvent implements SeasonalEvent {
         this.reloadFromConfig();
     }
 
-    /** 从 events.yml 重新读取本事件的配置项。 */
+    /**
+     * 从 events.yml 重新读取本事件的配置项。
+     */
     private void reloadFromConfig() {
         FileConfiguration config = YamlEvents.get(this.plugin);
         this.enabled = config.getBoolean("events.wither_loose.enabled", true);
@@ -125,7 +159,7 @@ public final class WitherLooseEvent implements SeasonalEvent {
         this.countdownIntervalSeconds = config.getInt("events.wither_loose.countdown_interval_seconds", 20);
         this.spawnMinDistance = config.getInt("events.wither_loose.spawn.min_distance", 18);
         this.spawnMaxDistance = config.getInt("events.wither_loose.spawn.max_distance", 28);
-        this.witherMaxHealth = config.getDouble("events.wither_loose.wither.max_health", (double)180.0F);
+        this.witherMaxHealth = config.getDouble("events.wither_loose.wither.max_health", (double) 180.0F);
         this.witherGlowing = config.getBoolean("events.wither_loose.wither.glowing", true);
         this.idleKillSeconds = config.getInt("events.wither_loose.wither.idle_kill_seconds", 180);
         this.idleCheckSeconds = config.getInt("events.wither_loose.wither.idle_check_seconds", 10);
@@ -133,30 +167,38 @@ public final class WitherLooseEvent implements SeasonalEvent {
         this.extraLootScrapMin = config.getInt("events.wither_loose.loot.netherite_scrap_min", 1);
         this.extraLootScrapMax = config.getInt("events.wither_loose.loot.netherite_scrap_max", 2);
         this.extraLootChanceFireProtBook = config.getDouble("events.wither_loose.loot.fire_prot_book_chance", 0.15);
-        this.extraLootChanceGhastTear = config.getDouble("events.wither_loose.loot.ghast_tear_chance", (double)0.25F);
+        this.extraLootChanceGhastTear = config.getDouble("events.wither_loose.loot.ghast_tear_chance", (double) 0.25F);
     }
 
+    @Override
     public String getId() {
         return "wither_loose";
     }
 
+    @Override
     public String getDisplayName() {
         return "Wither Loose";
     }
 
+    @Override
     public boolean isSeasonAllowed(Season season) {
         return true;
     }
 
+    @Override
     public int getMinDurationDays() {
         return this.minDur;
     }
 
+    @Override
     public int getMaxDurationDays() {
         return this.maxDur;
     }
 
-    /** 仅当下界合格玩家数不少于最少目标数、且通过概率判定时才允许开始。 */
+    /**
+     * 仅当下界合格玩家数不少于最少目标数、且通过概率判定时才允许开始。
+     */
+    @Override
     public boolean canStartToday(CalendarState state, EventContext context) {
         if (!this.enabled) {
             return false;
@@ -170,7 +212,10 @@ public final class WitherLooseEvent implements SeasonalEvent {
         }
     }
 
-    /** 事件开始时挑选目标、发送标题并启动倒计时与延迟生成凋灵的任务。 */
+    /**
+     * 事件开始时挑选目标、发送标题并启动倒计时与延迟生成凋灵的任务。
+     */
+    @Override
     public void onStart(CalendarState state, EventContext context) {
         this.stopTasks();
         List<Player> eligible = this.getEligibleNetherPlayers();
@@ -179,8 +224,8 @@ public final class WitherLooseEvent implements SeasonalEvent {
             Collections.shuffle(eligible, ThreadLocalRandom.current());
             this.targets.clear();
 
-            for(int i = 0; i < targetCount; ++i) {
-                this.targets.add(((Player)eligible.get(i)).getUniqueId());
+            for (int i = 0; i < targetCount; ++i) {
+                this.targets.add(((Player) eligible.get(i)).getUniqueId());
             }
 
             this.forEachTarget((player) -> player.sendTitle(this.plugin.lang.tr(player, "event.wither_loose.title"), this.plugin.lang.tr(player, "event.wither_loose.subtitle"), 20, 80, 40));
@@ -193,6 +238,7 @@ public final class WitherLooseEvent implements SeasonalEvent {
                     this.remaining = WitherLooseEvent.this.spawnDelaySeconds;
                 }
 
+                @Override
                 public void run() {
                     this.remaining -= interval;
                     if (this.remaining <= 0) {
@@ -205,20 +251,23 @@ public final class WitherLooseEvent implements SeasonalEvent {
                         WitherLooseEvent.this.announceSeconds(this.remaining);
                     }
                 }
-            }, 20L * (long)interval, 20L * (long)interval);
+            }, 20L * (long) interval, 20L * (long) interval);
             this.spawnTask = Bukkit.getScheduler().runTaskLater(this.plugin, () -> {
                 this.spawnTask = null;
                 this.spawnWitherNearTargets();
-            }, 20L * (long)Math.max(1, this.spawnDelaySeconds));
+            }, 20L * (long) Math.max(1, this.spawnDelaySeconds));
         }
     }
 
-    /** 事件结束时停止所有任务、清空目标，并通知身处下界的玩家。 */
+    /**
+     * 事件结束时停止所有任务、清空目标，并通知身处下界的玩家。
+     */
+    @Override
     public void onEnd(CalendarState state, EventContext context) {
         this.stopTasks();
         this.targets.clear();
 
-        for(Player player : Bukkit.getOnlinePlayers()) {
+        for (Player player : Bukkit.getOnlinePlayers()) {
             if (player.getWorld().getEnvironment() == Environment.NETHER) {
                 player.sendMessage(this.plugin.lang.tr(player, "event.wither_loose.end"));
             }
@@ -226,13 +275,17 @@ public final class WitherLooseEvent implements SeasonalEvent {
 
     }
 
+    @Override
     public void onDayTick(CalendarState state, EventContext context) {
     }
 
+    @Override
     public void onTick(CalendarState state, EventContext context) {
     }
 
-    /** 记录事件凋灵最近一次受到有效伤害的时间，用于空闲检测。 */
+    /**
+     * 记录事件凋灵最近一次受到有效伤害的时间，用于空闲检测。
+     */
     @EventHandler
     public void onWitherDamage(EntityDamageEvent event) {
         Entity entity = event.getEntity();
@@ -241,7 +294,7 @@ public final class WitherLooseEvent implements SeasonalEvent {
                 PersistentDataContainer container = wither.getPersistentDataContainer();
                 if (container.has(this.witherMarkKey, PersistentDataType.BYTE)) {
                     if (!event.isCancelled()) {
-                        if (!(event.getFinalDamage() <= (double)0.0F)) {
+                        if (!(event.getFinalDamage() <= (double) 0.0F)) {
                             this.lastDamageAtMs = System.currentTimeMillis();
                         }
                     }
@@ -250,7 +303,9 @@ public final class WitherLooseEvent implements SeasonalEvent {
         }
     }
 
-    /** 事件凋灵死亡时按概率追加额外掉落，并清理其追踪状态。 */
+    /**
+     * 事件凋灵死亡时按概率追加额外掉落，并清理其追踪状态。
+     */
     @EventHandler
     public void onWitherDeath(EntityDeathEvent event) {
         LivingEntity entity = event.getEntity();
@@ -281,19 +336,21 @@ public final class WitherLooseEvent implements SeasonalEvent {
         }
     }
 
-    /** 在随机选中的下界目标附近生成一只被标记的凋灵并初始化其属性。 */
+    /**
+     * 在随机选中的下界目标附近生成一只被标记的凋灵并初始化其属性。
+     */
     private void spawnWitherNearTargets() {
         Player chosen = this.pickActiveTargetInNether();
         if (chosen != null) {
             Location spawn = this.findSafeSpawnNear(chosen, this.spawnMinDistance, this.spawnMaxDistance, 40);
             if (spawn == null) {
-                spawn = chosen.getLocation().clone().add((double)4.0F, (double)2.0F, (double)4.0F);
+                spawn = chosen.getLocation().clone().add((double) 4.0F, (double) 2.0F, (double) 4.0F);
             }
 
             World world = spawn.getWorld();
             if (world != null && world.getEnvironment() == Environment.NETHER) {
-                Wither wither = (Wither)world.spawnEntity(spawn, EntityType.WITHER);
-                wither.getPersistentDataContainer().set(this.witherMarkKey, PersistentDataType.BYTE, (byte)1);
+                Wither wither = (Wither) world.spawnEntity(spawn, EntityType.WITHER);
+                wither.getPersistentDataContainer().set(this.witherMarkKey, PersistentDataType.BYTE, (byte) 1);
                 AttributeInstance maxHealth = wither.getAttribute(Attribute.MAX_HEALTH);
                 if (maxHealth != null) {
                     maxHealth.setBaseValue(this.witherMaxHealth);
@@ -310,22 +367,24 @@ public final class WitherLooseEvent implements SeasonalEvent {
                     player.playSound(player.getLocation(), Sound.ENTITY_WITHER_SPAWN, 1.0F, 0.8F);
                     player.sendTitle(this.plugin.lang.tr(player, "event.wither_loose.title"), this.plugin.lang.tr(player, "event.wither_loose.survive"), 10, 60, 20);
                 });
-                world.spawnParticle(Particle.SMOKE, spawn.clone().add((double)0.0F, (double)1.5F, (double)0.0F), 24, 0.8, 0.7, 0.8, 0.01);
-                world.spawnParticle(Particle.LAVA, spawn.clone().add((double)0.0F, 1.2, (double)0.0F), 10, 0.6, 0.4, 0.6, 0.01);
+                world.spawnParticle(Particle.SMOKE, spawn.clone().add((double) 0.0F, (double) 1.5F, (double) 0.0F), 24, 0.8, 0.7, 0.8, 0.01);
+                world.spawnParticle(Particle.LAVA, spawn.clone().add((double) 0.0F, 1.2, (double) 0.0F), 10, 0.6, 0.4, 0.6, 0.01);
             }
         }
     }
 
-    /** 首次生成凋灵时启动空闲检测任务（若尚未启动）。 */
+    /**
+     * 首次生成凋灵时启动空闲检测任务（若尚未启动）。
+     */
     private void startIdleTaskIfNeeded() {
         if (this.idleTask == null) {
-            long periodTicks = 20L * (long)Math.max(2, this.idleCheckSeconds);
+            long periodTicks = 20L * (long) Math.max(2, this.idleCheckSeconds);
             this.idleTask = Bukkit.getScheduler().runTaskTimer(this.plugin, () -> {
                 if (this.activeWitherId != null) {
                     Wither found = null;
                     Entity entity = Bukkit.getEntity(this.activeWitherId);
                     if (entity instanceof Wither) {
-                        Wither wither = (Wither)entity;
+                        Wither wither = (Wither) entity;
                         if (wither.getWorld().getEnvironment() == Environment.NETHER && !wither.isDead()) {
                             found = wither;
                         }
@@ -340,7 +399,7 @@ public final class WitherLooseEvent implements SeasonalEvent {
                             this.lastDamageAtMs = now;
                         }
 
-                        if (now - this.lastDamageAtMs >= (long)this.idleKillSeconds * 1000L) {
+                        if (now - this.lastDamageAtMs >= (long) this.idleKillSeconds * 1000L) {
                             found.remove();
                             this.activeWitherId = null;
                             this.lastDamageAtMs = 0L;
@@ -353,7 +412,9 @@ public final class WitherLooseEvent implements SeasonalEvent {
         }
     }
 
-    /** 向所有目标播报剩余秒数（使用对应档位的语言键）。 */
+    /**
+     * 向所有目标播报剩余秒数（使用对应档位的语言键）。
+     */
     private void announceSeconds(int seconds) {
         this.forEachTarget((player) -> {
             String langKey;
@@ -371,7 +432,9 @@ public final class WitherLooseEvent implements SeasonalEvent {
         });
     }
 
-    /** 取消倒计时、生成与空闲检测任务并清理相关状态。 */
+    /**
+     * 取消倒计时、生成与空闲检测任务并清理相关状态。
+     */
     private void stopTasks() {
         if (this.countdownTask != null) {
             this.countdownTask.cancel();
@@ -392,9 +455,11 @@ public final class WitherLooseEvent implements SeasonalEvent {
         this.lastDamageAtMs = 0L;
     }
 
-    /** 对每个仍位于下界的目标玩家执行给定操作。 */
+    /**
+     * 对每个仍位于下界的目标玩家执行给定操作。
+     */
     private void forEachTarget(Consumer<Player> action) {
-        for(UUID id : this.targets) {
+        for (UUID id : this.targets) {
             Player player = Bukkit.getPlayer(id);
             if (player != null && player.getWorld().getEnvironment() == Environment.NETHER) {
                 action.accept(player);
@@ -403,11 +468,13 @@ public final class WitherLooseEvent implements SeasonalEvent {
 
     }
 
-    /** 收集当前位于下界、且符合模式要求的在线玩家。 */
+    /**
+     * 收集当前位于下界、且符合模式要求的在线玩家。
+     */
     private List<Player> getEligibleNetherPlayers() {
         List<Player> result = new ArrayList();
 
-        for(Player player : Bukkit.getOnlinePlayers()) {
+        for (Player player : Bukkit.getOnlinePlayers()) {
             if (player.getWorld().getEnvironment() == Environment.NETHER && player.getGameMode() != GameMode.SPECTATOR && (!this.onlySurvivalAdventure || player.getGameMode() == GameMode.SURVIVAL || player.getGameMode() == GameMode.ADVENTURE)) {
                 result.add(player);
             }
@@ -416,11 +483,13 @@ public final class WitherLooseEvent implements SeasonalEvent {
         return result;
     }
 
-    /** 从目标列表中随机挑选一名仍位于下界的存活玩家。 */
+    /**
+     * 从目标列表中随机挑选一名仍位于下界的存活玩家。
+     */
     private Player pickActiveTargetInNether() {
         List<Player> alive = new ArrayList();
 
-        for(UUID id : this.targets) {
+        for (UUID id : this.targets) {
             Player player = Bukkit.getPlayer(id);
             if (player != null && player.getWorld().getEnvironment() == Environment.NETHER && player.getGameMode() != GameMode.SPECTATOR) {
                 alive.add(player);
@@ -430,11 +499,13 @@ public final class WitherLooseEvent implements SeasonalEvent {
         if (alive.isEmpty()) {
             return null;
         } else {
-            return (Player)alive.get(ThreadLocalRandom.current().nextInt(alive.size()));
+            return (Player) alive.get(ThreadLocalRandom.current().nextInt(alive.size()));
         }
     }
 
-    /** 在目标附近寻找一个安全、可站立的生成点（脚下为固体方块、头和脚可通行）。 */
+    /**
+     * 在目标附近寻找一个安全、可站立的生成点（脚下为固体方块、头和脚可通行）。
+     */
     private Location findSafeSpawnNear(Player target, int minDist, int maxDist, int attempts) {
         World world = target.getWorld();
         if (world == null) {
@@ -445,7 +516,7 @@ public final class WitherLooseEvent implements SeasonalEvent {
             int minY = Math.max(world.getMinHeight() + 5, 10);
             int maxY = Math.min(world.getMaxHeight() - 5, baseLocation.getBlockY() + 10);
 
-            for(int attempt = 0; attempt < attempts; ++attempt) {
+            for (int attempt = 0; attempt < attempts; ++attempt) {
                 int dx = random.nextInt(-maxDist, maxDist + 1);
                 int dz = random.nextInt(-maxDist, maxDist + 1);
                 if (dx * dx + dz * dz >= minDist * minDist) {
@@ -453,7 +524,7 @@ public final class WitherLooseEvent implements SeasonalEvent {
                     int z = baseLocation.getBlockZ() + dz;
                     int y = this.clamp(baseLocation.getBlockY() + random.nextInt(-6, 7), minY, maxY);
 
-                    for(int dy = -4; dy <= 4; ++dy) {
+                    for (int dy = -4; dy <= 4; ++dy) {
                         int yy = this.clamp(y + dy, minY, world.getMaxHeight() - 5);
                         Block feet = world.getBlockAt(x, yy, z);
                         Block head = world.getBlockAt(x, yy + 1, z);
@@ -461,8 +532,8 @@ public final class WitherLooseEvent implements SeasonalEvent {
                         if (feet.isPassable() && head.isPassable()) {
                             Material floorType = floor.getType();
                             if (floor.getType().isSolid() && floorType != Material.LAVA && floorType != Material.MAGMA_BLOCK && floorType != Material.FIRE && floorType != Material.SOUL_FIRE) {
-                                Location candidate = new Location(world, (double)x + (double)0.5F, (double)yy, (double)z + (double)0.5F);
-                                if (!(candidate.distanceSquared(baseLocation) < (double)(minDist * minDist))) {
+                                Location candidate = new Location(world, (double) x + (double) 0.5F, (double) yy, (double) z + (double) 0.5F);
+                                if (!(candidate.distanceSquared(baseLocation) < (double) (minDist * minDist))) {
                                     return candidate;
                                 }
                             }
@@ -475,10 +546,12 @@ public final class WitherLooseEvent implements SeasonalEvent {
         }
     }
 
-    /** 制作一本指定等级的火焰保护附魔书。 */
+    /**
+     * 制作一本指定等级的火焰保护附魔书。
+     */
     private ItemStack makeFireProtBook(int level) {
         ItemStack book = new ItemStack(Material.ENCHANTED_BOOK);
-        EnchantmentStorageMeta meta = (EnchantmentStorageMeta)book.getItemMeta();
+        EnchantmentStorageMeta meta = (EnchantmentStorageMeta) book.getItemMeta();
         if (meta != null) {
             meta.addStoredEnchant(Enchantment.FIRE_PROTECTION, level, true);
             book.setItemMeta(meta);
@@ -487,7 +560,9 @@ public final class WitherLooseEvent implements SeasonalEvent {
         return book;
     }
 
-    /** 在 [min, max] 范围内随机取值；若 max < min 则返回 min。 */
+    /**
+     * 在 [min, max] 范围内随机取值；若 max < min 则返回 min。
+     */
     private int randomBetween(int min, int max, ThreadLocalRandom random) {
         if (max < min) {
             return min;
@@ -496,7 +571,9 @@ public final class WitherLooseEvent implements SeasonalEvent {
         }
     }
 
-    /** 将给定值限制到 [min, max] 区间内。 */
+    /**
+     * 将给定值限制到 [min, max] 区间内。
+     */
     private int clamp(int value, int min, int max) {
         return Math.max(min, Math.min(max, value));
     }

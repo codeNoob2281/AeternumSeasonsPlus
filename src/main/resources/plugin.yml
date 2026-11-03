@@ -1,8 +1,8 @@
 name: AeternumSeasons
-main: Kinkin.aeternum.AeternumSeasonsPlugin
+main: kinkin.aeternum.AeternumSeasonsPlugin
 version: "4.7"
 api-version: '1.21'
-author: [Kinkin, MD (salvador)]
+author: [ Kinkin, MD (salvador) ]
 description: "A completely independent seasons plugin! For more information, visit: https://github.com/KinkinxD12/Aeternum-Seasons"
 
 softdepend:
@@ -42,14 +42,14 @@ commands:
     usage: "/seasonguide"
 
 permissions:
-  aeternum.events:            { default: op }
-  aeternum.command.base:      { default: op }
-  aeternum.command.info:      { default: true }
-  aeternum.command.hud:       { default: true }
-  aeternum.command.set:       { default: op }
-  aeternum.command.skip:      { default: op }
-  aeternum.command.day:       { default: op }
-  aeternum.command.year:      { default: op }
-  aeternum.command.reload:    { default: op }
-  aeternum.command.biomefix:  { default: false  }
-  aeternum.command.biomes:    { default: op }
+  aeternum.events: { default: op }
+  aeternum.command.base: { default: op }
+  aeternum.command.info: { default: true }
+  aeternum.command.hud: { default: true }
+  aeternum.command.set: { default: op }
+  aeternum.command.skip: { default: op }
+  aeternum.command.day: { default: op }
+  aeternum.command.year: { default: op }
+  aeternum.command.reload: { default: op }
+  aeternum.command.biomefix: { default: false }
+  aeternum.command.biomes: { default: op }

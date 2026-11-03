@@ -1,10 +1,6 @@
-package Kinkin.aeternum.crafting;
+package kinkin.aeternum.crafting;
 
-import Kinkin.aeternum.AeternumSeasonsPlugin;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.concurrent.ThreadLocalRandom;
+import kinkin.aeternum.AeternumSeasonsPlugin;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -29,6 +25,11 @@ import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * 春行靴（Spring Stride Boots）。
@@ -57,26 +58,32 @@ public final class SpringStrideBoots implements Listener {
         this.tagKey = new NamespacedKey(plugin, "spring_stride_boots");
     }
 
-    /** 向服务器注册事件监听器与合成配方。 */
+    /**
+     * 向服务器注册事件监听器与合成配方。
+     */
     public void register() {
         Bukkit.getPluginManager().registerEvents(this, this.plugin);
         this.registerRecipe();
     }
 
-    /** 注销事件监听器并移除已注册的合成配方。 */
+    /**
+     * 注销事件监听器并移除已注册的合成配方。
+     */
     public void unregister() {
         HandlerList.unregisterAll(this);
         Bukkit.removeRecipe(this.recipeKey);
     }
 
-    /** 注册春行靴的合成配方：B 为任意靴子，P 为粉色花瓣。 */
+    /**
+     * 注册春行靴的合成配方：B 为任意靴子，P 为粉色花瓣。
+     */
     private void registerRecipe() {
         ItemStack dummy = new ItemStack(Material.LEATHER_BOOTS);
         ShapedRecipe recipe = new ShapedRecipe(this.recipeKey, dummy);
         recipe.shape(new String[]{"PPP", "PBP", "PPP"});
         List<Material> bootsList = new ArrayList();
 
-        for(Material material : Material.values()) {
+        for (Material material : Material.values()) {
             if (material != null && material.name().endsWith("_BOOTS")) {
                 bootsList.add(material);
             }
@@ -98,25 +105,25 @@ public final class SpringStrideBoots implements Listener {
         if (event.getRecipe() != null) {
             Recipe recipe = event.getRecipe();
             if (recipe instanceof ShapedRecipe) {
-                ShapedRecipe shaped = (ShapedRecipe)recipe;
+                ShapedRecipe shaped = (ShapedRecipe) recipe;
                 if (this.recipeKey.equals(shaped.getKey())) {
                     ItemStack[] matrix = event.getInventory().getMatrix();
                     ItemStack boots = null;
                     int petals = 0;
 
-                    for(ItemStack stack : matrix) {
+                    for (ItemStack stack : matrix) {
                         if (stack != null && stack.getType() != Material.AIR) {
                             Material type = stack.getType();
                             if (this.isBoots(type)) {
                                 if (boots != null) {
-                                    event.getInventory().setResult((ItemStack)null);
+                                    event.getInventory().setResult((ItemStack) null);
                                     return;
                                 }
 
                                 boots = stack.clone();
                             } else {
                                 if (type != Material.PINK_PETALS) {
-                                    event.getInventory().setResult((ItemStack)null);
+                                    event.getInventory().setResult((ItemStack) null);
                                     return;
                                 }
 
@@ -129,14 +136,14 @@ public final class SpringStrideBoots implements Listener {
                         Player crafter = null;
                         HumanEntity viewer = event.getView().getPlayer();
                         if (viewer instanceof Player) {
-                            Player player = (Player)viewer;
+                            Player player = (Player) viewer;
                             crafter = player;
                         }
 
                         ItemMeta meta = boots.getItemMeta();
                         if (meta != null) {
                             PersistentDataContainer pdc = meta.getPersistentDataContainer();
-                            pdc.set(this.tagKey, PersistentDataType.BYTE, (byte)1);
+                            pdc.set(this.tagKey, PersistentDataType.BYTE, (byte) 1);
 
                             try {
                                 String name = this.plugin.lang.tr(crafter, "item.spring_stride_boots.name");
@@ -153,19 +160,23 @@ public final class SpringStrideBoots implements Listener {
 
                         event.getInventory().setResult(boots);
                     } else {
-                        event.getInventory().setResult((ItemStack)null);
+                        event.getInventory().setResult((ItemStack) null);
                     }
                 }
             }
         }
     }
 
-    /** 判断给定材料是否为任意靴子。 */
+    /**
+     * 判断给定材料是否为任意靴子。
+     */
     private boolean isBoots(Material material) {
         return material != null && material.name().endsWith("_BOOTS");
     }
 
-    /** 判断玩家当前穿着的靴子是否带有春行靴的持久化标签。 */
+    /**
+     * 判断玩家当前穿着的靴子是否带有春行靴的持久化标签。
+     */
     private boolean hasSpringStrideBoots(Player player) {
         ItemStack boots = player.getInventory().getBoots();
         if (boots != null && boots.getType() != Material.AIR) {
@@ -173,7 +184,7 @@ public final class SpringStrideBoots implements Listener {
             if (meta == null) {
                 return false;
             } else {
-                Byte flag = (Byte)meta.getPersistentDataContainer().get(this.tagKey, PersistentDataType.BYTE);
+                Byte flag = (Byte) meta.getPersistentDataContainer().get(this.tagKey, PersistentDataType.BYTE);
                 return flag != null && flag == 1;
             }
         } else {
@@ -181,9 +192,11 @@ public final class SpringStrideBoots implements Listener {
         }
     }
 
-    /** 监听玩家移动：穿着春行靴跨越方块边界时，为其附加短暂的跳跃提升。 */
+    /**
+     * 监听玩家移动：穿着春行靴跨越方块边界时，为其附加短暂的跳跃提升。
+     */
     @EventHandler(
-        ignoreCancelled = true
+            ignoreCancelled = true
     )
     public void onMove(PlayerMoveEvent event) {
         Player player = event.getPlayer();
@@ -199,16 +212,16 @@ public final class SpringStrideBoots implements Listener {
      * 并有 45% 概率在其周围草地上催生花朵。
      */
     @EventHandler(
-        ignoreCancelled = true
+            ignoreCancelled = true
     )
     public void onFall(EntityDamageEvent event) {
         if (event.getCause() == DamageCause.FALL) {
             Entity entity = event.getEntity();
             if (entity instanceof Player) {
-                Player player = (Player)entity;
+                Player player = (Player) entity;
                 if (this.hasSpringStrideBoots(player)) {
                     Block landing = player.getLocation().getBlock();
-                    landing.getWorld().spawnParticle(Particle.HAPPY_VILLAGER, player.getLocation().add((double)0.0F, 0.1, (double)0.0F), 24, 0.8, 0.2, 0.8);
+                    landing.getWorld().spawnParticle(Particle.HAPPY_VILLAGER, player.getLocation().add((double) 0.0F, 0.1, (double) 0.0F), 24, 0.8, 0.2, 0.8);
                     if (this.rnd.nextDouble() < 0.45) {
                         this.spawnFlowersAround(landing);
                     }
@@ -218,17 +231,19 @@ public final class SpringStrideBoots implements Listener {
         }
     }
 
-    /** 在指定中心方块周围 5x5 范围内，按概率于草方块上生成随机花朵。 */
+    /**
+     * 在指定中心方块周围 5x5 范围内，按概率于草方块上生成随机花朵。
+     */
     private void spawnFlowersAround(Block center) {
-        for(int dx = -2; dx <= 2; ++dx) {
-            for(int dz = -2; dz <= 2; ++dz) {
+        for (int dx = -2; dx <= 2; ++dx) {
+            for (int dz = -2; dz <= 2; ++dz) {
                 if (!(this.rnd.nextDouble() > 0.2)) {
                     Block ground = center.getRelative(dx, -1, dz);
                     Block air = center.getRelative(dx, 0, dz);
                     if (ground.getType() == Material.GRASS_BLOCK && air.getType() == Material.AIR) {
-                        Material flower = (Material)this.FLOWERS.get(this.rnd.nextInt(this.FLOWERS.size()));
+                        Material flower = (Material) this.FLOWERS.get(this.rnd.nextInt(this.FLOWERS.size()));
                         air.setType(flower, false);
-                        air.getWorld().spawnParticle(Particle.HAPPY_VILLAGER, air.getLocation().add((double)0.5F, 0.3, (double)0.5F), 6, 0.2, 0.2, 0.2);
+                        air.getWorld().spawnParticle(Particle.HAPPY_VILLAGER, air.getLocation().add((double) 0.5F, 0.3, (double) 0.5F), 6, 0.2, 0.2, 0.2);
                     }
                 }
             }

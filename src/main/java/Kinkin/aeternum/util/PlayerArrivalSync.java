@@ -1,11 +1,5 @@
-package Kinkin.aeternum.util;
+package kinkin.aeternum.util;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.function.Consumer;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -19,6 +13,9 @@ import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
 
+import java.util.*;
+import java.util.function.Consumer;
+
 /**
  * 玩家到达同步器。
  *
@@ -29,9 +26,13 @@ import org.bukkit.scheduler.BukkitTask;
  */
 public final class PlayerArrivalSync implements Listener {
     private final Plugin plugin;
-    /** 到达后触发的刷新回调。 */
+    /**
+     * 到达后触发的刷新回调。
+     */
     private final Consumer<Player> refresh;
-    /** 每个玩家尚未执行完的刷新任务。 */
+    /**
+     * 每个玩家尚未执行完的刷新任务。
+     */
     private final Map<UUID, List<BukkitTask>> pending = new HashMap();
 
     public PlayerArrivalSync(Plugin plugin, Consumer<Player> refresh) {
@@ -41,30 +42,36 @@ public final class PlayerArrivalSync implements Listener {
         Bukkit.getPluginManager().registerEvents(this, plugin);
     }
 
-    /** 注销监听器并取消所有待执行的刷新任务。 */
+    /**
+     * 注销监听器并取消所有待执行的刷新任务。
+     */
     public void close() {
         HandlerList.unregisterAll(this);
         this.pending.values().forEach((tasks) -> tasks.forEach(BukkitTask::cancel));
         this.pending.clear();
     }
 
-    /** 取消指定玩家待执行的刷新任务。 */
+    /**
+     * 取消指定玩家待执行的刷新任务。
+     */
     private void cancel(UUID id) {
-        List<BukkitTask> tasks = (List)this.pending.remove(id);
+        List<BukkitTask> tasks = (List) this.pending.remove(id);
         if (tasks != null) {
             tasks.forEach(BukkitTask::cancel);
         }
 
     }
 
-    /** 为玩家重新安排 1/5/20 tick 三次延迟刷新。 */
+    /**
+     * 为玩家重新安排 1/5/20 tick 三次延迟刷新。
+     */
     private void schedule(Player player) {
         UUID id = player.getUniqueId();
         this.cancel(id);
         List<BukkitTask> tasks = new ArrayList();
         this.pending.put(id, tasks);
 
-        for(long delay : new long[]{1L, 5L, 20L}) {
+        for (long delay : new long[]{1L, 5L, 20L}) {
             tasks.add(Bukkit.getScheduler().runTaskLater(this.plugin, () -> {
                 if (this.pending.get(id) == tasks) {
                     if (!player.isOnline()) {
@@ -82,34 +89,42 @@ public final class PlayerArrivalSync implements Listener {
 
     }
 
-    /** 玩家传送后重新同步。 */
+    /**
+     * 玩家传送后重新同步。
+     */
     @EventHandler(
-        priority = EventPriority.MONITOR,
-        ignoreCancelled = true
+            priority = EventPriority.MONITOR,
+            ignoreCancelled = true
     )
     public void onTeleport(PlayerTeleportEvent event) {
         this.schedule(event.getPlayer());
     }
 
-    /** 玩家切换世界后重新同步。 */
+    /**
+     * 玩家切换世界后重新同步。
+     */
     @EventHandler(
-        priority = EventPriority.MONITOR
+            priority = EventPriority.MONITOR
     )
     public void onWorldChange(PlayerChangedWorldEvent event) {
         this.schedule(event.getPlayer());
     }
 
-    /** 玩家重生后重新同步。 */
+    /**
+     * 玩家重生后重新同步。
+     */
     @EventHandler(
-        priority = EventPriority.MONITOR
+            priority = EventPriority.MONITOR
     )
     public void onRespawn(PlayerRespawnEvent event) {
         this.schedule(event.getPlayer());
     }
 
-    /** 玩家下线时取消其待执行的刷新任务。 */
+    /**
+     * 玩家下线时取消其待执行的刷新任务。
+     */
     @EventHandler(
-        priority = EventPriority.MONITOR
+            priority = EventPriority.MONITOR
     )
     public void onQuit(PlayerQuitEvent event) {
         this.cancel(event.getPlayer().getUniqueId());

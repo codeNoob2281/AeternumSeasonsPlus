@@ -1,10 +1,8 @@
-package Kinkin.aeternum.events;
+package kinkin.aeternum.events;
 
-import Kinkin.aeternum.AeternumSeasonsPlugin;
-import Kinkin.aeternum.calendar.CalendarState;
-import Kinkin.aeternum.calendar.Season;
-import java.util.List;
-import java.util.concurrent.ThreadLocalRandom;
+import kinkin.aeternum.AeternumSeasonsPlugin;
+import kinkin.aeternum.calendar.CalendarState;
+import kinkin.aeternum.calendar.Season;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -15,6 +13,9 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.entity.PiglinBarterEvent;
 import org.bukkit.inventory.ItemStack;
+
+import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * 猪灵集市事件（Piglin Market）。
@@ -30,15 +31,25 @@ import org.bukkit.inventory.ItemStack;
 public final class PiglinMarketEvent implements SeasonalEvent {
     private final AeternumSeasonsPlugin plugin;
     private boolean enabled;
-    /** 事件最短持续天数。 */
+    /**
+     * 事件最短持续天数。
+     */
     private int minDur;
-    /** 事件最长持续天数。 */
+    /**
+     * 事件最长持续天数。
+     */
     private int maxDur;
-    /** 每天触发事件的基础概率。 */
+    /**
+     * 每天触发事件的基础概率。
+     */
     private double baseChance;
-    /** 额外追加集市奖励物品的概率。 */
+    /**
+     * 额外追加集市奖励物品的概率。
+     */
     private double bonusChance;
-    /** 复制一件原交易结果的概率。 */
+    /**
+     * 复制一件原交易结果的概率。
+     */
     private double duplicateOutcomeChance;
 
     public PiglinMarketEvent(AeternumSeasonsPlugin plugin) {
@@ -47,7 +58,9 @@ public final class PiglinMarketEvent implements SeasonalEvent {
         this.reloadFromConfig();
     }
 
-    /** 从 events.yml 重新读取本事件的配置项。 */
+    /**
+     * 从 events.yml 重新读取本事件的配置项。
+     */
     private void reloadFromConfig() {
         FileConfiguration config = YamlEvents.get(this.plugin);
         this.enabled = config.getBoolean("events.piglin_market.enabled", true);
@@ -58,27 +71,35 @@ public final class PiglinMarketEvent implements SeasonalEvent {
         this.duplicateOutcomeChance = config.getDouble("events.piglin_market.duplicate_outcome_chance", 0.18);
     }
 
+    @Override
     public String getId() {
         return "piglin_market";
     }
 
+    @Override
     public String getDisplayName() {
         return "Piglin Market";
     }
 
+    @Override
     public boolean isSeasonAllowed(Season season) {
         return true;
     }
 
+    @Override
     public int getMinDurationDays() {
         return this.minDur;
     }
 
+    @Override
     public int getMaxDurationDays() {
         return this.maxDur;
     }
 
-    /** 仅当有玩家位于下界、且通过基础概率判定时才允许开始。 */
+    /**
+     * 仅当有玩家位于下界、且通过基础概率判定时才允许开始。
+     */
+    @Override
     public boolean canStartToday(CalendarState state, EventContext context) {
         if (!this.enabled) {
             return false;
@@ -92,9 +113,12 @@ public final class PiglinMarketEvent implements SeasonalEvent {
         }
     }
 
-    /** 事件开始时向所有身处下界的玩家发送标题提示。 */
+    /**
+     * 事件开始时向所有身处下界的玩家发送标题提示。
+     */
+    @Override
     public void onStart(CalendarState state, EventContext context) {
-        for(Player player : Bukkit.getOnlinePlayers()) {
+        for (Player player : Bukkit.getOnlinePlayers()) {
             if (player.getWorld().getEnvironment() == Environment.NETHER) {
                 player.sendTitle(this.plugin.lang.tr(player, "event.piglin_market.title"), this.plugin.lang.tr(player, "event.piglin_market.subtitle"), 20, 80, 40);
             }
@@ -102,9 +126,12 @@ public final class PiglinMarketEvent implements SeasonalEvent {
 
     }
 
-    /** 事件结束时通知所有身处下界的玩家事件已结束。 */
+    /**
+     * 事件结束时通知所有身处下界的玩家事件已结束。
+     */
+    @Override
     public void onEnd(CalendarState state, EventContext context) {
-        for(Player player : Bukkit.getOnlinePlayers()) {
+        for (Player player : Bukkit.getOnlinePlayers()) {
             if (player.getWorld().getEnvironment() == Environment.NETHER) {
                 player.sendMessage(this.plugin.lang.tr(player, "event.piglin_market.end"));
             }
@@ -112,9 +139,11 @@ public final class PiglinMarketEvent implements SeasonalEvent {
 
     }
 
+    @Override
     public void onDayTick(CalendarState state, EventContext context) {
     }
 
+    @Override
     public void onTick(CalendarState state, EventContext context) {
     }
 
@@ -132,7 +161,7 @@ public final class PiglinMarketEvent implements SeasonalEvent {
                 List<ItemStack> outcomes = event.getOutcome();
                 if (outcomes != null && !outcomes.isEmpty()) {
                     if (random.nextDouble() < this.duplicateOutcomeChance) {
-                        ItemStack pick = (ItemStack)outcomes.get(random.nextInt(outcomes.size()));
+                        ItemStack pick = (ItemStack) outcomes.get(random.nextInt(outcomes.size()));
                         if (pick != null && pick.getType() != Material.AIR) {
                             outcomes.add(pick.clone());
                         }
@@ -147,7 +176,9 @@ public final class PiglinMarketEvent implements SeasonalEvent {
         }
     }
 
-    /** 按权重（百分位区间）随机挑选一件集市奖励物品。 */
+    /**
+     * 按权重（百分位区间）随机挑选一件集市奖励物品。
+     */
     private ItemStack rollMarketBonus(ThreadLocalRandom random) {
         int roll = random.nextInt(100);
         if (roll < 40) {

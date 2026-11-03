@@ -1,21 +1,18 @@
-package Kinkin.aeternum.world;
+package kinkin.aeternum.world;
 
-import Kinkin.aeternum.compat.BedrockPlayers;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.logging.Logger;
+import kinkin.aeternum.compat.BedrockPlayers;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
+
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.util.*;
+import java.util.logging.Logger;
 
 /**
  * 生物群系数据包发送器（BiomePacketSender）。
@@ -48,7 +45,9 @@ final class BiomePacketSender {
         this.plugin = plugin;
     }
 
-    /** 返回当前服务端是否支持该轻量数据包发送方式（首次调用时进行反射解析）。 */
+    /**
+     * 返回当前服务端是否支持该轻量数据包发送方式（首次调用时进行反射解析）。
+     */
     boolean isSupported() {
         this.resolvePacketTypes();
         return this.supported;
@@ -70,11 +69,11 @@ final class BiomePacketSender {
         } else {
             int distance = Bukkit.getViewDistance() + 1;
 
-            for(Player viewer : world.getPlayers()) {
+            for (Player viewer : world.getPlayers()) {
                 if (BedrockPlayers.isBedrock(viewer)) {
                     Location position = viewer.getLocation();
 
-                    for(Chunk chunk : chunks) {
+                    for (Chunk chunk : chunks) {
                         if (Math.abs((position.getBlockX() >> 4) - chunk.getX()) <= distance && Math.abs((position.getBlockZ() >> 4) - chunk.getZ()) <= distance) {
                             return false;
                         }
@@ -90,21 +89,21 @@ final class BiomePacketSender {
                     Method getChunk = this.levelChunkMethod(level.getClass());
                     List<Object> handles = new ArrayList(chunks.size());
 
-                    for(Chunk chunk : chunks) {
+                    for (Chunk chunk : chunks) {
                         handles.add(getChunk.invoke(level, chunk.getX(), chunk.getZ()));
                     }
 
                     int viewDistance = Bukkit.getViewDistance() + 1;
                     Map<Player, List<Object>> chunksByViewer = new LinkedHashMap();
 
-                    for(Player player : world.getPlayers()) {
+                    for (Player player : world.getPlayers()) {
                         Location location = player.getLocation();
                         int playerChunkX = location.getBlockX() >> 4;
                         int playerChunkZ = location.getBlockZ() >> 4;
                         List<Object> visible = null;
 
-                        for(int i = 0; i < chunks.size(); ++i) {
-                            Chunk chunk = (Chunk)chunks.get(i);
+                        for (int i = 0; i < chunks.size(); ++i) {
+                            Chunk chunk = (Chunk) chunks.get(i);
                             if (Math.abs(playerChunkX - chunk.getX()) <= viewDistance && Math.abs(playerChunkZ - chunk.getZ()) <= viewDistance) {
                                 if (visible == null) {
                                     visible = new ArrayList();
@@ -119,9 +118,9 @@ final class BiomePacketSender {
                         }
                     }
 
-                    for(Map.Entry<Player, List<Object>> entry : chunksByViewer.entrySet()) {
-                        Object packet = this.packetFactory.invoke((Object)null, entry.getValue());
-                        this.sendPacket((Player)entry.getKey(), packet);
+                    for (Map.Entry<Player, List<Object>> entry : chunksByViewer.entrySet()) {
+                        Object packet = this.packetFactory.invoke((Object) null, entry.getValue());
+                        this.sendPacket((Player) entry.getKey(), packet);
                     }
 
                     return true;
@@ -133,7 +132,9 @@ final class BiomePacketSender {
         }
     }
 
-    /** 反射解析 NMS 类名与数据包工厂方法（只解析一次，线程安全）。 */
+    /**
+     * 反射解析 NMS 类名与数据包工厂方法（只解析一次，线程安全）。
+     */
     private synchronized void resolvePacketTypes() {
         if (!this.resolved) {
             this.resolved = true;
@@ -142,7 +143,7 @@ final class BiomePacketSender {
                 this.levelChunkClass = Class.forName("net.minecraft.world.level.chunk.LevelChunk");
                 this.packetClass = Class.forName("net.minecraft.network.protocol.game.ClientboundChunksBiomesPacket");
 
-                for(Method method : this.packetClass.getDeclaredMethods()) {
+                for (Method method : this.packetClass.getDeclaredMethods()) {
                     if (Modifier.isStatic(method.getModifiers()) && method.getParameterCount() == 1 && List.class.isAssignableFrom(method.getParameterTypes()[0]) && this.packetClass.isAssignableFrom(method.getReturnType())) {
                         method.trySetAccessible();
                         this.packetFactory = method;
@@ -162,9 +163,11 @@ final class BiomePacketSender {
         }
     }
 
-    /** 取（并缓存）世界对象的 {@code getHandle} 方法，用于访问对应的 NMS 服务端世界。 */
+    /**
+     * 取（并缓存）世界对象的 {@code getHandle} 方法，用于访问对应的 NMS 服务端世界。
+     */
     private Method worldHandle(World world) throws NoSuchMethodException {
-        Method cached = (Method)this.worldHandleMethods.get(world.getClass());
+        Method cached = (Method) this.worldHandleMethods.get(world.getClass());
         if (cached != null) {
             return cached;
         } else {
@@ -175,13 +178,15 @@ final class BiomePacketSender {
         }
     }
 
-    /** 在 NMS 世界对象上查找（并缓存）{@code getChunk(int,int)} 方法。 */
+    /**
+     * 在 NMS 世界对象上查找（并缓存）{@code getChunk(int,int)} 方法。
+     */
     private Method levelChunkMethod(Class<?> levelClass) throws NoSuchMethodException {
-        Method cached = (Method)this.levelChunkMethods.get(levelClass);
+        Method cached = (Method) this.levelChunkMethods.get(levelClass);
         if (cached != null) {
             return cached;
         } else {
-            for(Method method : levelClass.getMethods()) {
+            for (Method method : levelClass.getMethods()) {
                 Class<?>[] parameters = method.getParameterTypes();
                 if (parameters.length == 2 && parameters[0] == Integer.TYPE && parameters[1] == Integer.TYPE && this.levelChunkClass.isAssignableFrom(method.getReturnType())) {
                     method.trySetAccessible();
@@ -194,9 +199,11 @@ final class BiomePacketSender {
         }
     }
 
-    /** 通过玩家连接把数据包发送出去（反射链路：Player → handle → connection → send）。 */
+    /**
+     * 通过玩家连接把数据包发送出去（反射链路：Player → handle → connection → send）。
+     */
     private void sendPacket(Player player, Object packet) throws ReflectiveOperationException {
-        Method getHandle = (Method)this.playerHandleMethods.get(player.getClass());
+        Method getHandle = (Method) this.playerHandleMethods.get(player.getClass());
         if (getHandle == null) {
             getHandle = player.getClass().getMethod("getHandle");
             getHandle.trySetAccessible();
@@ -204,14 +211,14 @@ final class BiomePacketSender {
         }
 
         Object handle = getHandle.invoke(player);
-        Field connectionField = (Field)this.connectionFields.get(handle.getClass());
+        Field connectionField = (Field) this.connectionFields.get(handle.getClass());
         if (connectionField == null) {
             connectionField = this.findConnectionField(handle.getClass());
             this.connectionFields.put(handle.getClass(), connectionField);
         }
 
         Object connection = connectionField.get(handle);
-        Method send = (Method)this.sendMethods.get(connection.getClass());
+        Method send = (Method) this.sendMethods.get(connection.getClass());
         if (send == null) {
             send = this.findSendMethod(connection.getClass());
             this.sendMethods.put(connection.getClass(), send);
@@ -220,10 +227,12 @@ final class BiomePacketSender {
         send.invoke(connection, packet);
     }
 
-    /** 在指定类的继承链上查找类型名以 {@code ServerGamePacketListenerImpl} 结尾的连接字段。 */
+    /**
+     * 在指定类的继承链上查找类型名以 {@code ServerGamePacketListenerImpl} 结尾的连接字段。
+     */
     private Field findConnectionField(Class<?> owner) throws NoSuchFieldException {
-        for(Class<?> current = owner; current != null; current = current.getSuperclass()) {
-            for(Field field : current.getDeclaredFields()) {
+        for (Class<?> current = owner; current != null; current = current.getSuperclass()) {
+            for (Field field : current.getDeclaredFields()) {
                 if (field.getType().getName().endsWith("ServerGamePacketListenerImpl")) {
                     field.trySetAccessible();
                     return field;
@@ -234,13 +243,15 @@ final class BiomePacketSender {
         throw new NoSuchFieldException(owner.getName() + ".connection");
     }
 
-    /** 在连接类上查找可发送该数据包的 {@code send} 方法（优先名为 send 的方法，否则回退到首个匹配项）。 */
+    /**
+     * 在连接类上查找可发送该数据包的 {@code send} 方法（优先名为 send 的方法，否则回退到首个匹配项）。
+     */
     private Method findSendMethod(Class<?> connectionClass) throws NoSuchMethodException {
         Method fallback = null;
 
-        for(Method method : connectionClass.getMethods()) {
+        for (Method method : connectionClass.getMethods()) {
             if (method.getParameterCount() == 1 && method.getReturnType() == Void.TYPE && method.getParameterTypes()[0].isAssignableFrom(this.packetClass)) {
-                if (method.getName().equals("send")) {
+                if ("send".equals(method.getName())) {
                     method.trySetAccessible();
                     return method;
                 }
@@ -257,7 +268,9 @@ final class BiomePacketSender {
         }
     }
 
-    /** 标记该发送器不可用，并（仅首次）输出一条降级警告日志。 */
+    /**
+     * 标记该发送器不可用，并（仅首次）输出一条降级警告日志。
+     */
     private synchronized void disable(Throwable error) {
         this.supported = false;
         this.resolved = true;

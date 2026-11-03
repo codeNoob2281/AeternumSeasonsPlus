@@ -1,17 +1,18 @@
-package Kinkin.aeternum.command;
+package kinkin.aeternum.command;
 
-import Kinkin.aeternum.AeternumSeasonsPlugin;
-import Kinkin.aeternum.calendar.CalendarChannel;
-import Kinkin.aeternum.events.SeasonalEvent;
-import Kinkin.aeternum.events.SeasonalEventService;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
+import kinkin.aeternum.AeternumSeasonsPlugin;
+import kinkin.aeternum.calendar.CalendarChannel;
+import kinkin.aeternum.events.SeasonalEvent;
+import kinkin.aeternum.events.SeasonalEventService;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
 
 /**
  * /event 命令执行器。
@@ -38,8 +39,9 @@ public final class EventCommand implements CommandExecutor, TabCompleter {
     /**
      * 处理 /event 命令：校验权限后按子命令分发。
      */
+    @Override
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
-        Player player = sender instanceof Player ? (Player)sender : null;
+        Player player = sender instanceof Player ? (Player) sender : null;
         if (!sender.hasPermission("aeternum.events")) {
             if (player != null) {
                 sender.sendMessage(this.plugin.lang.tr(player, "cmd.event.no_permission"));
@@ -53,13 +55,13 @@ public final class EventCommand implements CommandExecutor, TabCompleter {
             return true;
         } else {
             String sub = args[0].toLowerCase(Locale.ROOT);
-            if (sub.equals("list")) {
+            if ("list".equals(sub)) {
                 this.handleList(sender, player);
                 return true;
-            } else if (sub.equals("info")) {
+            } else if ("info".equals(sub)) {
                 this.handleInfo(sender, player);
                 return true;
-            } else if (sub.equals("stop")) {
+            } else if ("stop".equals(sub)) {
                 CalendarChannel channel = player == null ? CalendarChannel.OVERWORLD : this.plugin.getSeasons().resolveChannel(player.getWorld());
                 if (channel == null) {
                     channel = CalendarChannel.OVERWORLD;
@@ -82,7 +84,7 @@ public final class EventCommand implements CommandExecutor, TabCompleter {
                 }
 
                 return true;
-            } else if (sub.equals("start")) {
+            } else if ("start".equals(sub)) {
                 if (args.length < 2) {
                     this.sendUsage(sender, player, label);
                     return true;
@@ -101,7 +103,7 @@ public final class EventCommand implements CommandExecutor, TabCompleter {
                         boolean known = false;
 
                         // 判断该 id 是否至少在某频道注册过，以便给出更准确的失败原因。
-                        for(CalendarChannel channel : CalendarChannel.values()) {
+                        for (CalendarChannel channel : CalendarChannel.values()) {
                             known |= this.events.getEventById(channel, id) != null;
                         }
 
@@ -131,7 +133,9 @@ public final class EventCommand implements CommandExecutor, TabCompleter {
         }
     }
 
-    /** 发送命令用法提示（玩家走本地化文本，控制台走英文）。 */
+    /**
+     * 发送命令用法提示（玩家走本地化文本，控制台走英文）。
+     */
     private void sendUsage(CommandSender sender, Player player, String label) {
         if (player != null) {
             sender.sendMessage(this.plugin.lang.tr(player, "cmd.event.usage").replace("{cmd}", "/" + label));
@@ -141,13 +145,15 @@ public final class EventCommand implements CommandExecutor, TabCompleter {
 
     }
 
-    /** 列出所有日历频道下已注册的事件及其显示名。 */
+    /**
+     * 列出所有日历频道下已注册的事件及其显示名。
+     */
     private void handleList(CommandSender sender, Player player) {
         String header = player != null ? this.plugin.lang.tr(player, "cmd.event.list.header") : "Registered events:";
         sender.sendMessage(header);
 
-        for(CalendarChannel channel : CalendarChannel.values()) {
-            for(String id : this.events.getRegisteredEventIds(channel)) {
+        for (CalendarChannel channel : CalendarChannel.values()) {
+            for (String id : this.events.getRegisteredEventIds(channel)) {
                 SeasonalEvent ev = this.events.getEventById(channel, id);
                 String line;
                 if (player != null) {
@@ -163,9 +169,11 @@ public final class EventCommand implements CommandExecutor, TabCompleter {
 
     }
 
-    /** 输出每个频道当前活跃事件的信息（含剩余天数）。 */
+    /**
+     * 输出每个频道当前活跃事件的信息（含剩余天数）。
+     */
     private void handleInfo(CommandSender sender, Player player) {
-        for(CalendarChannel channel : CalendarChannel.values()) {
+        for (CalendarChannel channel : CalendarChannel.values()) {
             SeasonalEvent ev = this.events.getActive(channel);
             if (ev == null) {
                 if (player != null) {
@@ -189,24 +197,27 @@ public final class EventCommand implements CommandExecutor, TabCompleter {
 
     }
 
-    /** 按子命令补全参数：子命令名、事件 id 或频道名。 */
+    /**
+     * 按子命令补全参数：子命令名、事件 id 或频道名。
+     */
+    @Override
     public List<String> onTabComplete(CommandSender sender, Command cmd, String alias, String[] args) {
         List<String> out = new ArrayList();
         if (args.length == 1) {
             String prefix = args[0].toLowerCase(Locale.ROOT);
 
-            for(String subName : new String[]{"list", "info", "start", "stop"}) {
+            for (String subName : new String[]{"list", "info", "start", "stop"}) {
                 if (subName.startsWith(prefix)) {
                     out.add(subName);
                 }
             }
 
             return out;
-        } else if (args.length == 2 && args[0].equalsIgnoreCase("start")) {
+        } else if (args.length == 2 && "start".equalsIgnoreCase(args[0])) {
             String prefix = args[1].toLowerCase(Locale.ROOT);
 
-            for(CalendarChannel channel : CalendarChannel.values()) {
-                for(String id : this.events.getRegisteredEventIds(channel)) {
+            for (CalendarChannel channel : CalendarChannel.values()) {
+                for (String id : this.events.getRegisteredEventIds(channel)) {
                     if (id.startsWith(prefix)) {
                         out.add(id);
                     }
@@ -215,8 +226,8 @@ public final class EventCommand implements CommandExecutor, TabCompleter {
 
             return out;
         } else {
-            if (args.length == 2 && args[0].equalsIgnoreCase("stop")) {
-                for(CalendarChannel channel : CalendarChannel.values()) {
+            if (args.length == 2 && "stop".equalsIgnoreCase(args[0])) {
+                for (CalendarChannel channel : CalendarChannel.values()) {
                     if (channel.name().startsWith(args[1].toUpperCase(Locale.ROOT))) {
                         out.add(channel.name());
                     }

@@ -1,9 +1,10 @@
-package Kinkin.aeternum.farming;
+package kinkin.aeternum.farming;
 
 
-import java.util.function.UnaryOperator;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+
+import java.util.function.UnaryOperator;
 
 /**
  * 村民作物库存整理工具。
@@ -19,7 +20,7 @@ final class VillagerCropInventory {
     /**
      * 规范化并合并库存中的物品。
      *
-     * @param inventory 目标库存
+     * @param inventory    目标库存
      * @param canonicalize 将单个物品转换为规范形式；返回 null 表示保留原物品
      * @return 若库存内容发生改变则返回 true
      */
@@ -29,16 +30,16 @@ final class VillagerCropInventory {
         boolean[] eligible = new boolean[result.length];
         boolean changed = false;
 
-        for(int slot = 0; slot < result.length; ++slot) {
+        for (int slot = 0; slot < result.length; ++slot) {
             ItemStack input = result[slot];
             if (input != null && !input.getType().isAir()) {
-                ItemStack canonical = (ItemStack)canonicalize.apply(input);
+                ItemStack canonical = (ItemStack) canonicalize.apply(input);
                 if (canonical != null) {
                     result[slot] = canonical;
                     eligible[slot] = true;
                     changed |= !canonical.equals(input);
 
-                    for(int previous = 0; previous < slot && canonical.getAmount() > 0; ++previous) {
+                    for (int previous = 0; previous < slot && canonical.getAmount() > 0; ++previous) {
                         ItemStack target = result[previous];
                         if (eligible[previous] && target != null && target.isSimilar(canonical)) {
                             int room = Math.min(inventory.getMaxStackSize(), target.getMaxStackSize()) - target.getAmount();

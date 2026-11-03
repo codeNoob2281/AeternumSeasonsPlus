@@ -1,4 +1,4 @@
-package Kinkin.aeternum.temperature;
+package kinkin.aeternum.temperature;
 
 /**
  * 温度区域枚举。
@@ -13,7 +13,7 @@ public enum TemperatureZone {
     SNOWY,
     FROZEN;
 
-    private TemperatureZone() {
+    TemperatureZone() {
     }
 
     // $FF: synthetic method

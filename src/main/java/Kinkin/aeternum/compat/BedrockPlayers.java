@@ -1,7 +1,8 @@
-package Kinkin.aeternum.compat;
+package kinkin.aeternum.compat;
+
+import org.bukkit.entity.Player;
 
 import java.util.UUID;
-import org.bukkit.entity.Player;
 
 /**
  * 基岩版玩家识别工具。
@@ -17,7 +18,9 @@ public final class BedrockPlayers {
         super();
     }
 
-    /** 判断玩家是否为基岩版玩家：先尝试 Floodgate，再尝试 Geyser。 */
+    /**
+     * 判断玩家是否为基岩版玩家：先尝试 Floodgate，再尝试 Geyser。
+     */
     public static boolean isBedrock(Player player) {
         return check("org.geysermc.floodgate.api.FloodgateApi", "getInstance", "isFloodgatePlayer", player) || check("org.geysermc.geyser.api.GeyserApi", "api", "isBedrockPlayer", player);
     }
@@ -33,7 +36,7 @@ public final class BedrockPlayers {
     private static boolean check(String type, String accessor, String method, Player player) {
         try {
             Class<?> api = Class.forName(type);
-            Object instance = api.getMethod(accessor).invoke((Object)null);
+            Object instance = api.getMethod(accessor).invoke((Object) null);
             return Boolean.TRUE.equals(api.getMethod(method, UUID.class).invoke(instance, player.getUniqueId()));
         } catch (LinkageError | ReflectiveOperationException error) {
             return false;

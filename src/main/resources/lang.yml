@@ -14,4 +14,4 @@ enabled:
   - zh_CN #Chinese
   - zh_TW #Taiwán
 default: auto   # auto = usar idioma del cliente; si no está soportado, cae a en_US
-                # auto = use client language; if not supported, falls to en_US
+# auto = use client language; if not supported, falls to en_US

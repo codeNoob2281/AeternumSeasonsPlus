@@ -1,13 +1,9 @@
-package Kinkin.aeternum.world;
+package kinkin.aeternum.world;
 
-import Kinkin.aeternum.AeternumSeasonsPlugin;
-import Kinkin.aeternum.calendar.CalendarState;
-import Kinkin.aeternum.calendar.Season;
-import Kinkin.aeternum.calendar.SeasonService;
-import java.util.EnumSet;
-import java.util.Random;
-import java.util.Set;
-import java.util.concurrent.ThreadLocalRandom;
+import kinkin.aeternum.AeternumSeasonsPlugin;
+import kinkin.aeternum.calendar.CalendarState;
+import kinkin.aeternum.calendar.Season;
+import kinkin.aeternum.calendar.SeasonService;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -17,6 +13,11 @@ import org.bukkit.block.Block;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
+
+import java.util.EnumSet;
+import java.util.Random;
+import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * 树冠积雪渲染器（CanopySnowPainter）。
@@ -50,7 +51,9 @@ public final class CanopySnowPainter implements Runnable {
         this.reloadFromConfig();
     }
 
-    /** 从气候配置的 {@code real_snow.canopy} 段重新读取本渲染器的参数。 */
+    /**
+     * 从气候配置的 {@code real_snow.canopy} 段重新读取本渲染器的参数。
+     */
     public void reloadFromConfig() {
         ConfigurationSection canopySection = this.plugin.cfg.climate.getConfigurationSection("real_snow.canopy");
         if (canopySection == null) {
@@ -64,7 +67,9 @@ public final class CanopySnowPainter implements Runnable {
         }
     }
 
-    /** 注册周期任务（先取消已有任务），仅在启用时按 init 延迟 60 tick、周期 10 tick 运行。 */
+    /**
+     * 注册周期任务（先取消已有任务），仅在启用时按 init 延迟 60 tick、周期 10 tick 运行。
+     */
     public void register() {
         if (this.task != null) {
             this.task.cancel();
@@ -75,7 +80,9 @@ public final class CanopySnowPainter implements Runnable {
         }
     }
 
-    /** 取消并清空周期任务。 */
+    /**
+     * 取消并清空周期任务。
+     */
     public void unregister() {
         if (this.task != null) {
             this.task.cancel();
@@ -87,11 +94,12 @@ public final class CanopySnowPainter implements Runnable {
     /**
      * 周期任务主体：对每个处于主世界、冬季且正在下雪的玩家，尝试在其附近放置若干树冠积雪。
      */
+    @Override
     public void run() {
         if (this.enabled) {
             ThreadLocalRandom threadRandom = ThreadLocalRandom.current();
             if (this.attemptsPerTick > 0 && this.radiusBlocks > 0) {
-                for(Player player : Bukkit.getOnlinePlayers()) {
+                for (Player player : Bukkit.getOnlinePlayers()) {
                     World world = player.getWorld();
                     if (world.getEnvironment() == Environment.NORMAL) {
                         CalendarState calendarState = this.seasons.getStateCopy(world);
@@ -101,7 +109,7 @@ public final class CanopySnowPainter implements Runnable {
                             int minY = world.getMinHeight();
                             int maxY = world.getMaxHeight();
 
-                            for(int i = 0; i < this.attemptsPerTick; ++i) {
+                            for (int i = 0; i < this.attemptsPerTick; ++i) {
                                 int x = px + threadRandom.nextInt(-this.radiusBlocks, this.radiusBlocks + 1);
                                 int z = pz + threadRandom.nextInt(-this.radiusBlocks, this.radiusBlocks + 1);
                                 if (this.onlyInColdBiomes) {
@@ -119,7 +127,7 @@ public final class CanopySnowPainter implements Runnable {
                                     int scanMinY = Math.max(minY, highest - 16);
                                     Block ground = null;
 
-                                    for(int y = highest; y >= scanMinY; --y) {
+                                    for (int y = highest; y >= scanMinY; --y) {
                                         Block candidate = world.getBlockAt(x, y, z);
                                         Material type = candidate.getType();
                                         if (type == Material.SNOW || type == Material.SNOW_BLOCK) {
@@ -156,11 +164,13 @@ public final class CanopySnowPainter implements Runnable {
         }
     }
 
-    /** 从起始高度向上检查是否在扫描范围内存在树叶（遇到实心非树叶方块即停止）。 */
+    /**
+     * 从起始高度向上检查是否在扫描范围内存在树叶（遇到实心非树叶方块即停止）。
+     */
     private boolean hasLeavesAbove(World world, int x, int startY, int z, int maxWorldY) {
         int maxY = Math.min(startY + this.maxLeafScanHeight, maxWorldY - 1);
 
-        for(int y = startY; y <= maxY; ++y) {
+        for (int y = startY; y <= maxY; ++y) {
             Block block = world.getBlockAt(x, y, z);
             Material type = block.getType();
             if (this.isLeaf(type)) {
@@ -175,13 +185,17 @@ public final class CanopySnowPainter implements Runnable {
         return false;
     }
 
-    /** 通过材质名是否以 {@code _LEAVES} 结尾判断其是否为树叶。 */
+    /**
+     * 通过材质名是否以 {@code _LEAVES} 结尾判断其是否为树叶。
+     */
     private boolean isLeaf(Material material) {
         String name = material.name();
         return name.endsWith("_LEAVES");
     }
 
-    /** 判断给定水平坐标处的群系是否属于天然寒冷/积雪类群系。 */
+    /**
+     * 判断给定水平坐标处的群系是否属于天然寒冷/积雪类群系。
+     */
     private boolean isNaturallySnowyBiome(World world, int x, int z) {
         int y = world.getHighestBlockYAt(x, z);
         Biome biome = world.getBiome(x, y, z);

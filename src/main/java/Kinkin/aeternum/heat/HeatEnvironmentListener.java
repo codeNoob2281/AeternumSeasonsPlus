@@ -1,11 +1,7 @@
-package Kinkin.aeternum.heat;
+package kinkin.aeternum.heat;
 
-import Kinkin.aeternum.AeternumSeasonsPlugin;
-import org.bukkit.Bukkit;
-import org.bukkit.GameMode;
-import org.bukkit.NamespacedKey;
-import org.bukkit.Particle;
-import org.bukkit.World;
+import kinkin.aeternum.AeternumSeasonsPlugin;
+import org.bukkit.*;
 import org.bukkit.entity.Player;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
@@ -40,6 +36,7 @@ public final class HeatEnvironmentListener implements Listener, Runnable {
     public void register() {
         Bukkit.getPluginManager().registerEvents(this, this.plugin);
         this.task = (new BukkitRunnable() {
+            @Override
             public void run() {
                 HeatEnvironmentListener.this.run();
             }
@@ -54,11 +51,14 @@ public final class HeatEnvironmentListener implements Listener, Runnable {
         HandlerList.unregisterAll(this);
     }
 
-    /** 定时任务入口：为炎热世界中的每个玩家结算高温效果。 */
+    /**
+     * 定时任务入口：为炎热世界中的每个玩家结算高温效果。
+     */
+    @Override
     public void run() {
         World world = Bukkit.getWorld("aeternum_heat");
         if (world != null) {
-            for(Player player : world.getPlayers()) {
+            for (Player player : world.getPlayers()) {
                 this.applyHeat(player);
             }
 
@@ -87,13 +87,13 @@ public final class HeatEnvironmentListener implements Listener, Runnable {
             } else {
                 double damage;
                 if (pieces == 3) {
-                    damage = (double)0.5F;
+                    damage = (double) 0.5F;
                 } else if (pieces == 2) {
-                    damage = (double)1.0F;
+                    damage = (double) 1.0F;
                 } else if (pieces == 1) {
-                    damage = (double)1.5F;
+                    damage = (double) 1.5F;
                 } else {
-                    damage = (double)2.0F;
+                    damage = (double) 2.0F;
                 }
 
                 player.setFireTicks(Math.max(player.getFireTicks(), 60));
@@ -104,12 +104,14 @@ public final class HeatEnvironmentListener implements Listener, Runnable {
                 player.addPotionEffect(new PotionEffect(PotionEffectType.WEAKNESS, 80, 0, true, true, true));
                 player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 80, 0, true, true, true));
                 World world = player.getWorld();
-                world.spawnParticle(Particle.SMOKE, player.getLocation().add((double)0.0F, (double)1.0F, (double)0.0F), 8, 0.4, 0.4, 0.4, 0.01);
+                world.spawnParticle(Particle.SMOKE, player.getLocation().add((double) 0.0F, (double) 1.0F, (double) 0.0F), 8, 0.4, 0.4, 0.4, 0.01);
             }
         }
     }
 
-    /** 统计玩家身上穿戴的隔热护甲件数（0-4）。 */
+    /**
+     * 统计玩家身上穿戴的隔热护甲件数（0-4）。
+     */
     private int countHeatArmorPieces(Player player) {
         int count = 0;
         if (this.isHeatArmorPiece(player.getInventory().getHelmet())) {
@@ -131,7 +133,9 @@ public final class HeatEnvironmentListener implements Listener, Runnable {
         return count;
     }
 
-    /** 判断单个物品是否为隔热护甲（带有 heat_armor 持久化标签）。 */
+    /**
+     * 判断单个物品是否为隔热护甲（带有 heat_armor 持久化标签）。
+     */
     private boolean isHeatArmorPiece(ItemStack stack) {
         if (stack == null) {
             return false;

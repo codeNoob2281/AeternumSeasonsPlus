@@ -1,9 +1,5 @@
-package Kinkin.aeternum.food;
+package kinkin.aeternum.food;
 
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.ThreadLocalRandom;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -20,6 +16,11 @@ import org.bukkit.event.block.BlockExplodeEvent;
 import org.bukkit.event.entity.EntityChangeBlockEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.inventory.ItemStack;
+
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * 季节食物作物破坏监听器（Season Food Crop Destruction Listener）。
@@ -42,8 +43,8 @@ final class SeasonFoodCropDestructionListener implements Listener {
      * 否则检查其正上方一格是否生长着人工作物（例如作物长在耕地上）。
      */
     @EventHandler(
-        priority = EventPriority.HIGHEST,
-        ignoreCancelled = true
+            priority = EventPriority.HIGHEST,
+            ignoreCancelled = true
     )
     public void onPlayerBreak(BlockBreakEvent event) {
         Block broken = event.getBlock();
@@ -61,15 +62,15 @@ final class SeasonFoodCropDestructionListener implements Listener {
      * 监听实体把耕地踩成其他方块：若踩踏者是玩家，则一并清理耕地上方的人工作物。
      */
     @EventHandler(
-        priority = EventPriority.HIGHEST,
-        ignoreCancelled = true
+            priority = EventPriority.HIGHEST,
+            ignoreCancelled = true
     )
     public void onFarmlandTrample(EntityChangeBlockEvent event) {
         if (event.getBlock().getType() == Material.FARMLAND && event.getTo() != Material.FARMLAND) {
             Entity sourceEntity = event.getEntity();
             Player playerOrNull;
             if (sourceEntity instanceof Player) {
-                Player candidate = (Player)sourceEntity;
+                Player candidate = (Player) sourceEntity;
                 playerOrNull = candidate;
             } else {
                 playerOrNull = null;
@@ -80,19 +81,23 @@ final class SeasonFoodCropDestructionListener implements Listener {
         }
     }
 
-    /** 监听实体爆炸（如苦力怕、TNT）：清理被波及的人工作物。 */
+    /**
+     * 监听实体爆炸（如苦力怕、TNT）：清理被波及的人工作物。
+     */
     @EventHandler(
-        priority = EventPriority.HIGHEST,
-        ignoreCancelled = true
+            priority = EventPriority.HIGHEST,
+            ignoreCancelled = true
     )
     public void onEntityExplosion(EntityExplodeEvent event) {
         this.destroyExplodedCrops(event.blockList());
     }
 
-    /** 监听方块爆炸（如床、重生锚）：清理被波及的人工作物。 */
+    /**
+     * 监听方块爆炸（如床、重生锚）：清理被波及的人工作物。
+     */
     @EventHandler(
-        priority = EventPriority.HIGHEST,
-        ignoreCancelled = true
+            priority = EventPriority.HIGHEST,
+            ignoreCancelled = true
     )
     public void onBlockExplosion(BlockExplodeEvent event) {
         this.destroyExplodedCrops(event.blockList());
@@ -105,7 +110,7 @@ final class SeasonFoodCropDestructionListener implements Listener {
     private void destroyExplodedCrops(List<Block> affectedBlocks) {
         Set<Block> crops = new LinkedHashSet();
 
-        for(Block affected : List.copyOf(affectedBlocks)) {
+        for (Block affected : List.copyOf(affectedBlocks)) {
             if (this.foods.getArtificialCropId(affected) != null) {
                 crops.add(affected);
             }
@@ -116,9 +121,9 @@ final class SeasonFoodCropDestructionListener implements Listener {
             }
         }
 
-        for(Block crop : crops) {
+        for (Block crop : crops) {
             affectedBlocks.remove(crop);
-            this.destroyCrop(crop, (Player)null, true);
+            this.destroyCrop(crop, (Player) null, true);
         }
 
     }
@@ -146,7 +151,7 @@ final class SeasonFoodCropDestructionListener implements Listener {
 
                 ItemStack drop = this.foods.createArtificialCropDrop(cropId, player, amount);
                 if (drop != null) {
-                    Location location = crop.getLocation().add((double)0.5F, (double)0.5F, (double)0.5F);
+                    Location location = crop.getLocation().add((double) 0.5F, (double) 0.5F, (double) 0.5F);
                     crop.getWorld().dropItemNaturally(location, drop);
                 }
 
@@ -155,7 +160,9 @@ final class SeasonFoodCropDestructionListener implements Listener {
         }
     }
 
-    /** 根据作物方块数据的成熟度计算掉落数量。 */
+    /**
+     * 根据作物方块数据的成熟度计算掉落数量。
+     */
     private int dropAmount(Block crop) {
         BlockData blockData = crop.getBlockData();
         if (blockData instanceof Ageable ageable) {

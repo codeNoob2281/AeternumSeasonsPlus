@@ -1,18 +1,13 @@
-package Kinkin.aeternum.farming;
+package kinkin.aeternum.farming;
 
-import Kinkin.aeternum.AeternumSeasonsPlugin;
-import Kinkin.aeternum.calendar.Season;
-import java.io.File;
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
+import kinkin.aeternum.AeternumSeasonsPlugin;
+import kinkin.aeternum.calendar.Season;
 import org.bukkit.Material;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
+
+import java.io.File;
+import java.util.*;
 
 /**
  * 季节作物配置。
@@ -47,7 +42,9 @@ public final class SeasonalCropConfig {
         this.reload();
     }
 
-    /** 从 crops.yml 重新读取全部配置项；文件不存在时会先尝试导出默认资源。 */
+    /**
+     * 从 crops.yml 重新读取全部配置项；文件不存在时会先尝试导出默认资源。
+     */
     public void reload() {
         File file = new File(this.plugin.getDataFolder(), "crops.yml");
         if (!file.exists()) {
@@ -59,11 +56,11 @@ public final class SeasonalCropConfig {
 
         YamlConfiguration cfg = YamlConfiguration.loadConfiguration(file);
         this.enabled = cfg.getBoolean("seasonal_crops.enabled", true);
-        this.rainBonus = cfg.getDouble("seasonal_crops.rain_growth_bonus", (double)1.0F);
-        this.winterGreenhouseBonus = cfg.getDouble("seasonal_crops.greenhouse.winter_bonus", (double)1.0F);
-        this.offSeasonMultiplier = cfg.getDouble("seasonal_crops.off_season_growth_chance", (double)0.0F);
+        this.rainBonus = cfg.getDouble("seasonal_crops.rain_growth_bonus", (double) 1.0F);
+        this.winterGreenhouseBonus = cfg.getDouble("seasonal_crops.greenhouse.winter_bonus", (double) 1.0F);
+        this.offSeasonMultiplier = cfg.getDouble("seasonal_crops.off_season_growth_chance", (double) 0.0F);
         this.undergroundMultiplier = cfg.getDouble("seasonal_crops.underground_slow_multiplier", 0.3);
-        this.lowLightMultiplier = cfg.getDouble("seasonal_crops.low_light_multiplier", (double)0.5F);
+        this.lowLightMultiplier = cfg.getDouble("seasonal_crops.low_light_multiplier", (double) 0.5F);
         this.requiredLight = cfg.getInt("seasonal_crops.required_light", 9);
         this.greenhouseEnabled = cfg.getBoolean("seasonal_crops.greenhouse.enabled", true);
         this.maxRoofHeight = cfg.getInt("seasonal_crops.greenhouse.max_roof_height", 8);
@@ -80,7 +77,7 @@ public final class SeasonalCropConfig {
 
         this.greenhouseBlocks = new HashSet();
 
-        for(String id : cfg.getStringList("seasonal_crops.greenhouse.block_types")) {
+        for (String id : cfg.getStringList("seasonal_crops.greenhouse.block_types")) {
             try {
                 this.greenhouseBlocks.add(Material.valueOf(id.toUpperCase(Locale.ROOT)));
             } catch (IllegalArgumentException ignored) {
@@ -99,13 +96,13 @@ public final class SeasonalCropConfig {
         this.cropSeasons.clear();
         ConfigurationSection sec = cfg.getConfigurationSection("seasonal_crops.crops");
         if (sec != null) {
-            for(String key : sec.getKeys(false)) {
+            for (String key : sec.getKeys(false)) {
                 try {
                     Material mat = Material.valueOf(key.toUpperCase(Locale.ROOT));
                     List<String> allowed = sec.getStringList(key + ".allowed_seasons");
                     EnumSet<Season> set = EnumSet.noneOf(Season.class);
 
-                    for(String s : allowed) {
+                    for (String s : allowed) {
                         try {
                             set.add(Season.valueOf(s.toUpperCase(Locale.ROOT)));
                         } catch (Exception ignored) {
@@ -181,12 +178,16 @@ public final class SeasonalCropConfig {
         return this.debugStickMaterial;
     }
 
-    /** 返回指定作物允许的季节集合；若该作物不受管理则返回 null。 */
+    /**
+     * 返回指定作物允许的季节集合；若该作物不受管理则返回 null。
+     */
     public EnumSet<Season> getAllowedSeasons(Material mat) {
-        return (EnumSet)this.cropSeasons.get(mat);
+        return (EnumSet) this.cropSeasons.get(mat);
     }
 
-    /** 判断指定作物是否受本配置管理。 */
+    /**
+     * 判断指定作物是否受本配置管理。
+     */
     public boolean isManagedCrop(Material mat) {
         return this.cropSeasons.containsKey(mat);
     }

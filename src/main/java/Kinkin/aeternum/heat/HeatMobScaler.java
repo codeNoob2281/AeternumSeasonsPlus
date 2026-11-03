@@ -1,18 +1,12 @@
-package Kinkin.aeternum.heat;
+package kinkin.aeternum.heat;
 
-import Kinkin.aeternum.AeternumSeasonsPlugin;
+import kinkin.aeternum.AeternumSeasonsPlugin;
 import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
 import org.bukkit.World;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.LivingEntity;
-import org.bukkit.entity.Monster;
-import org.bukkit.entity.Phantom;
-import org.bukkit.entity.Player;
-import org.bukkit.entity.Projectile;
-import org.bukkit.entity.Slime;
+import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.HandlerList;
@@ -49,21 +43,27 @@ public final class HeatMobScaler implements Listener {
         HandlerList.unregisterAll(this);
     }
 
-    /** 判断实体是否位于炎热世界。 */
+    /**
+     * 判断实体是否位于炎热世界。
+     */
     private boolean inHeatWorld(Entity entity) {
         World world = entity.getWorld();
-        return world != null && world.getName().equalsIgnoreCase("aeternum_heat");
+        return world != null && "aeternum_heat".equalsIgnoreCase(world.getName());
     }
 
-    /** 判断生物是否为敌对生物（怪物、史莱姆或幻翼）。 */
+    /**
+     * 判断生物是否为敌对生物（怪物、史莱姆或幻翼）。
+     */
     private boolean isHostile(LivingEntity entity) {
         return entity instanceof Monster || entity instanceof Slime || entity instanceof Phantom;
     }
 
-    /** 监听生物生成：在炎热世界中强化尚未标记的敌对生物。 */
+    /**
+     * 监听生物生成：在炎热世界中强化尚未标记的敌对生物。
+     */
     @EventHandler(
-        ignoreCancelled = true,
-        priority = EventPriority.NORMAL
+            ignoreCancelled = true,
+            priority = EventPriority.NORMAL
     )
     public void onSpawn(CreatureSpawnEvent event) {
         LivingEntity entity = event.getEntity();
@@ -71,10 +71,10 @@ public final class HeatMobScaler implements Listener {
             if (this.isHostile(entity)) {
                 PersistentDataContainer pdc = entity.getPersistentDataContainer();
                 if (!pdc.has(this.TAG_KEY, PersistentDataType.BYTE)) {
-                    pdc.set(this.TAG_KEY, PersistentDataType.BYTE, (byte)1);
+                    pdc.set(this.TAG_KEY, PersistentDataType.BYTE, (byte) 1);
                     AttributeInstance maxHealth = entity.getAttribute(Attribute.MAX_HEALTH);
                     if (maxHealth != null) {
-                        maxHealth.setBaseValue(maxHealth.getBaseValue() * (double)4.0F);
+                        maxHealth.setBaseValue(maxHealth.getBaseValue() * (double) 4.0F);
                         entity.setHealth(maxHealth.getBaseValue());
                     }
 
@@ -88,10 +88,12 @@ public final class HeatMobScaler implements Listener {
         }
     }
 
-    /** 监听实体伤害：被标记的炎热怪物对玩家造成的伤害放大为四倍。 */
+    /**
+     * 监听实体伤害：被标记的炎热怪物对玩家造成的伤害放大为四倍。
+     */
     @EventHandler(
-        ignoreCancelled = true,
-        priority = EventPriority.NORMAL
+            ignoreCancelled = true,
+            priority = EventPriority.NORMAL
     )
     public void onDamage(EntityDamageByEntityEvent event) {
         Entity damagedEntity = event.getEntity();
@@ -115,7 +117,7 @@ public final class HeatMobScaler implements Listener {
                     if (this.isHostile(attacker)) {
                         PersistentDataContainer pdc = attacker.getPersistentDataContainer();
                         if (pdc.has(this.TAG_KEY, PersistentDataType.BYTE)) {
-                            event.setDamage(event.getDamage() * (double)4.0F);
+                            event.setDamage(event.getDamage() * (double) 4.0F);
                         }
                     }
                 }

@@ -1,11 +1,8 @@
-package Kinkin.aeternum.events;
+package kinkin.aeternum.events;
 
-import Kinkin.aeternum.AeternumSeasonsPlugin;
-import Kinkin.aeternum.calendar.CalendarState;
-import Kinkin.aeternum.calendar.Season;
-import java.util.Collection;
-import java.util.EnumSet;
-import java.util.Set;
+import kinkin.aeternum.AeternumSeasonsPlugin;
+import kinkin.aeternum.calendar.CalendarState;
+import kinkin.aeternum.calendar.Season;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.Particle;
@@ -17,6 +14,10 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.inventory.ItemStack;
 
+import java.util.Collection;
+import java.util.EnumSet;
+import java.util.Set;
+
 /**
  * 菌潮绽放事件（Fungus Bloom）。
  *
@@ -27,15 +28,25 @@ import org.bukkit.inventory.ItemStack;
 public final class FungusBloomEvent implements SeasonalEvent {
     private final AeternumSeasonsPlugin plugin;
     private boolean enabled;
-    /** 事件最短持续天数。 */
+    /**
+     * 事件最短持续天数。
+     */
     private int minDur;
-    /** 事件最长持续天数。 */
+    /**
+     * 事件最长持续天数。
+     */
     private int maxDur;
-    /** 每天触发事件的基础概率。 */
+    /**
+     * 每天触发事件的基础概率。
+     */
     private double baseChance;
-    /** 破坏受加成方块时额外掉落的概率。 */
+    /**
+     * 破坏受加成方块时额外掉落的概率。
+     */
     private double extraDropChance;
-    /** 受本事件加成的下界植物材质集合。 */
+    /**
+     * 受本事件加成的下界植物材质集合。
+     */
     private final Set<Material> boosted;
 
     public FungusBloomEvent(AeternumSeasonsPlugin plugin) {
@@ -45,7 +56,9 @@ public final class FungusBloomEvent implements SeasonalEvent {
         this.reloadFromConfig();
     }
 
-    /** 从 events.yml 重新读取本事件的配置项。 */
+    /**
+     * 从 events.yml 重新读取本事件的配置项。
+     */
     private void reloadFromConfig() {
         FileConfiguration config = YamlEvents.get(this.plugin);
         this.enabled = config.getBoolean("events.fungus_bloom.enabled", true);
@@ -55,27 +68,35 @@ public final class FungusBloomEvent implements SeasonalEvent {
         this.extraDropChance = config.getDouble("events.fungus_bloom.extra_drop_chance", 0.55);
     }
 
+    @Override
     public String getId() {
         return "fungus_bloom";
     }
 
+    @Override
     public String getDisplayName() {
         return "Fungus Bloom";
     }
 
+    @Override
     public boolean isSeasonAllowed(Season season) {
         return true;
     }
 
+    @Override
     public int getMinDurationDays() {
         return this.minDur;
     }
 
+    @Override
     public int getMaxDurationDays() {
         return this.maxDur;
     }
 
-    /** 仅当有玩家位于下界、且通过基础概率判定时才允许开始。 */
+    /**
+     * 仅当有玩家位于下界、且通过基础概率判定时才允许开始。
+     */
+    @Override
     public boolean canStartToday(CalendarState state, EventContext context) {
         if (!this.enabled) {
             return false;
@@ -89,9 +110,12 @@ public final class FungusBloomEvent implements SeasonalEvent {
         }
     }
 
-    /** 事件开始时向下界玩家发送标题提示。 */
+    /**
+     * 事件开始时向下界玩家发送标题提示。
+     */
+    @Override
     public void onStart(CalendarState state, EventContext context) {
-        for(Player player : Bukkit.getOnlinePlayers()) {
+        for (Player player : Bukkit.getOnlinePlayers()) {
             if (player.getWorld().getEnvironment() == Environment.NETHER) {
                 player.sendTitle(this.plugin.lang.tr(player, "event.fungus_bloom.title"), this.plugin.lang.tr(player, "event.fungus_bloom.subtitle"), 20, 80, 40);
             }
@@ -99,9 +123,12 @@ public final class FungusBloomEvent implements SeasonalEvent {
 
     }
 
-    /** 事件结束时向下界玩家发送结束提示。 */
+    /**
+     * 事件结束时向下界玩家发送结束提示。
+     */
+    @Override
     public void onEnd(CalendarState state, EventContext context) {
-        for(Player player : Bukkit.getOnlinePlayers()) {
+        for (Player player : Bukkit.getOnlinePlayers()) {
             if (player.getWorld().getEnvironment() == Environment.NETHER) {
                 player.sendMessage(this.plugin.lang.tr(player, "event.fungus_bloom.end"));
             }
@@ -109,13 +136,17 @@ public final class FungusBloomEvent implements SeasonalEvent {
 
     }
 
+    @Override
     public void onDayTick(CalendarState state, EventContext context) {
     }
 
+    @Override
     public void onTick(CalendarState state, EventContext context) {
     }
 
-    /** 监听方块破坏：下界破坏受加成植物时按概率额外掉落主要产物。 */
+    /**
+     * 监听方块破坏：下界破坏受加成植物时按概率额外掉落主要产物。
+     */
     @EventHandler
     public void onBreak(BlockBreakEvent event) {
         if (!event.isCancelled()) {
@@ -130,7 +161,7 @@ public final class FungusBloomEvent implements SeasonalEvent {
                             extra.setAmount(Math.max(1, extra.getAmount()));
                             extra.setAmount(1);
                             block.getWorld().dropItemNaturally(block.getLocation(), extra);
-                            block.getWorld().spawnParticle(Particle.SPORE_BLOSSOM_AIR, block.getLocation().add((double)0.5F, (double)0.5F, (double)0.5F), 6, 0.3, 0.3, 0.3, 0.01);
+                            block.getWorld().spawnParticle(Particle.SPORE_BLOSSOM_AIR, block.getLocation().add((double) 0.5F, (double) 0.5F, (double) 0.5F), 6, 0.3, 0.3, 0.3, 0.01);
                         }
                     }
                 }
@@ -138,7 +169,9 @@ public final class FungusBloomEvent implements SeasonalEvent {
         }
     }
 
-    /** 获取方块被工具破坏时应掉落的主产物副本（优先按工具/玩家计算真实掉落）。 */
+    /**
+     * 获取方块被工具破坏时应掉落的主产物副本（优先按工具/玩家计算真实掉落）。
+     */
     private ItemStack getPrimaryDrop(Block block, ItemStack tool, Player player) {
         Collection<ItemStack> drops;
         try {
@@ -147,7 +180,7 @@ public final class FungusBloomEvent implements SeasonalEvent {
             drops = tool != null ? block.getDrops(tool) : block.getDrops();
         }
 
-        for(ItemStack drop : drops) {
+        for (ItemStack drop : drops) {
             if (drop != null && drop.getType() != Material.AIR && drop.getAmount() > 0) {
                 return drop.clone();
             }

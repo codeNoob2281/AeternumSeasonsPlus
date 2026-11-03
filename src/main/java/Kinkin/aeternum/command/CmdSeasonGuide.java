@@ -1,14 +1,10 @@
-package Kinkin.aeternum.command;
+package kinkin.aeternum.command;
 
-import Kinkin.aeternum.AeternumSeasonsPlugin;
-import Kinkin.aeternum.calendar.Season;
-import Kinkin.aeternum.calendar.SeasonService;
-import Kinkin.aeternum.lang.LanguageManager;
-import Kinkin.aeternum.util.BookPaginator;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import kinkin.aeternum.AeternumSeasonsPlugin;
+import kinkin.aeternum.calendar.Season;
+import kinkin.aeternum.calendar.SeasonService;
+import kinkin.aeternum.lang.LanguageManager;
+import kinkin.aeternum.util.BookPaginator;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.command.Command;
@@ -21,6 +17,11 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.BookMeta;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 /**
  * 季节指南命令与首次入服引导。
@@ -49,11 +50,12 @@ public final class CmdSeasonGuide implements CommandExecutor, TabCompleter, List
      * 处理 /seasonguide 命令：{@code frost} 子命令发放霜冻世界专用指南，
      * 其余情况发放当前世界季节对应的通用指南。
      */
+    @Override
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
         if (sender instanceof Player player) {
-            if (args.length >= 1 && args[0].equalsIgnoreCase("frost")) {
+            if (args.length >= 1 && "frost".equalsIgnoreCase(args[0])) {
                 String worldName = player.getWorld() != null ? player.getWorld().getName() : "";
-                if (!worldName.equalsIgnoreCase("aeternum_frost")) {
+                if (!"aeternum_frost".equalsIgnoreCase(worldName)) {
                     return true;
                 } else if (this.plugin.getFrostWorldGuide() == null) {
                     return true;
@@ -71,7 +73,10 @@ public final class CmdSeasonGuide implements CommandExecutor, TabCompleter, List
         }
     }
 
-    /** 补全 {@code frost} 子命令。 */
+    /**
+     * 补全 {@code frost} 子命令。
+     */
+    @Override
     public List<String> onTabComplete(CommandSender sender, Command cmd, String alias, String[] args) {
         if (args.length == 1) {
             String prefix = args[0].toLowerCase(Locale.ROOT);
@@ -84,7 +89,9 @@ public final class CmdSeasonGuide implements CommandExecutor, TabCompleter, List
         }
     }
 
-    /** 玩家首次加入时，按配置自动发放季节指南。 */
+    /**
+     * 玩家首次加入时，按配置自动发放季节指南。
+     */
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
         if (this.plugin.getConfig().getBoolean("season_guide.give_on_first_join", true)) {
@@ -106,7 +113,7 @@ public final class CmdSeasonGuide implements CommandExecutor, TabCompleter, List
     private void giveGuide(Player player, boolean fromCommand) {
         Season current = this.seasonService.getStateCopy(player.getWorld()).season;
         ItemStack book = new ItemStack(Material.WRITTEN_BOOK);
-        BookMeta meta = (BookMeta)book.getItemMeta();
+        BookMeta meta = (BookMeta) book.getItemMeta();
         if (meta == null) {
             player.sendMessage("§cNo se pudo crear el libro de guía.");
         } else {
@@ -274,7 +281,7 @@ public final class CmdSeasonGuide implements CommandExecutor, TabCompleter, List
             BookPaginator paginator = new BookPaginator();
             boolean first = true;
 
-            for(String rawPage : pages) {
+            for (String rawPage : pages) {
                 if (!first) {
                     paginator.newPage();
                 }
@@ -298,15 +305,17 @@ public final class CmdSeasonGuide implements CommandExecutor, TabCompleter, List
         }
     }
 
-    /** 返回某季节对应的颜色代码（春季绿、夏秋金、冬季青）。 */
+    /**
+     * 返回某季节对应的颜色代码（春季绿、夏秋金、冬季青）。
+     */
     private String seasonColor(Season season) {
         String color;
         switch (season) {
-            case SPRING -> color = "§2";
-            case SUMMER -> color = "§6";
+            case SPRING -> color = "§a";
+            case SUMMER -> color = "§e";
             case AUTUMN -> color = "§6";
-            case WINTER -> color = "§3";
-            default -> throw new MatchException((String)null, (Throwable)null);
+            case WINTER -> color = "§b";
+            default -> throw new MatchException((String) null, (Throwable) null);
         }
 
         return color;

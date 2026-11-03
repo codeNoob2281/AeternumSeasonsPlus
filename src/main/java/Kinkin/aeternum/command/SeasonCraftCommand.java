@@ -1,19 +1,7 @@
-package Kinkin.aeternum.command;
+package kinkin.aeternum.command;
 
-import Kinkin.aeternum.AeternumSeasonsPlugin;
-import Kinkin.aeternum.crafting.AdvancedComposter;
-import Kinkin.aeternum.crafting.GolemUpgrades;
-import Kinkin.aeternum.crafting.HarvestHoe;
-import Kinkin.aeternum.crafting.LabradorBoots;
-import Kinkin.aeternum.crafting.LunarLantern;
-import Kinkin.aeternum.crafting.NaturalTreeAxe;
-import Kinkin.aeternum.crafting.SnowStepBoots;
-import Kinkin.aeternum.crafting.SolarTorch;
-import Kinkin.aeternum.crafting.SpringBell;
-import Kinkin.aeternum.crafting.SpringStrideBoots;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import kinkin.aeternum.AeternumSeasonsPlugin;
+import kinkin.aeternum.crafting.*;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -36,6 +24,10 @@ import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 
 /**
  * /seasoncraft 命令与物品开关 GUI。
@@ -148,7 +140,9 @@ public final class SeasonCraftCommand implements CommandExecutor, Listener {
         this.ensureDefaultsAndApply();
     }
 
-    /** 确保配置中存在默认开关项，并把当前配置状态应用到各条目。 */
+    /**
+     * 确保配置中存在默认开关项，并把当前配置状态应用到各条目。
+     */
     private void ensureDefaultsAndApply() {
         FileConfiguration cfg = this.plugin.getConfig();
         if (!cfg.contains("seasoncraft.enabled")) {
@@ -159,7 +153,7 @@ public final class SeasonCraftCommand implements CommandExecutor, Listener {
             cfg.set("seasoncraft.gui_title", "&bSeasonCraft");
         }
 
-        for(Entry entry : this.entries) {
+        for (Entry entry : this.entries) {
             String path = "seasoncraft.recipes." + entry.id;
             if (!cfg.contains(path)) {
                 cfg.set(path, true);
@@ -168,29 +162,37 @@ public final class SeasonCraftCommand implements CommandExecutor, Listener {
 
         this.plugin.saveConfig();
 
-        for(Entry entry : this.entries) {
+        for (Entry entry : this.entries) {
             this.setEntryEnabled(entry, this.isEnabled(entry.id));
         }
 
     }
 
-    /** 系统总开关（config: seasoncraft.enabled）。 */
+    /**
+     * 系统总开关（config: seasoncraft.enabled）。
+     */
     private boolean isSystemEnabled() {
         return this.plugin.getConfig().getBoolean("seasoncraft.enabled", true);
     }
 
-    /** 查询某个条目是否启用（config: seasoncraft.recipes.<id>）。 */
+    /**
+     * 查询某个条目是否启用（config: seasoncraft.recipes.<id>）。
+     */
     private boolean isEnabled(String id) {
         return this.plugin.getConfig().getBoolean("seasoncraft.recipes." + id, true);
     }
 
-    /** 持久化某个条目的启用状态。 */
+    /**
+     * 持久化某个条目的启用状态。
+     */
     private void setEnabled(String id, boolean enabled) {
         this.plugin.getConfig().set("seasoncraft.recipes." + id, enabled);
         this.plugin.saveConfig();
     }
 
-    /** 根据状态执行条目的启用或禁用动作。 */
+    /**
+     * 根据状态执行条目的启用或禁用动作。
+     */
     private void setEntryEnabled(Entry entry, boolean enabled) {
         if (enabled) {
             entry.enable.run();
@@ -203,6 +205,7 @@ public final class SeasonCraftCommand implements CommandExecutor, Listener {
     /**
      * 处理 /seasoncraft：校验权限与系统开关后打开 GUI。
      */
+    @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (sender instanceof Player player) {
             if (!player.hasPermission("aeternum.seasoncraft")) {
@@ -221,7 +224,9 @@ public final class SeasonCraftCommand implements CommandExecutor, Listener {
         }
     }
 
-    /** 构建并打开 27 格的开关界面，居中摆放各条目图标。 */
+    /**
+     * 构建并打开 27 格的开关界面，居中摆放各条目图标。
+     */
     private void openGui(Player player) {
         Holder holder = new Holder();
         int size = 27;
@@ -234,21 +239,23 @@ public final class SeasonCraftCommand implements CommandExecutor, Listener {
             filler.setItemMeta(fm);
         }
 
-        for(int i = 0; i < size; ++i) {
+        for (int i = 0; i < size; ++i) {
             inv.setItem(i, filler);
         }
 
         int[] slots = new int[]{10, 11, 12, 13, 14, 15, 16, 19, 20, 21};
 
-        for(int i = 0; i < this.entries.size() && i < slots.length; ++i) {
-            inv.setItem(slots[i], this.buildEntryItem((Entry)this.entries.get(i)));
+        for (int i = 0; i < this.entries.size() && i < slots.length; ++i) {
+            inv.setItem(slots[i], this.buildEntryItem((Entry) this.entries.get(i)));
         }
 
         player.openInventory(inv);
         player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.6F, 1.4F);
     }
 
-    /** 根据条目当前状态构建图标物品（含 ON/OFF 标记与 PDC 标识）。 */
+    /**
+     * 根据条目当前状态构建图标物品（含 ON/OFF 标记与 PDC 标识）。
+     */
     private ItemStack buildEntryItem(Entry entry) {
         boolean enabled = this.isEnabled(entry.id);
         ItemStack it = new ItemStack(entry.icon);
@@ -277,7 +284,7 @@ public final class SeasonCraftCommand implements CommandExecutor, Listener {
      * 处理 GUI 点击：取消默认行为，根据点击物品的 PDC 标识切换对应条目开关并刷新图标。
      */
     @EventHandler(
-        priority = EventPriority.HIGHEST
+            priority = EventPriority.HIGHEST
     )
     public void onInvClick(InventoryClickEvent event) {
         HumanEntity clicker = event.getWhoClicked();
@@ -288,9 +295,9 @@ public final class SeasonCraftCommand implements CommandExecutor, Listener {
                 if (clicked != null && clicked.getType() != Material.AIR) {
                     ItemMeta meta = clicked.getItemMeta();
                     if (meta != null) {
-                        String id = (String)meta.getPersistentDataContainer().get(this.pdcIdKey, PersistentDataType.STRING);
+                        String id = (String) meta.getPersistentDataContainer().get(this.pdcIdKey, PersistentDataType.STRING);
                         if (id != null && !id.isEmpty()) {
-                            Entry entry = (Entry)this.entries.stream().filter((candidate) -> candidate.id.equals(id)).findFirst().orElse(null);
+                            Entry entry = (Entry) this.entries.stream().filter((candidate) -> candidate.id.equals(id)).findFirst().orElse(null);
                             if (entry != null) {
                                 boolean newState = !this.isEnabled(id);
                                 this.setEnabled(id, newState);
@@ -306,20 +313,25 @@ public final class SeasonCraftCommand implements CommandExecutor, Listener {
         }
     }
 
-    /** 界面关闭监听（当前无需额外清理，仅保留占位）。 */
+    /**
+     * 界面关闭监听（当前无需额外清理，仅保留占位）。
+     */
     @EventHandler
     public void onInvClose(InventoryCloseEvent event) {
         if (event.getInventory().getHolder() instanceof Holder) {
-            ;
         }
     }
 
-    /** 把 {@code &} 颜色代码转换为 Minecraft 的 {@code §} 颜色代码。 */
+    /**
+     * 把 {@code &} 颜色代码转换为 Minecraft 的 {@code §} 颜色代码。
+     */
     private static String color(String text) {
         return text == null ? "" : text.replace("&", "§");
     }
 
-    /** GUI 中的一个可开关条目：id、标题、图标材质与启停动作。 */
+    /**
+     * GUI 中的一个可开关条目：id、标题、图标材质与启停动作。
+     */
     private static final class Entry {
         final String id;
         final String title;
@@ -337,7 +349,9 @@ public final class SeasonCraftCommand implements CommandExecutor, Listener {
         }
     }
 
-    /** GUI 的 {@link InventoryHolder} 标识，用于在事件中识别本界面。 */
+    /**
+     * GUI 的 {@link InventoryHolder} 标识，用于在事件中识别本界面。
+     */
     private static final class Holder implements InventoryHolder {
         private Inventory inv;
 
@@ -345,6 +359,7 @@ public final class SeasonCraftCommand implements CommandExecutor, Listener {
             super();
         }
 
+        @Override
         public Inventory getInventory() {
             return this.inv;
         }

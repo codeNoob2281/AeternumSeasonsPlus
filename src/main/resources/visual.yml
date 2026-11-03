@@ -2,7 +2,7 @@ biome_spoof:
   mode: "GLOBAL"           # GLOBAL | OFF
   radius_chunks: 6
   budget_chunks_per_tick: 64
-  seasons:                 # bioma objetivo por estación (tinte/cielo/niebla)
+  seasons: # bioma objetivo por estación (tinte/cielo/niebla)
     SPRING: "FLOWER_FOREST"
     SUMMER: "PLAINS"
     AUTUMN: "WINDSWEPT_SAVANNA"

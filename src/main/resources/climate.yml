@@ -1,16 +1,16 @@
 mode: "protocol"                    # Modo: protocol | particles_only
 debounce_ms: 3000                   # Tiempo de espera / Debounce time
-particles:                          # Partículas por estación / Seasonal particles
-  winter:  { enabled: false, density: 0.09, radius: 12 }
-  autumn:  { enabled: false, density: 0.06, radius: 12 }
-  spring:  { enabled: false, density: 0.04, radius: 10 }
-  summer:  { enabled: false, density: 0.03, radius: 10 }
+particles: # Partículas por estación / Seasonal particles
+  winter: { enabled: false, density: 0.09, radius: 12 }
+  autumn: { enabled: false, density: 0.06, radius: 12 }
+  spring: { enabled: false, density: 0.04, radius: 10 }
+  summer: { enabled: false, density: 0.03, radius: 10 }
 
 seasonal_weather:
   enabled: true                     # Clima estacional / Seasonal weather
-  worlds: ["world"]                 # Mundos activos / Active worlds
+  worlds: [ "world" ]                 # Mundos activos / Active worlds
   rainy_days_per_season: 9          # Días lluvia base / Base rainy days
-  rainy_days:                       # Días lluvia/estación / Rain per season
+  rainy_days: # Días lluvia/estación / Rain per season
     SPRING: 12
     SUMMER: 5
     AUTUMN: 4
@@ -53,7 +53,7 @@ real_snow:
     budget_blocks_per_tick: 200     # Bloques por tick / Blocks per tick
     also_ice: true                  # Derretir hielo / Also melt ice
     respect_naturally_snowy_biomes: true # true = respeta biomas fríos/nevados, false = derrite todo
-                                        ## true = respects cold/snowy biomes, false = melts everything
+    ## true = respects cold/snowy biomes, false = melts everything
   canopy:
     enabled: true                   # Nieve en hojas / Canopy snow
     attempts_per_tick: 10           # Intentos por tick / Attempts per tick
@@ -128,8 +128,8 @@ biome_spoof:
     - dappled_forest
     - DAPPLED_FOREST
     - PALE_GARDEN
-#    - SAVANNA
-#    - SAVANNA_PLATEDU
+  #    - SAVANNA
+  #    - SAVANNA_PLATEDU
 
   # Estos biomas conservan su bioma real en el servidor para no romper
   # fauna exclusiva, variantes ni zonas naturalmente seguras.
@@ -178,7 +178,7 @@ migration:
   animals_per_tick: 40              # Animales por tick / Animals per tick
   search_radius_blocks: 160         # Radio búsqueda / Search radius
   particles: true                   # Partículas / Particles
-  spawn:                            # Mejora de spawn / Spawn boost
+  spawn: # Mejora de spawn / Spawn boost
     spring_boost_chance: 0.25
     summer_boost_chance: 0.25
     autumn_boost_chance: 0.20
@@ -214,110 +214,110 @@ seasonal_flora:
     berries:
       enabled: true
       purge_when_disabled: true
-      blocks: [SWEET_BERRY_BUSH]
-      spread_seasons: [SPRING, SUMMER]
-      remove_seasons: [AUTUMN, WINTER]
+      blocks: [ SWEET_BERRY_BUSH ]
+      spread_seasons: [ SPRING, SUMMER ]
+      remove_seasons: [ AUTUMN, WINTER ]
       purge_natural: true
       replace_with: AIR
-      restore_seasons: [SPRING, SUMMER]
+      restore_seasons: [ SPRING, SUMMER ]
       restore_chance: 0.01
       restore_tries_per_chunk: 2
       min_distance_blocks: 5   # ✅ NUEVO / NEW
       max_per_chunk: 2         # ✅ NUEVO / NEW
-      biomes: [JUNGLE, PLAINS, WINDSWEPT_SAVANNA]
+      biomes: [ JUNGLE, PLAINS, WINDSWEPT_SAVANNA ]
       min_light: 0
       max_light: 15
       require_solid_ground: true
-      ground_blocks: [GRASS_BLOCK, DIRT, PODZOL, COARSE_DIRT]
+      ground_blocks: [ GRASS_BLOCK, DIRT, PODZOL, COARSE_DIRT ]
 
     mushrooms:
       strict_biomes: false            # Include ordinary natural biomes without biome painting
       enabled: true
       purge_when_disabled: true
-      blocks: [RED_MUSHROOM, BROWN_MUSHROOM]
-      spread_seasons: [AUTUMN]
-      remove_seasons: [WINTER, SPRING, SUMMER]
+      blocks: [ RED_MUSHROOM, BROWN_MUSHROOM ]
+      spread_seasons: [ AUTUMN ]
+      remove_seasons: [ WINTER, SPRING, SUMMER ]
       purge_natural: true
       replace_with: AIR
-      restore_seasons: [AUTUMN]
+      restore_seasons: [ AUTUMN ]
       restore_chance: 0.05
       restore_tries_per_chunk: 2
       min_distance_blocks: 4   # ✅ NUEVO / NEW
       max_per_chunk: 3         # ✅ NUEVO / NEW
-      biomes: [WINDSWEPT_SAVANNA, SNOWY_PLAINS]
+      biomes: [ WINDSWEPT_SAVANNA, SNOWY_PLAINS ]
       max_light: 12
       require_solid_ground: true
-      ground_blocks: [GRASS_BLOCK, PODZOL, MYCELIUM, MOSS_BLOCK]
+      ground_blocks: [ GRASS_BLOCK, PODZOL, MYCELIUM, MOSS_BLOCK ]
 
     small_flowers:
       strict_biomes: false
       enabled: true
       purge_when_disabled: true
-      blocks: [DANDELION, POPPY, BLUE_ORCHID, ALLIUM, AZURE_BLUET, RED_TULIP, ORANGE_TULIP, WHITE_TULIP, PINK_TULIP, OXEYE_DAISY, CORNFLOWER, LILY_OF_THE_VALLEY]
-      spread_seasons: [SPRING, SUMMER]
-      remove_seasons: [AUTUMN, WINTER]
+      blocks: [ DANDELION, POPPY, BLUE_ORCHID, ALLIUM, AZURE_BLUET, RED_TULIP, ORANGE_TULIP, WHITE_TULIP, PINK_TULIP, OXEYE_DAISY, CORNFLOWER, LILY_OF_THE_VALLEY ]
+      spread_seasons: [ SPRING, SUMMER ]
+      remove_seasons: [ AUTUMN, WINTER ]
       purge_natural: true
       replace_with: AIR
-      restore_seasons: [SPRING, SUMMER]
+      restore_seasons: [ SPRING, SUMMER ]
       restore_chance: 0.06
       restore_tries_per_chunk: 2
       min_distance_blocks: 5   # ✅ NUEVO / NEW
       max_per_chunk: 6         # ✅ NUEVO / NEW
-      biomes: [JUNGLE, PLAINS]
+      biomes: [ JUNGLE, PLAINS ]
       min_light: 0
       max_light: 15
       require_solid_ground: true
-      ground_blocks: [GRASS_BLOCK, DIRT, PODZOL]
+      ground_blocks: [ GRASS_BLOCK, DIRT, PODZOL ]
       forbid_canopy: false
 
     tall_flowers:
       strict_biomes: false
       enabled: true
       purge_when_disabled: true
-      blocks: [SUNFLOWER, ROSE_BUSH, LILAC, PEONY]
+      blocks: [ SUNFLOWER, ROSE_BUSH, LILAC, PEONY ]
       double_plant: true
-      spread_seasons: [SPRING, SUMMER]
-      remove_seasons: [AUTUMN, WINTER]
+      spread_seasons: [ SPRING, SUMMER ]
+      remove_seasons: [ AUTUMN, WINTER ]
       purge_natural: true
       replace_with: AIR
-      restore_seasons: [SPRING]
+      restore_seasons: [ SPRING ]
       restore_chance: 0.06
       restore_tries_per_chunk: 2
       min_distance_blocks: 6   # ✅ NUEVO / NEW
       max_per_chunk: 3         # ✅ NUEVO / NEW
-      biomes: [PLAINS, JUNGLE]
+      biomes: [ PLAINS, JUNGLE ]
       min_light: 0
       max_light: 15
       require_solid_ground: true
-      ground_blocks: [GRASS_BLOCK, DIRT]
+      ground_blocks: [ GRASS_BLOCK, DIRT ]
       forbid_canopy: true
       canopy_check_height: 3
 
     cocoa:
       enabled: true
       purge_when_disabled: true
-      blocks: [COCOA]
-      spread_seasons: [SUMMER, AUTUMN]
-      remove_seasons: [WINTER]
+      blocks: [ COCOA ]
+      spread_seasons: [ SUMMER, AUTUMN ]
+      remove_seasons: [ WINTER ]
       purge_natural: true
       replace_with: AIR
-      restore_seasons: [SUMMER]
+      restore_seasons: [ SUMMER ]
       restore_chance: 0.01
       restore_tries_per_chunk: 2
       min_distance_blocks: 6   # ✅ NUEVO / NEW
       max_per_chunk: 2         # ✅ NUEVO / NEW
-      biomes: [JUNGLE]
+      biomes: [ JUNGLE ]
       min_light: 0
       max_light: 15
       requires_attachment: true
-      attach_blocks: [JUNGLE_LOG, JUNGLE_WOOD]
+      attach_blocks: [ JUNGLE_LOG, JUNGLE_WOOD ]
 
     bamboo:
       enabled: false
       purge_when_disabled: false
-      blocks: [BAMBOO, BAMBOO_SAPLING]
-      spread_seasons: [SPRING, SUMMER]
-      remove_seasons: [AUTUMN, WINTER]
+      blocks: [ BAMBOO, BAMBOO_SAPLING ]
+      spread_seasons: [ SPRING, SUMMER ]
+      remove_seasons: [ AUTUMN, WINTER ]
       purge_natural: true
       replace_with: AIR
       restore_seasons: [ SPRING ]
@@ -335,8 +335,8 @@ seasonal_flora:
 
 villager_type_overrides:
   enabled: true
-  worlds: ["world"]                 # Mundos / Worlds
-  allowed_types: [PLAINS, DESERT, SAVANNA, TAIGA, SNOW, SWAMP, JUNGLE]
+  worlds: [ "world" ]                 # Mundos / Worlds
+  allowed_types: [ PLAINS, DESERT, SAVANNA, TAIGA, SNOW, SWAMP, JUNGLE ]
   appearance:
     enabled: true                   # Sólo apariencia regional; no cambia trades ni profesión
     override_chance: 1.0

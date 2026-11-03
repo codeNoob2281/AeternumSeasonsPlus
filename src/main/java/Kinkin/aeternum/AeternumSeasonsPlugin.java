@@ -1,83 +1,33 @@
-package Kinkin.aeternum;
+package kinkin.aeternum;
 
-import Kinkin.aeternum.calendar.SeasonService;
-import Kinkin.aeternum.command.CmdSeasonGuide;
-import Kinkin.aeternum.command.EventCommand;
-import Kinkin.aeternum.command.HiddenCommandSendListener;
-import Kinkin.aeternum.command.SeasonBiomeFixSpringJungleCommand;
-import Kinkin.aeternum.command.SeasonCommand;
-import Kinkin.aeternum.command.SeasonCraftCommand;
-import Kinkin.aeternum.compat.CustomCropsSeasonHook;
-import Kinkin.aeternum.compat.WorldCompat;
-import Kinkin.aeternum.crafting.AdvancedComposter;
-import Kinkin.aeternum.crafting.GolemUpgrades;
-import Kinkin.aeternum.crafting.HarvestHoe;
-import Kinkin.aeternum.crafting.LabradorBoots;
-import Kinkin.aeternum.crafting.LunarLantern;
-import Kinkin.aeternum.crafting.NaturalTreeAxe;
-import Kinkin.aeternum.crafting.SnowStepBoots;
-import Kinkin.aeternum.crafting.SolarTorch;
-import Kinkin.aeternum.crafting.SpringBell;
-import Kinkin.aeternum.crafting.SpringStrideBoots;
-import Kinkin.aeternum.dimension.FrostWorldGenerator;
-import Kinkin.aeternum.dimension.HeatWorldGenerator;
-import Kinkin.aeternum.events.SeasonalEventService;
-import Kinkin.aeternum.farming.CompostService;
-import Kinkin.aeternum.farming.SeasonalCropGrowthListener;
-import Kinkin.aeternum.fauna.AnimalMigrationService;
-import Kinkin.aeternum.fauna.ColdExposureService;
-import Kinkin.aeternum.fauna.CreatureGeneratorService;
-import Kinkin.aeternum.fauna.FishTrapService;
-import Kinkin.aeternum.fauna.StableBarnService;
-import Kinkin.aeternum.food.FoodRecipeBookLoot;
-import Kinkin.aeternum.food.SeasonFoods;
-import Kinkin.aeternum.frost.FrostBedManager;
-import Kinkin.aeternum.frost.FrostBiomeFixer;
-import Kinkin.aeternum.frost.FrostBossManager;
-import Kinkin.aeternum.frost.FrostEnvironmentListener;
-import Kinkin.aeternum.frost.FrostMobListener;
-import Kinkin.aeternum.frost.FrostWorldGuide;
-import Kinkin.aeternum.heat.HeatEnvironmentListener;
-import Kinkin.aeternum.heat.HeatLootListener;
-import Kinkin.aeternum.heat.HeatMobScaler;
-import Kinkin.aeternum.heat.HeatVariantListener;
-import Kinkin.aeternum.heat.HeatWorldGuide;
-import Kinkin.aeternum.hud.HudService;
-import Kinkin.aeternum.items.SeasonClockService;
-import Kinkin.aeternum.lang.LanguageManager;
-import Kinkin.aeternum.portal.FrostOverworldPortals;
-import Kinkin.aeternum.portal.HeatNetherPortals;
-import Kinkin.aeternum.portal.VanillaPortalIsolation;
-import Kinkin.aeternum.temperature.ThermoService;
-import Kinkin.aeternum.util.Configs;
-import Kinkin.aeternum.util.YamlDefaults;
-import Kinkin.aeternum.weather.SeasonalWeatherService;
-import Kinkin.aeternum.world.AutumnSoilPainter;
-import Kinkin.aeternum.world.BiomeSpoofAdapter;
-import Kinkin.aeternum.world.BiomeSpoofSpawnGuard;
-import Kinkin.aeternum.world.CanopySnowPainter;
-import Kinkin.aeternum.world.FastLeafDecayService;
-import Kinkin.aeternum.world.IllusionerSpawnListener;
-import Kinkin.aeternum.world.SeasonalFloraController;
-import Kinkin.aeternum.world.SnowGolemBiomeProtection;
-import Kinkin.aeternum.world.VillagerTypeOverrides;
-import Kinkin.aeternum.world.WinterWorldGuardHelper;
-import Kinkin.aeternum.world.WinterWorldPainter;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
-import java.util.logging.Logger;
+import kinkin.aeternum.calendar.SeasonService;
+import kinkin.aeternum.command.*;
+import kinkin.aeternum.compat.CustomCropsSeasonHook;
+import kinkin.aeternum.compat.WorldCompat;
+import kinkin.aeternum.crafting.*;
+import kinkin.aeternum.dimension.FrostWorldGenerator;
+import kinkin.aeternum.dimension.HeatWorldGenerator;
+import kinkin.aeternum.events.SeasonalEventService;
+import kinkin.aeternum.farming.CompostService;
+import kinkin.aeternum.farming.SeasonalCropGrowthListener;
+import kinkin.aeternum.fauna.*;
+import kinkin.aeternum.food.FoodRecipeBookLoot;
+import kinkin.aeternum.food.SeasonFoods;
+import kinkin.aeternum.frost.*;
+import kinkin.aeternum.heat.*;
+import kinkin.aeternum.hud.HudService;
+import kinkin.aeternum.items.SeasonClockService;
+import kinkin.aeternum.lang.LanguageManager;
+import kinkin.aeternum.portal.FrostOverworldPortals;
+import kinkin.aeternum.portal.HeatNetherPortals;
+import kinkin.aeternum.portal.VanillaPortalIsolation;
+import kinkin.aeternum.temperature.ThermoService;
+import kinkin.aeternum.util.Configs;
+import kinkin.aeternum.util.YamlDefaults;
+import kinkin.aeternum.weather.SeasonalWeatherService;
+import kinkin.aeternum.world.*;
 import net.md_5.bungee.api.ChatColor;
-import org.bukkit.Bukkit;
-import org.bukkit.Keyed;
-import org.bukkit.NamespacedKey;
-import org.bukkit.World;
-import org.bukkit.WorldCreator;
-import org.bukkit.WorldType;
+import org.bukkit.*;
 import org.bukkit.World.Environment;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.entity.Player;
@@ -89,6 +39,9 @@ import org.bukkit.event.server.PluginEnableEvent;
 import org.bukkit.inventory.Recipe;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
+
+import java.util.*;
+import java.util.logging.Logger;
 
 /**
  * AeternumSeasons 插件主类。
@@ -118,115 +71,225 @@ import org.bukkit.plugin.java.JavaPlugin;
  * <p><b>依赖：</b>Bukkit/Paper 服务端；可选软依赖 PlaceholderAPI、CustomCrops、Worlds。</p>
  */
 public final class AeternumSeasonsPlugin extends JavaPlugin {
-    /** 配置访问器，封装 config/calendar/climate 等文件的读取。 */
+    /**
+     * 配置访问器，封装 config/calendar/climate 等文件的读取。
+     */
     public Configs cfg;
-    /** 季节/日历核心服务。 */
+    /**
+     * 季节/日历核心服务。
+     */
     private SeasonService seasons;
-    /** HUD 显示服务。 */
+    /**
+     * HUD 显示服务。
+     */
     private HudService hud;
-    /** 多语言管理器。 */
+    /**
+     * 多语言管理器。
+     */
     public LanguageManager lang;
-    /** 冬季地形绘制器。 */
+    /**
+     * 冬季地形绘制器。
+     */
     private WinterWorldPainter winterPainter;
-    /** 生物群系伪装适配器。 */
+    /**
+     * 生物群系伪装适配器。
+     */
     private BiomeSpoofAdapter biomeSpoof;
-    /** 雪傀儡生物群系保护。 */
+    /**
+     * 雪傀儡生物群系保护。
+     */
     private SnowGolemBiomeProtection snowGolemProtection;
-    /** 季节天气服务。 */
+    /**
+     * 季节天气服务。
+     */
     private SeasonalWeatherService seasonalWeather;
-    /** 季节作物生长监听器。 */
+    /**
+     * 季节作物生长监听器。
+     */
     private SeasonalCropGrowthListener cropGrowth;
-    /** 季节事件服务。 */
+    /**
+     * 季节事件服务。
+     */
     private SeasonalEventService eventService;
-    /** 秋季土壤绘制器。 */
+    /**
+     * 秋季土壤绘制器。
+     */
     private AutumnSoilPainter autumnSoilPainter;
-    /** 树冠积雪绘制器。 */
+    /**
+     * 树冠积雪绘制器。
+     */
     private CanopySnowPainter canopySnowPainter;
-    /** 动物迁徙服务。 */
+    /**
+     * 动物迁徙服务。
+     */
     public AnimalMigrationService migration;
-    /** 雪地靴（合成物品）。 */
+    /**
+     * 雪地靴（合成物品）。
+     */
     public SnowStepBoots snowStepBoots;
-    /** 拉布拉多靴（合成物品）。 */
+    /**
+     * 拉布拉多靴（合成物品）。
+     */
     public LabradorBoots labradorBoots;
-    /** 春日疾步靴（合成物品）。 */
+    /**
+     * 春日疾步靴（合成物品）。
+     */
     public SpringStrideBoots springStrideBoots;
-    /** 太阳能火把（合成物品）。 */
+    /**
+     * 太阳能火把（合成物品）。
+     */
     public SolarTorch solarTorch;
-    /** 高级堆肥器（合成物品）。 */
+    /**
+     * 高级堆肥器（合成物品）。
+     */
     public AdvancedComposter advancedComposter;
-    /** 春铃（合成物品）。 */
+    /**
+     * 春铃（合成物品）。
+     */
     public SpringBell springBell;
-    /** 月亮灯笼（合成物品）。 */
+    /**
+     * 月亮灯笼（合成物品）。
+     */
     public LunarLantern lunarLantern;
-    /** 收获锄（合成物品）。 */
+    /**
+     * 收获锄（合成物品）。
+     */
     public HarvestHoe harvestHoe;
-    /** 自然之斧（合成物品）。 */
+    /**
+     * 自然之斧（合成物品）。
+     */
     public NaturalTreeAxe naturalTreeAxe;
-    /** 魔像升级（合成物品）。 */
+    /**
+     * 魔像升级（合成物品）。
+     */
     private GolemUpgrades golemUpgrades;
-    /** 霜界环境监听器。 */
+    /**
+     * 霜界环境监听器。
+     */
     private FrostEnvironmentListener frostEnv;
-    /** 霜界主世界传送门。 */
+    /**
+     * 霜界主世界传送门。
+     */
     private FrostOverworldPortals frostOverworldPortals;
-    /** 霜界床铺管理器。 */
+    /**
+     * 霜界床铺管理器。
+     */
     private FrostBedManager frostBedManager;
-    /** 霜界怪物监听器。 */
+    /**
+     * 霜界怪物监听器。
+     */
     private FrostMobListener frostMobListener;
-    /** 霜界 Boss 管理器。 */
+    /**
+     * 霜界 Boss 管理器。
+     */
     private FrostBossManager frostBossManager;
-    /** 霜界世界指南。 */
+    /**
+     * 霜界世界指南。
+     */
     private FrostWorldGuide frostWorldGuide;
-    /** 霜界生物群系修复器。 */
+    /**
+     * 霜界生物群系修复器。
+     */
     private FrostBiomeFixer frostBiomeFixer;
-    /** 热界世界指南。 */
+    /**
+     * 热界世界指南。
+     */
     private HeatWorldGuide heatWorldGuide;
-    /** 热界下界传送门。 */
+    /**
+     * 热界下界传送门。
+     */
     private HeatNetherPortals heatNetherPortals;
-    /** 原版传送门隔离逻辑。 */
+    /**
+     * 原版传送门隔离逻辑。
+     */
     private VanillaPortalIsolation vanillaPortalIsolation;
-    /** 热界环境监听器。 */
+    /**
+     * 热界环境监听器。
+     */
     private HeatEnvironmentListener heatEnvironmentListener;
-    /** 热界怪物强度缩放器。 */
+    /**
+     * 热界怪物强度缩放器。
+     */
     private HeatMobScaler heatMobScaler;
-    /** 热界战利品监听器。 */
+    /**
+     * 热界战利品监听器。
+     */
     private HeatLootListener heatLootListener;
-    /** 热界怪物变体监听器。 */
+    /**
+     * 热界怪物变体监听器。
+     */
     private HeatVariantListener heatVariantListener;
-    /** 季节食物系统。 */
+    /**
+     * 季节食物系统。
+     */
     private SeasonFoods foods;
-    /** 食物配方书战利品。 */
+    /**
+     * 食物配方书战利品。
+     */
     private FoodRecipeBookLoot foodRecipeBookLoot;
-    /** 季节植物控制器。 */
+    /**
+     * 季节植物控制器。
+     */
     private SeasonalFloraController flora;
-    /** 季节钟物品服务。 */
+    /**
+     * 季节钟物品服务。
+     */
     private SeasonClockService seasonClock;
-    /** 堆肥服务。 */
+    /**
+     * 堆肥服务。
+     */
     private CompostService compost;
-    /** 快速落叶服务。 */
+    /**
+     * 快速落叶服务。
+     */
     private FastLeafDecayService fastLeafDecay;
-    /** 村民类型覆盖。 */
+    /**
+     * 村民类型覆盖。
+     */
     private VillagerTypeOverrides villagerTypes;
-    /** 禁用季节特效的世界名列表。 */
+    /**
+     * 禁用季节特效的世界名列表。
+     */
     private List<String> disabledWorlds = new ArrayList();
-    /** 幻术师生成监听器。 */
+    /**
+     * 幻术师生成监听器。
+     */
     private IllusionerSpawnListener illusionerSpawn;
-    /** 鱼笼服务。 */
+    /**
+     * 鱼笼服务。
+     */
     private FishTrapService fishTraps;
-    /** 生物生成服务。 */
+    /**
+     * 生物生成服务。
+     */
     private CreatureGeneratorService creatureGenerator;
-    /** 马厩/牛棚服务。 */
+    /**
+     * 马厩/牛棚服务。
+     */
     private StableBarnService stableBarn;
-    /** 寒冷暴露服务。 */
+    /**
+     * 寒冷暴露服务。
+     */
     private ColdExposureService coldExposure;
-    /** 生物群系伪装生成守卫。 */
+    /**
+     * 生物群系伪装生成守卫。
+     */
     private BiomeSpoofSpawnGuard biomeSpoofSpawnGuard;
-    /** 季节合成命令。 */
+    /**
+     * 季节合成命令。
+     */
     private SeasonCraftCommand seasonCraft;
-    /** CustomCrops 是否已成功挂钩。 */
+    /**
+     * CustomCrops 是否已成功挂钩。
+     */
     private boolean customCropsHooked = false;
-    /** 服务端是否安装了 Worlds 插件。 */
+    /**
+     * 服务端是否安装了 Worlds 插件。
+     */
     private boolean worldsPluginPresent = false;
-    /** 温度服务。 */
+    /**
+     * 温度服务。
+     */
     private ThermoService thermo;
     private static final String HEAT_WORLD_NAME = "aeternum_heat";
     private static final String FROST_WORLD_NAME = "aeternum_frost";
@@ -242,7 +305,7 @@ public final class AeternumSeasonsPlugin extends JavaPlugin {
         String name = "aeternum_frost";
         World existing = Bukkit.getWorld(name);
         if (existing != null) {
-            String msg = this.lang.trf((Player)null, "log.frost_world_loaded", Map.of("name", name));
+            String msg = this.lang.trf((Player) null, "log.frost_world_loaded", Map.of("name", name));
             this.getLogger().info(ChatColor.stripColor(msg));
         } else {
             WorldCreator creator = new WorldCreator(name);
@@ -250,10 +313,10 @@ public final class AeternumSeasonsPlugin extends JavaPlugin {
             creator.generator(new FrostWorldGenerator());
             World created = creator.createWorld();
             if (created != null) {
-                String msg = this.lang.trf((Player)null, "log.frost_world_created", Map.of("name", name));
+                String msg = this.lang.trf((Player) null, "log.frost_world_created", Map.of("name", name));
                 this.getLogger().info(ChatColor.stripColor(msg));
             } else {
-                String msg = this.lang.trf((Player)null, "log.frost_world_failed", Map.of("name", name));
+                String msg = this.lang.trf((Player) null, "log.frost_world_failed", Map.of("name", name));
                 this.getLogger().warning(ChatColor.stripColor(msg));
             }
 
@@ -272,10 +335,10 @@ public final class AeternumSeasonsPlugin extends JavaPlugin {
         String name = "aeternum_heat";
         World existing = Bukkit.getWorld(name);
         if (existing != null) {
-            String msg = this.lang.trf((Player)null, "log.heat_world_loaded", Map.of("name", name));
+            String msg = this.lang.trf((Player) null, "log.heat_world_loaded", Map.of("name", name));
             this.getLogger().info(ChatColor.stripColor(msg));
         } else {
-            String creatingMsg = this.lang.trf((Player)null, "log.heat_world_creating", Map.of("name", name));
+            String creatingMsg = this.lang.trf((Player) null, "log.heat_world_creating", Map.of("name", name));
             this.getLogger().info(ChatColor.stripColor(creatingMsg));
             WorldCreator creator = new WorldCreator(name);
             creator.environment(Environment.NETHER);
@@ -286,7 +349,7 @@ public final class AeternumSeasonsPlugin extends JavaPlugin {
                 heat.setKeepSpawnInMemory(true);
                 WorldCompat.disableDaylightCycle(heat, this);
                 WorldCompat.disableWeatherCycle(heat, this);
-                String msg = this.lang.trf((Player)null, "log.heat_world_created", Map.of("name", name));
+                String msg = this.lang.trf((Player) null, "log.heat_world_created", Map.of("name", name));
                 this.getLogger().info(ChatColor.stripColor(msg));
             }
 
@@ -304,12 +367,14 @@ public final class AeternumSeasonsPlugin extends JavaPlugin {
 
         Logger logger = this.getLogger();
         int disabledCount = this.disabledWorlds.size();
-        logger.info("[AeternumSeasons] FX deshabilitados en " + disabledCount + " mundos: " + String.valueOf(this.disabledWorlds));
+        logger.info("[AeternumSeasons] FX deshabilitados en " + disabledCount + " mundos: " + this.disabledWorlds);
     }
 
-    /** 判断指定世界是否在“禁用季节特效”名单中（{@code null} 视为禁用）。 */
+    /**
+     * 判断指定世界是否在“禁用季节特效”名单中（{@code null} 视为禁用）。
+     */
     public boolean isWorldDisabled(World world) {
-        return world == null ? true : this.disabledWorlds.contains(world.getName());
+        return world == null || this.disabledWorlds.contains(world.getName());
     }
 
     /**
@@ -329,13 +394,13 @@ public final class AeternumSeasonsPlugin extends JavaPlugin {
      */
     public World getMainOverworld() {
         World byName = Bukkit.getWorld("world");
-        if (byName != null && !byName.getName().equalsIgnoreCase("aeternum_frost")) {
+        if (byName != null && !"aeternum_frost".equalsIgnoreCase(byName.getName())) {
             return byName;
         } else {
-            for(World world : Bukkit.getWorlds()) {
+            for (World world : Bukkit.getWorlds()) {
                 if (world.getEnvironment() == Environment.NORMAL) {
                     String name = world.getName();
-                    if (!name.equalsIgnoreCase("aeternum_frost")) {
+                    if (!"aeternum_frost".equalsIgnoreCase(name)) {
                         return world;
                     }
                 }
@@ -345,7 +410,9 @@ public final class AeternumSeasonsPlugin extends JavaPlugin {
         }
     }
 
-    /** 获取主世界名称；主世界不存在时回退为 {@code "world"}。 */
+    /**
+     * 获取主世界名称；主世界不存在时回退为 {@code "world"}。
+     */
     public String getMainOverworldName() {
         World overworld = this.getMainOverworld();
         return overworld != null ? overworld.getName() : "world";
@@ -357,6 +424,7 @@ public final class AeternumSeasonsPlugin extends JavaPlugin {
      * <p>大致步骤见类注释；此处额外说明：霜界/热界相关世界与系统仅在对应传送门配置开启时创建，
      * 季节食物按配置注册或反注册，PlaceholderAPI 扩展仅在检测到该插件时注册。</p>
      */
+    @Override
     public void onEnable() {
         this.saveDefaultConfig();
         YamlDefaults.merge(this, "config.yml");
@@ -450,7 +518,7 @@ public final class AeternumSeasonsPlugin extends JavaPlugin {
         this.seasonClock = new SeasonClockService(this, this.seasons, this.eventService);
         this.compost = new CompostService(this);
         this.seasonCraft = new SeasonCraftCommand(this, this.harvestHoe, this.naturalTreeAxe, this.snowStepBoots, this.springStrideBoots, this.labradorBoots, this.solarTorch, this.lunarLantern, this.springBell, this.advancedComposter, this.golemUpgrades);
-        ((PluginCommand)Objects.requireNonNull(this.getCommand("seasoncraft"), "Falta seasoncraft en plugin.yml")).setExecutor(this.seasonCraft);
+        ((PluginCommand) Objects.requireNonNull(this.getCommand("seasoncraft"), "Falta seasoncraft en plugin.yml")).setExecutor(this.seasonCraft);
         Bukkit.getPluginManager().registerEvents(this.seasonCraft, this);
         Bukkit.getPluginManager().registerEvents(new HiddenCommandSendListener(), this);
         SeasonCommand cmd = new SeasonCommand(this, this.seasons, this.hud, this.biomeSpoof);
@@ -572,11 +640,11 @@ public final class AeternumSeasonsPlugin extends JavaPlugin {
     private void registerCustomCropsHookListener() {
         Bukkit.getPluginManager().registerEvents(new Listener() {
             @EventHandler(
-                priority = EventPriority.MONITOR
+                    priority = EventPriority.MONITOR
             )
             public void onPluginEnable(PluginEnableEvent event) {
                 Plugin enabledPlugin = event.getPlugin();
-                if (enabledPlugin != null && enabledPlugin.getName().equalsIgnoreCase("CustomCrops")) {
+                if (enabledPlugin != null && "CustomCrops".equalsIgnoreCase(enabledPlugin.getName())) {
                     AeternumSeasonsPlugin.this.hookCustomCrops();
                 }
 
@@ -589,6 +657,7 @@ public final class AeternumSeasonsPlugin extends JavaPlugin {
      *
      * <p>每一步都先判空，以容忍启动中途失败或部分系统未初始化的情况。</p>
      */
+    @Override
     public void onDisable() {
         if (this.hud != null) {
             this.hud.unregister();
@@ -1079,7 +1148,7 @@ public final class AeternumSeasonsPlugin extends JavaPlugin {
         this.seasonClock = new SeasonClockService(this, this.seasons, this.eventService);
         this.compost = new CompostService(this);
         this.seasonCraft = new SeasonCraftCommand(this, this.harvestHoe, this.naturalTreeAxe, this.snowStepBoots, this.springStrideBoots, this.labradorBoots, this.solarTorch, this.lunarLantern, this.springBell, this.advancedComposter, this.golemUpgrades);
-        ((PluginCommand)Objects.requireNonNull(this.getCommand("seasoncraft"), "Falta seasoncraft en plugin.yml")).setExecutor(this.seasonCraft);
+        ((PluginCommand) Objects.requireNonNull(this.getCommand("seasoncraft"), "Falta seasoncraft en plugin.yml")).setExecutor(this.seasonCraft);
         Bukkit.getPluginManager().registerEvents(this.seasonCraft, this);
         SeasonCommand seasonCmdImpl = new SeasonCommand(this, this.seasons, this.hud, this.biomeSpoof);
         PluginCommand seasonCmd = this.getCommand("season");
@@ -1173,8 +1242,8 @@ public final class AeternumSeasonsPlugin extends JavaPlugin {
         List<NamespacedKey> keys = new ArrayList();
         Iterator<Recipe> iterator = Bukkit.recipeIterator();
 
-        while(iterator.hasNext()) {
-            Recipe recipe = (Recipe)iterator.next();
+        while (iterator.hasNext()) {
+            Recipe recipe = (Recipe) iterator.next();
             if (recipe instanceof Keyed keyed) {
                 NamespacedKey key = keyed.getKey();
                 if (key != null && ns.equalsIgnoreCase(key.getNamespace())) {
@@ -1185,7 +1254,7 @@ public final class AeternumSeasonsPlugin extends JavaPlugin {
 
         int removed = 0;
 
-        for(NamespacedKey key : keys) {
+        for (NamespacedKey key : keys) {
             if (Bukkit.removeRecipe(key)) {
                 ++removed;
             }
@@ -1194,37 +1263,51 @@ public final class AeternumSeasonsPlugin extends JavaPlugin {
         this.getLogger().info("[AeternumSeasons] Removed " + removed + " old recipes for namespace '" + ns + "'.");
     }
 
-    /** 获取季节/日历服务。 */
+    /**
+     * 获取季节/日历服务。
+     */
     public SeasonService getSeasons() {
         return this.seasons;
     }
 
-    /** 获取季节事件服务。 */
+    /**
+     * 获取季节事件服务。
+     */
     public SeasonalEventService getEventService() {
         return this.eventService;
     }
 
-    /** 获取季节食物系统。 */
+    /**
+     * 获取季节食物系统。
+     */
     public SeasonFoods getSeasonFoods() {
         return this.foods;
     }
 
-    /** 获取季节作物生长监听器。 */
+    /**
+     * 获取季节作物生长监听器。
+     */
     public SeasonalCropGrowthListener getSeasonalCropGrowthListener() {
         return this.cropGrowth;
     }
 
-    /** 服务端是否安装了 Worlds 插件。 */
+    /**
+     * 服务端是否安装了 Worlds 插件。
+     */
     public boolean isWorldsPluginPresent() {
         return this.worldsPluginPresent;
     }
 
-    /** 是否应把传送门处理交给 Worlds 插件（与 {@link #isWorldsPluginPresent()} 一致）。 */
+    /**
+     * 是否应把传送门处理交给 Worlds 插件（与 {@link #isWorldsPluginPresent()} 一致）。
+     */
     public boolean shouldLetWorldsHandlePortals() {
         return this.worldsPluginPresent;
     }
 
-    /** 获取温度服务。 */
+    /**
+     * 获取温度服务。
+     */
     public ThermoService getThermo() {
         return this.thermo;
     }

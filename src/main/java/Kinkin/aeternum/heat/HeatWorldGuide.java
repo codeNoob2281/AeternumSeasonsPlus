@@ -1,14 +1,8 @@
-package Kinkin.aeternum.heat;
+package kinkin.aeternum.heat;
 
-import Kinkin.aeternum.AeternumSeasonsPlugin;
-import Kinkin.aeternum.util.BookPaginator;
-import java.util.List;
-import java.util.Map;
-import org.bukkit.Bukkit;
-import org.bukkit.Material;
-import org.bukkit.NamespacedKey;
-import org.bukkit.Sound;
-import org.bukkit.World;
+import kinkin.aeternum.AeternumSeasonsPlugin;
+import kinkin.aeternum.util.BookPaginator;
+import org.bukkit.*;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.HandlerList;
@@ -21,6 +15,9 @@ import org.bukkit.inventory.meta.BookMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.scheduler.BukkitRunnable;
+
+import java.util.List;
+import java.util.Map;
 
 /**
  * 炎热世界引导书发放器。
@@ -48,36 +45,43 @@ public final class HeatWorldGuide implements Listener {
         HandlerList.unregisterAll(this);
     }
 
-    /** 监听玩家切换世界，进入炎热世界时发放引导书。 */
+    /**
+     * 监听玩家切换世界，进入炎热世界时发放引导书。
+     */
     @EventHandler
     public void onWorldChange(PlayerChangedWorldEvent event) {
         Player player = event.getPlayer();
         World targetWorld = player.getWorld();
-        if (targetWorld != null && targetWorld.getName().equalsIgnoreCase("aeternum_heat")) {
+        if (targetWorld != null && "aeternum_heat".equalsIgnoreCase(targetWorld.getName())) {
             this.giveGuideIfNeeded(player);
         }
 
     }
 
-    /** 监听玩家加入，若处于炎热世界则发放引导书。 */
+    /**
+     * 监听玩家加入，若处于炎热世界则发放引导书。
+     */
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
         World world = player.getWorld();
-        if (world != null && world.getName().equalsIgnoreCase("aeternum_heat")) {
+        if (world != null && "aeternum_heat".equalsIgnoreCase(world.getName())) {
             this.giveGuideIfNeeded(player);
         }
 
     }
 
-    /** 监听玩家重生，稍后确认所处世界并在炎热世界发放引导书。 */
+    /**
+     * 监听玩家重生，稍后确认所处世界并在炎热世界发放引导书。
+     */
     @EventHandler
     public void onRespawn(PlayerRespawnEvent event) {
         final Player player = event.getPlayer();
         (new BukkitRunnable() {
+            @Override
             public void run() {
                 World world = player.getWorld();
-                if (world != null && world.getName().equalsIgnoreCase("aeternum_heat")) {
+                if (world != null && "aeternum_heat".equalsIgnoreCase(world.getName())) {
                     HeatWorldGuide.this.giveGuideIfNeeded(player);
                 }
 
@@ -85,15 +89,17 @@ public final class HeatWorldGuide implements Listener {
         }).runTask(this.plugin);
     }
 
-    /** 若玩家尚未领取过引导书，则发放并记录标记；背包满时掉落在脚下。 */
+    /**
+     * 若玩家尚未领取过引导书，则发放并记录标记；背包满时掉落在脚下。
+     */
     private void giveGuideIfNeeded(Player player) {
         if (!this.hasGuideFlag(player)) {
             ItemStack book = this.createGuideBook(player);
             Map<Integer, ItemStack> leftover = player.getInventory().addItem(new ItemStack[]{book});
             if (!leftover.isEmpty()) {
-                for(ItemStack rest : leftover.values()) {
+                for (ItemStack rest : leftover.values()) {
                     if (rest != null && rest.getAmount() != 0) {
-                        player.getWorld().dropItemNaturally(player.getLocation().add((double)0.0F, (double)0.5F, (double)0.0F), rest);
+                        player.getWorld().dropItemNaturally(player.getLocation().add((double) 0.0F, (double) 0.5F, (double) 0.0F), rest);
                     }
                 }
             }
@@ -103,28 +109,34 @@ public final class HeatWorldGuide implements Listener {
         }
     }
 
-    /** 判断玩家是否已领取引导书。 */
+    /**
+     * 判断玩家是否已领取引导书。
+     */
     private boolean hasGuideFlag(Player player) {
         PersistentDataContainer pdc = player.getPersistentDataContainer();
-        Byte b = (Byte)pdc.get(this.FLAG_KEY, PersistentDataType.BYTE);
+        Byte b = (Byte) pdc.get(this.FLAG_KEY, PersistentDataType.BYTE);
         return b != null && b == 1;
     }
 
-    /** 设置或清除玩家的引导书领取标记。 */
+    /**
+     * 设置或清除玩家的引导书领取标记。
+     */
     private void setGuideFlag(Player player, boolean value) {
         PersistentDataContainer pdc = player.getPersistentDataContainer();
         if (value) {
-            pdc.set(this.FLAG_KEY, PersistentDataType.BYTE, (byte)1);
+            pdc.set(this.FLAG_KEY, PersistentDataType.BYTE, (byte) 1);
         } else {
             pdc.remove(this.FLAG_KEY);
         }
 
     }
 
-    /** 根据语言文件分页构建炎热世界说明书。 */
+    /**
+     * 根据语言文件分页构建炎热世界说明书。
+     */
     private ItemStack createGuideBook(Player player) {
         ItemStack book = new ItemStack(Material.WRITTEN_BOOK);
-        BookMeta meta = (BookMeta)book.getItemMeta();
+        BookMeta meta = (BookMeta) book.getItemMeta();
         if (meta == null) {
             return book;
         } else {
@@ -133,7 +145,7 @@ public final class HeatWorldGuide implements Listener {
             BookPaginator paginator = new BookPaginator();
             boolean first = true;
 
-            for(int i = 1; i <= 50; ++i) {
+            for (int i = 1; i <= 50; ++i) {
                 String key = "guide_heat.page" + i;
                 String text = this.plugin.lang.tr(player, key);
                 if (text.equals(key)) {

@@ -1,7 +1,7 @@
-package Kinkin.aeternum.events;
+package kinkin.aeternum.events;
 
-import Kinkin.aeternum.calendar.CalendarState;
-import Kinkin.aeternum.calendar.Season;
+import kinkin.aeternum.calendar.CalendarState;
+import kinkin.aeternum.calendar.Season;
 import org.bukkit.event.Listener;
 
 /**
@@ -18,10 +18,14 @@ import org.bukkit.event.Listener;
  * 各实现同时可注册为 Bukkit {@link Listener} 以监听原版事件（{@code extends Listener}）。</p>
  */
 public interface SeasonalEvent extends Listener {
-    /** 事件唯一标识（用于配置键与注册表，建议使用小写下划线风格）。 */
+    /**
+     * 事件唯一标识（用于配置键与注册表，建议使用小写下划线风格）。
+     */
     String getId();
 
-    /** 事件的展示名称（用于提示信息、调试或占位符）。 */
+    /**
+     * 事件的展示名称（用于提示信息、调试或占位符）。
+     */
     String getDisplayName();
 
     /**
@@ -32,17 +36,21 @@ public interface SeasonalEvent extends Listener {
      */
     boolean isSeasonAllowed(Season season);
 
-    /** 事件持续的最短天数。 */
+    /**
+     * 事件持续的最短天数。
+     */
     int getMinDurationDays();
 
-    /** 事件持续的最长天数。 */
+    /**
+     * 事件持续的最长天数。
+     */
     int getMaxDurationDays();
 
     /**
      * 判断今天是否满足开始条件（例如有玩家处于对应维度、通过随机概率等）。
      *
-     * @param state    当前日历状态
-     * @param context  事件运行上下文（提供插件、季节服务、可用世界/玩家等）
+     * @param state   当前日历状态
+     * @param context 事件运行上下文（提供插件、季节服务、可用世界/玩家等）
      * @return 可以开始返回 true
      */
     boolean canStartToday(CalendarState state, EventContext context);

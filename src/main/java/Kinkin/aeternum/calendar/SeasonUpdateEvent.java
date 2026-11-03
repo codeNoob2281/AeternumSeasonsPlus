@@ -1,4 +1,4 @@
-package Kinkin.aeternum.calendar;
+package kinkin.aeternum.calendar;
 
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
@@ -32,26 +32,35 @@ public final class SeasonUpdateEvent extends Event {
         this.dayAdvanced = dayAdvanced;
     }
 
-    /** 返回触发本事件的服务。 */
+    /**
+     * 返回触发本事件的服务。
+     */
     public SeasonService getSource() {
         return this.source;
     }
 
-    /** 返回发生变化的日历频道。 */
+    /**
+     * 返回发生变化的日历频道。
+     */
     public CalendarChannel getChannel() {
         return this.channel;
     }
 
-    /** 返回更新后的日历状态。 */
+    /**
+     * 返回更新后的日历状态。
+     */
     public CalendarState getState() {
         return this.state;
     }
 
-    /** 返回本次更新是否推进了日期。 */
+    /**
+     * 返回本次更新是否推进了日期。
+     */
     public boolean isDayAdvanced() {
         return this.dayAdvanced;
     }
 
+    @Override
     public HandlerList getHandlers() {
         return HANDLERS;
     }

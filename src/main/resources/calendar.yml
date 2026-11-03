@@ -7,13 +7,13 @@ calendar:
 
     OVERWORLD:
       enabled: true                                            # Activar canal / Enable channel
-      worlds:                                                  # Mundos vinculados / Linked worlds
+      worlds: # Mundos vinculados / Linked worlds
         - world
         - world_nether_lobby
       mode: SEASONS                                            # SEASONS | MONTHS
       days_per_season: 28                                      # Días por estación / Days per season
 
-      days_per_season_by_season:                               # Duración específica / Specific duration
+      days_per_season_by_season: # Duración específica / Specific duration
         SPRING: 28
         SUMMER: 28
         AUTUMN: 28

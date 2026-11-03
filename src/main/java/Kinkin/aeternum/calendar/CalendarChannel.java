@@ -1,4 +1,4 @@
-package Kinkin.aeternum.calendar;
+package kinkin.aeternum.calendar;
 
 import java.util.Locale;
 
@@ -13,10 +13,12 @@ public enum CalendarChannel {
     OVERWORLD,
     NETHER;
 
-    private CalendarChannel() {
+    CalendarChannel() {
     }
 
-    /** 返回频道的小写标识（用于配置键、状态文件名等）。 */
+    /**
+     * 返回频道的小写标识（用于配置键、状态文件名等）。
+     */
     public String id() {
         return this.name().toLowerCase(Locale.ROOT);
     }

@@ -1,28 +1,13 @@
-package Kinkin.aeternum.crafting;
+package kinkin.aeternum.crafting;
 
-import Kinkin.aeternum.AeternumSeasonsPlugin;
-import Kinkin.aeternum.calendar.CalendarState;
-import Kinkin.aeternum.calendar.Season;
-import Kinkin.aeternum.calendar.SeasonService;
-import java.lang.reflect.Method;
-import java.util.Arrays;
-import java.util.EnumSet;
-import org.bukkit.Bukkit;
-import org.bukkit.Chunk;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.NamespacedKey;
-import org.bukkit.World;
+import kinkin.aeternum.AeternumSeasonsPlugin;
+import kinkin.aeternum.calendar.CalendarState;
+import kinkin.aeternum.calendar.Season;
+import kinkin.aeternum.calendar.SeasonService;
+import org.bukkit.*;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.Golem;
-import org.bukkit.entity.HumanEntity;
-import org.bukkit.entity.IronGolem;
-import org.bukkit.entity.LivingEntity;
-import org.bukkit.entity.Player;
-import org.bukkit.entity.Snowball;
-import org.bukkit.entity.Snowman;
+import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
@@ -42,6 +27,10 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.projectiles.ProjectileSource;
 import org.bukkit.scheduler.BukkitTask;
+
+import java.lang.reflect.Method;
+import java.util.Arrays;
+import java.util.EnumSet;
 
 /**
  * 傀儡升级（Golem Upgrades）。
@@ -77,14 +66,18 @@ public final class GolemUpgrades implements Listener, Runnable {
         this.golemTypeKey = new NamespacedKey(plugin, "season_golem_type");
     }
 
-    /** 向服务器注册事件监听器与合成配方，并启动周期任务。 */
+    /**
+     * 向服务器注册事件监听器与合成配方，并启动周期任务。
+     */
     public void register() {
         Bukkit.getPluginManager().registerEvents(this, this.plugin);
         this.registerRecipes();
         this.task = Bukkit.getScheduler().runTaskTimer(this.plugin, this, 40L, 40L);
     }
 
-    /** 注销事件监听器、停止周期任务并移除已注册的合成配方。 */
+    /**
+     * 注销事件监听器、停止周期任务并移除已注册的合成配方。
+     */
     public void unregister() {
         HandlerList.unregisterAll(this);
         if (this.task != null) {
@@ -108,7 +101,7 @@ public final class GolemUpgrades implements Listener, Runnable {
                     Method method = this.seasons.getClass().getMethod("getCurrentSeason");
                     Object result = method.invoke(this.seasons);
                     if (result instanceof Season) {
-                        Season season = (Season)result;
+                        Season season = (Season) result;
                         return season;
                     }
                 } catch (NoSuchMethodException ignored) {
@@ -118,7 +111,7 @@ public final class GolemUpgrades implements Listener, Runnable {
                     Method method = this.seasons.getClass().getMethod("getSeason");
                     Object result = method.invoke(this.seasons);
                     if (result instanceof Season) {
-                        Season season = (Season)result;
+                        Season season = (Season) result;
                         return season;
                     }
                 } catch (NoSuchMethodException ignored) {
@@ -128,7 +121,7 @@ public final class GolemUpgrades implements Listener, Runnable {
                     Method method = this.seasons.getClass().getMethod("getState");
                     Object result = method.invoke(this.seasons);
                     if (result instanceof CalendarState) {
-                        CalendarState state = (CalendarState)result;
+                        CalendarState state = (CalendarState) result;
                         if (state.season != null) {
                             return state.season;
                         }
@@ -140,7 +133,7 @@ public final class GolemUpgrades implements Listener, Runnable {
                     Method method = this.seasons.getClass().getMethod("currentState");
                     Object result = method.invoke(this.seasons);
                     if (result instanceof CalendarState) {
-                        CalendarState state = (CalendarState)result;
+                        CalendarState state = (CalendarState) result;
                         if (state.season != null) {
                             return state.season;
                         }
@@ -155,7 +148,9 @@ public final class GolemUpgrades implements Listener, Runnable {
         }
     }
 
-    /** 注册霜核与守卫核心的合成配方。 */
+    /**
+     * 注册霜核与守卫核心的合成配方。
+     */
     private void registerRecipes() {
         ItemStack dummy = new ItemStack(Material.SNOWBALL);
         ShapedRecipe recipe = new ShapedRecipe(this.frostCoreRecipeKey, dummy);
@@ -182,14 +177,14 @@ public final class GolemUpgrades implements Listener, Runnable {
         if (event.getRecipe() != null) {
             Recipe recipe = event.getRecipe();
             if (recipe instanceof ShapedRecipe) {
-                ShapedRecipe shaped = (ShapedRecipe)recipe;
+                ShapedRecipe shaped = (ShapedRecipe) recipe;
                 NamespacedKey recipeKey = shaped.getKey();
                 boolean frost = this.frostCoreRecipeKey.equals(recipeKey);
                 boolean guardian = this.guardianCoreRecipeKey.equals(recipeKey);
                 if (frost || guardian) {
                     ItemStack[] matrix = event.getInventory().getMatrix();
                     if (matrix != null) {
-                        for(ItemStack stack : matrix) {
+                        for (ItemStack stack : matrix) {
                             if (stack != null && stack.getType() == Material.AIR) {
                             }
                         }
@@ -197,7 +192,7 @@ public final class GolemUpgrades implements Listener, Runnable {
                         Player crafter = null;
                         HumanEntity viewer = event.getView().getPlayer();
                         if (viewer instanceof Player) {
-                            Player player = (Player)viewer;
+                            Player player = (Player) viewer;
                             crafter = player;
                         }
 
@@ -210,7 +205,7 @@ public final class GolemUpgrades implements Listener, Runnable {
                         if (meta != null) {
                             PersistentDataContainer pdc = meta.getPersistentDataContainer();
                             if (frost) {
-                                pdc.set(this.frostCoreTagKey, PersistentDataType.BYTE, (byte)1);
+                                pdc.set(this.frostCoreTagKey, PersistentDataType.BYTE, (byte) 1);
                                 String name = this.plugin.lang.tr(crafter, "item.frost_core.name");
                                 String lore1 = this.plugin.lang.tr(crafter, "item.frost_core.lore1");
                                 String lore2 = this.plugin.lang.tr(crafter, "item.frost_core.lore2");
@@ -220,7 +215,7 @@ public final class GolemUpgrades implements Listener, Runnable {
                                 meta.setDisplayName(name);
                                 meta.setLore(Arrays.asList(lore1, lore2, lore3, lore4, lore5));
                             } else if (guardian) {
-                                pdc.set(this.guardianCoreTagKey, PersistentDataType.BYTE, (byte)1);
+                                pdc.set(this.guardianCoreTagKey, PersistentDataType.BYTE, (byte) 1);
                                 String name = this.plugin.lang.tr(crafter, "item.guardian_core.name");
                                 String lore1 = this.plugin.lang.tr(crafter, "item.guardian_core.lore1");
                                 String lore2 = this.plugin.lang.tr(crafter, "item.guardian_core.lore2");
@@ -241,31 +236,37 @@ public final class GolemUpgrades implements Listener, Runnable {
         }
     }
 
-    /** 判断物品是否为霜核（带对应持久化标签）。 */
+    /**
+     * 判断物品是否为霜核（带对应持久化标签）。
+     */
     private boolean isFrostCore(ItemStack stack) {
         if (stack != null && stack.hasItemMeta()) {
             PersistentDataContainer pdc = stack.getItemMeta().getPersistentDataContainer();
-            Byte flag = (Byte)pdc.get(this.frostCoreTagKey, PersistentDataType.BYTE);
+            Byte flag = (Byte) pdc.get(this.frostCoreTagKey, PersistentDataType.BYTE);
             return flag != null && flag == 1;
         } else {
             return false;
         }
     }
 
-    /** 判断物品是否为守卫核心（带对应持久化标签）。 */
+    /**
+     * 判断物品是否为守卫核心（带对应持久化标签）。
+     */
     private boolean isGuardianCore(ItemStack stack) {
         if (stack != null && stack.hasItemMeta()) {
             PersistentDataContainer pdc = stack.getItemMeta().getPersistentDataContainer();
-            Byte flag = (Byte)pdc.get(this.guardianCoreTagKey, PersistentDataType.BYTE);
+            Byte flag = (Byte) pdc.get(this.guardianCoreTagKey, PersistentDataType.BYTE);
             return flag != null && flag == 1;
         } else {
             return false;
         }
     }
 
-    /** 监听玩家右键实体：手持霜核/守卫核心右击对应傀儡时执行升级并消耗核心。 */
+    /**
+     * 监听玩家右键实体：手持霜核/守卫核心右击对应傀儡时执行升级并消耗核心。
+     */
     @EventHandler(
-        ignoreCancelled = true
+            ignoreCancelled = true
     )
     public void onInteractGolem(PlayerInteractEntityEvent event) {
         if (event.getHand() == EquipmentSlot.HAND) {
@@ -276,7 +277,7 @@ public final class GolemUpgrades implements Listener, Runnable {
             boolean guardianCore = this.isGuardianCore(item);
             if (frostCore || guardianCore) {
                 if (clicked instanceof Snowman) {
-                    Snowman snow = (Snowman)clicked;
+                    Snowman snow = (Snowman) clicked;
                     if (frostCore) {
                         if (!this.canUpgradeInChunk(snow.getLocation())) {
                             player.sendMessage(this.plugin.lang.tr(player, "golem.upgrade.too_many").replace("{max}", String.valueOf(this.getMaxPerChunk())));
@@ -292,7 +293,7 @@ public final class GolemUpgrades implements Listener, Runnable {
                 }
 
                 if (clicked instanceof IronGolem) {
-                    IronGolem iron = (IronGolem)clicked;
+                    IronGolem iron = (IronGolem) clicked;
                     if (guardianCore) {
                         if (!this.canUpgradeInChunk(iron.getLocation())) {
                             player.sendMessage(this.plugin.lang.tr(player, "golem.upgrade.too_many").replace("{max}", String.valueOf(this.getMaxPerChunk())));
@@ -312,12 +313,14 @@ public final class GolemUpgrades implements Listener, Runnable {
         }
     }
 
-    /** 从玩家主手中消耗一个指定物品。 */
+    /**
+     * 从玩家主手中消耗一个指定物品。
+     */
     private void consumeOne(Player player, ItemStack stack) {
         if (stack != null) {
             int amount = stack.getAmount();
             if (amount <= 1) {
-                player.getInventory().setItemInMainHand((ItemStack)null);
+                player.getInventory().setItemInMainHand((ItemStack) null);
             } else {
                 stack.setAmount(amount - 1);
             }
@@ -326,12 +329,16 @@ public final class GolemUpgrades implements Listener, Runnable {
         }
     }
 
-    /** 读取配置中每区块允许的已升级傀儡数量上限。 */
+    /**
+     * 读取配置中每区块允许的已升级傀儡数量上限。
+     */
     private int getMaxPerChunk() {
         return this.plugin.getConfig().getInt("golems.max_per_chunk", 3);
     }
 
-    /** 判断指定位置所在区块是否仍可再升级一只傀儡（未达到上限）。 */
+    /**
+     * 判断指定位置所在区块是否仍可再升级一只傀儡（未达到上限）。
+     */
     private boolean canUpgradeInChunk(Location loc) {
         int max = this.getMaxPerChunk();
         if (max <= 0) {
@@ -340,7 +347,7 @@ public final class GolemUpgrades implements Listener, Runnable {
             Chunk chunk = loc.getChunk();
             int count = 0;
 
-            for(Entity entity : chunk.getEntities()) {
+            for (Entity entity : chunk.getEntities()) {
                 if (entity instanceof Golem) {
                     GolemType type = this.getGolemType(entity);
                     if (type != null) {
@@ -356,16 +363,20 @@ public final class GolemUpgrades implements Listener, Runnable {
         }
     }
 
-    /** 将傀儡的升级类型写入其持久化数据。 */
+    /**
+     * 将傀儡的升级类型写入其持久化数据。
+     */
     private void setGolemType(Entity entity, GolemType type) {
         PersistentDataContainer pdc = entity.getPersistentDataContainer();
         pdc.set(this.golemTypeKey, PersistentDataType.STRING, type.name());
     }
 
-    /** 读取傀儡的升级类型；无标签或值非法时返回 null。 */
+    /**
+     * 读取傀儡的升级类型；无标签或值非法时返回 null。
+     */
     private GolemType getGolemType(Entity entity) {
         PersistentDataContainer pdc = entity.getPersistentDataContainer();
-        String storedType = (String)pdc.get(this.golemTypeKey, PersistentDataType.STRING);
+        String storedType = (String) pdc.get(this.golemTypeKey, PersistentDataType.STRING);
         if (storedType == null) {
             return null;
         } else {
@@ -377,10 +388,12 @@ public final class GolemUpgrades implements Listener, Runnable {
         }
     }
 
-    /** 将雪傀儡升级为霜缚傀儡：写入类型、设置最大生命值与自定义名称。 */
+    /**
+     * 将雪傀儡升级为霜缚傀儡：写入类型、设置最大生命值与自定义名称。
+     */
     private void upgradeSnowGolem(Player owner, Snowman snow) {
         this.setGolemType(snow, GolemUpgrades.GolemType.FROSTBOUND);
-        double baseHealth = this.plugin.getConfig().getDouble("golems.frostbound.base_health", (double)30.0F);
+        double baseHealth = this.plugin.getConfig().getDouble("golems.frostbound.base_health", (double) 30.0F);
         this.setMaxHealth(snow, baseHealth);
         snow.setHealth(baseHealth);
         String name = this.plugin.lang.tr(owner, "golem.frostbound.name");
@@ -388,10 +401,12 @@ public final class GolemUpgrades implements Listener, Runnable {
         snow.setCustomNameVisible(true);
     }
 
-    /** 将铁傀儡升级为守卫傀儡：写入类型、设置最大生命值、名称与伤害倍率。 */
+    /**
+     * 将铁傀儡升级为守卫傀儡：写入类型、设置最大生命值、名称与伤害倍率。
+     */
     private void upgradeIronGolem(Player owner, IronGolem iron) {
         this.setGolemType(iron, GolemUpgrades.GolemType.GUARDIAN);
-        double baseHealth = this.plugin.getConfig().getDouble("golems.guardian.base_health", (double)120.0F);
+        double baseHealth = this.plugin.getConfig().getDouble("golems.guardian.base_health", (double) 120.0F);
         this.setMaxHealth(iron, baseHealth);
         iron.setHealth(baseHealth);
         String name = this.plugin.lang.tr(owner, "golem.guardian.name");
@@ -406,35 +421,42 @@ public final class GolemUpgrades implements Listener, Runnable {
 
     }
 
-    /** 设置生物的最大生命值（下限为 1）。 */
+    /**
+     * 设置生物的最大生命值（下限为 1）。
+     */
     private void setMaxHealth(LivingEntity entity, double value) {
         AttributeInstance max = entity.getAttribute(Attribute.MAX_HEALTH);
         if (max != null) {
-            max.setBaseValue(Math.max((double)1.0F, value));
+            max.setBaseValue(Math.max((double) 1.0F, value));
         }
 
     }
 
-    /** 周期任务入口：刷新所有已升级傀儡的属性。 */
+    /**
+     * 周期任务入口：刷新所有已升级傀儡的属性。
+     */
+    @Override
     public void run() {
         this.tickGolems();
     }
 
-    /** 遍历所有世界中的已升级傀儡，按当前季节刷新其最大生命值并修正溢出生命。 */
+    /**
+     * 遍历所有世界中的已升级傀儡，按当前季节刷新其最大生命值并修正溢出生命。
+     */
     private void tickGolems() {
         Season season = this.resolveCurrentSeason();
-        double frostBase = this.plugin.getConfig().getDouble("golems.frostbound.base_health", (double)30.0F);
-        double frostWinMul = this.plugin.getConfig().getDouble("golems.frostbound.winter_health_multiplier", (double)2.0F);
+        double frostBase = this.plugin.getConfig().getDouble("golems.frostbound.base_health", (double) 30.0F);
+        double frostWinMul = this.plugin.getConfig().getDouble("golems.frostbound.winter_health_multiplier", (double) 2.0F);
         double frostOtherMul = this.plugin.getConfig().getDouble("golems.frostbound.other_seasons_health_multiplier", 1.4);
-        double guardBase = this.plugin.getConfig().getDouble("golems.guardian.base_health", (double)120.0F);
-        double guardWinMul = this.plugin.getConfig().getDouble("golems.guardian.winter_health_multiplier", (double)1.5F);
+        double guardBase = this.plugin.getConfig().getDouble("golems.guardian.base_health", (double) 120.0F);
+        double guardWinMul = this.plugin.getConfig().getDouble("golems.guardian.winter_health_multiplier", (double) 1.5F);
 
-        for(World world : Bukkit.getWorlds()) {
-            for(LivingEntity entity : world.getLivingEntities()) {
+        for (World world : Bukkit.getWorlds()) {
+            for (LivingEntity entity : world.getLivingEntities()) {
                 GolemType type = this.getGolemType(entity);
                 if (type != null) {
                     if (type == GolemUpgrades.GolemType.FROSTBOUND && entity instanceof Snowman) {
-                        Snowman snow = (Snowman)entity;
+                        Snowman snow = (Snowman) entity;
                         double mul = season == Season.WINTER ? frostWinMul : frostOtherMul;
                         this.setMaxHealth(snow, frostBase * mul);
                         AttributeInstance max = snow.getAttribute(Attribute.MAX_HEALTH);
@@ -442,8 +464,8 @@ public final class GolemUpgrades implements Listener, Runnable {
                             snow.setHealth(max.getBaseValue());
                         }
                     } else if (type == GolemUpgrades.GolemType.GUARDIAN && entity instanceof IronGolem) {
-                        IronGolem iron = (IronGolem)entity;
-                        double mul = season == Season.WINTER ? guardWinMul : (double)1.0F;
+                        IronGolem iron = (IronGolem) entity;
+                        double mul = season == Season.WINTER ? guardWinMul : (double) 1.0F;
                         this.setMaxHealth(iron, guardBase * mul);
                         AttributeInstance max = iron.getAttribute(Attribute.MAX_HEALTH);
                         if (max != null && iron.getHealth() > max.getBaseValue()) {
@@ -456,13 +478,15 @@ public final class GolemUpgrades implements Listener, Runnable {
 
     }
 
-    /** 监听傀儡攻击：守卫傀儡在冬季提升伤害，夏季命中时点燃目标。 */
+    /**
+     * 监听傀儡攻击：守卫傀儡在冬季提升伤害，夏季命中时点燃目标。
+     */
     @EventHandler(
-        ignoreCancelled = true
+            ignoreCancelled = true
     )
     public void onGolemAttack(EntityDamageByEntityEvent event) {
         if (event.getDamager() instanceof LivingEntity) {
-            LivingEntity damager = (LivingEntity)event.getDamager();
+            LivingEntity damager = (LivingEntity) event.getDamager();
             GolemType type = this.getGolemType(damager);
             if (type != null) {
                 Season season = this.resolveCurrentSeason();
@@ -479,7 +503,7 @@ public final class GolemUpgrades implements Listener, Runnable {
                         int fireTicks = this.plugin.getConfig().getInt("golems.guardian.summer_fire_ticks_on_hit", 60);
                         Entity entity = event.getEntity();
                         if (entity instanceof LivingEntity) {
-                            LivingEntity target = (LivingEntity)entity;
+                            LivingEntity target = (LivingEntity) entity;
                             if (fireTicks > 0) {
                                 target.setFireTicks(Math.max(target.getFireTicks(), fireTicks));
                             }
@@ -491,9 +515,11 @@ public final class GolemUpgrades implements Listener, Runnable {
         }
     }
 
-    /** 监听霜缚傀儡的雪球命中：设置伤害并对目标附加减速。 */
+    /**
+     * 监听霜缚傀儡的雪球命中：设置伤害并对目标附加减速。
+     */
     @EventHandler(
-        ignoreCancelled = true
+            ignoreCancelled = true
     )
     public void onSnowballHit(EntityDamageByEntityEvent event) {
         Entity damager = event.getDamager();
@@ -504,8 +530,8 @@ public final class GolemUpgrades implements Listener, Runnable {
                 if (type == GolemUpgrades.GolemType.FROSTBOUND) {
                     Entity entity = event.getEntity();
                     if (entity instanceof LivingEntity) {
-                        LivingEntity target = (LivingEntity)entity;
-                        double damage = this.plugin.getConfig().getDouble("golems.frostbound.snowball_damage", (double)1.0F);
+                        LivingEntity target = (LivingEntity) entity;
+                        double damage = this.plugin.getConfig().getDouble("golems.frostbound.snowball_damage", (double) 1.0F);
                         event.setDamage(damage);
                         int slowTicks = this.plugin.getConfig().getInt("golems.frostbound.snowball_slow_ticks", 60);
                         int slowLvl = this.plugin.getConfig().getInt("golems.frostbound.snowball_slow_level", 1);
@@ -524,7 +550,7 @@ public final class GolemUpgrades implements Listener, Runnable {
      * 守卫傀儡在夏季（若开启火焰免疫）免疫火焰类伤害。
      */
     @EventHandler(
-        ignoreCancelled = true
+            ignoreCancelled = true
     )
     public void onGolemDamage(EntityDamageEvent event) {
         Entity entity = event.getEntity();
@@ -532,7 +558,7 @@ public final class GolemUpgrades implements Listener, Runnable {
         if (type != null) {
             Season season = this.resolveCurrentSeason();
             if (entity instanceof Snowman) {
-                Snowman snow = (Snowman)entity;
+                Snowman snow = (Snowman) entity;
                 if (type == GolemUpgrades.GolemType.FROSTBOUND) {
                     EnumSet<EntityDamageEvent.DamageCause> envCauses = EnumSet.of(DamageCause.FIRE, DamageCause.FIRE_TICK, DamageCause.LAVA, DamageCause.HOT_FLOOR, DamageCause.DROWNING, DamageCause.FREEZE, DamageCause.MELTING);
                     if (envCauses.contains(event.getCause())) {
@@ -546,7 +572,7 @@ public final class GolemUpgrades implements Listener, Runnable {
             }
 
             if (entity instanceof IronGolem) {
-                IronGolem iron = (IronGolem)entity;
+                IronGolem iron = (IronGolem) entity;
                 if (type == GolemUpgrades.GolemType.GUARDIAN) {
                     if (season != Season.SUMMER) {
                         return;
@@ -570,12 +596,14 @@ public final class GolemUpgrades implements Listener, Runnable {
         }
     }
 
-    /** 参与升级的傀儡类型：FROSTBOUND 为霜缚雪傀儡，GUARDIAN 为守卫铁傀儡。 */
-    private static enum GolemType {
+    /**
+     * 参与升级的傀儡类型：FROSTBOUND 为霜缚雪傀儡，GUARDIAN 为守卫铁傀儡。
+     */
+    private enum GolemType {
         FROSTBOUND,
         GUARDIAN;
 
-        private GolemType() {
+        GolemType() {
         }
 
         // $FF: synthetic method

@@ -1,28 +1,7 @@
-package Kinkin.aeternum.crafting;
+package kinkin.aeternum.crafting;
 
-import Kinkin.aeternum.AeternumSeasonsPlugin;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Queue;
-import java.util.Set;
-import java.util.UUID;
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.NamespacedKey;
-import org.bukkit.Particle;
-import org.bukkit.Sound;
-import org.bukkit.Tag;
-import org.bukkit.World;
+import kinkin.aeternum.AeternumSeasonsPlugin;
+import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
@@ -49,6 +28,8 @@ import org.bukkit.util.Transformation;
 import org.bukkit.util.Vector;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
+
+import java.util.*;
 
 /**
  * 自然之树斧（Natural Tree Axe）。
@@ -86,18 +67,22 @@ public final class NaturalTreeAxe implements Listener {
         this.recipeKey = new NamespacedKey(plugin, "natural_tree_axe");
     }
 
-    /** 向服务器注册事件监听器与合成配方。 */
+    /**
+     * 向服务器注册事件监听器与合成配方。
+     */
     public void register() {
         Bukkit.getPluginManager().registerEvents(this, this.plugin);
         this.registerRecipe();
     }
 
-    /** 注销事件监听器、移除配方，并取消所有正在进行的伐木会话。 */
+    /**
+     * 注销事件监听器、移除配方，并取消所有正在进行的伐木会话。
+     */
     public void unregister() {
         HandlerList.unregisterAll(this);
         Bukkit.removeRecipe(this.recipeKey);
 
-        for(FellSession session : this.active.values()) {
+        for (FellSession session : this.active.values()) {
             try {
                 session.cancel();
             } catch (Throwable ignored) {
@@ -107,12 +92,14 @@ public final class NaturalTreeAxe implements Listener {
         this.active.clear();
     }
 
-    /** 注册自然之树斧的合成配方：A 任意斧、L 树叶、S 原木/苔石/垂根。 */
+    /**
+     * 注册自然之树斧的合成配方：A 任意斧、L 树叶、S 原木/苔石/垂根。
+     */
     private void registerRecipe() {
         ItemStack dummy = new ItemStack(Material.IRON_AXE);
         ShapedRecipe recipe = new ShapedRecipe(this.recipeKey, dummy);
         recipe.shape(new String[]{"LAL", "S S", "L L"});
-        Material[] axeMats = (Material[])Arrays.stream(Material.values()).filter(Material::isItem).filter((material) -> material.name().endsWith("_AXE")).toArray((length) -> new Material[length]);
+        Material[] axeMats = (Material[]) Arrays.stream(Material.values()).filter(Material::isItem).filter((material) -> material.name().endsWith("_AXE")).toArray((length) -> new Material[length]);
         RecipeChoice axeChoice = new RecipeChoice.MaterialChoice(axeMats);
         RecipeChoice leavesChoice = new RecipeChoice.MaterialChoice(new Material[]{Material.OAK_LEAVES, Material.BIRCH_LEAVES, Material.SPRUCE_LEAVES, Material.JUNGLE_LEAVES, Material.ACACIA_LEAVES, Material.DARK_OAK_LEAVES, Material.MANGROVE_LEAVES, Material.CHERRY_LEAVES, Material.AZALEA_LEAVES, Material.FLOWERING_AZALEA_LEAVES});
         RecipeChoice naturalChoice = new RecipeChoice.MaterialChoice(new Material[]{Material.OAK_LOG, Material.BIRCH_LOG, Material.SPRUCE_LOG, Material.JUNGLE_LOG, Material.ACACIA_LOG, Material.DARK_OAK_LOG, Material.MANGROVE_LOG, Material.CHERRY_LOG, Material.MOSSY_COBBLESTONE, Material.HANGING_ROOTS});
@@ -131,26 +118,26 @@ public final class NaturalTreeAxe implements Listener {
         if (event.getRecipe() != null) {
             Recipe recipe = event.getRecipe();
             if (recipe instanceof ShapedRecipe) {
-                ShapedRecipe shaped = (ShapedRecipe)recipe;
+                ShapedRecipe shaped = (ShapedRecipe) recipe;
                 if (this.recipeKey.equals(shaped.getKey())) {
                     ItemStack[] matrix = event.getInventory().getMatrix();
                     ItemStack foundAxe = null;
                     int leaves = 0;
                     int naturals = 0;
 
-                    for(ItemStack stack : matrix) {
+                    for (ItemStack stack : matrix) {
                         if (stack != null && stack.getType() != Material.AIR) {
                             Material type = stack.getType();
                             if (isAxe(type)) {
                                 if (foundAxe != null) {
-                                    event.getInventory().setResult((ItemStack)null);
+                                    event.getInventory().setResult((ItemStack) null);
                                     return;
                                 }
 
                                 foundAxe = stack;
                             } else if (!this.isLeavesMaterial(type) && !this.isNetherFoliageMaterial(type)) {
                                 if (!this.isNaturalCraftBlock(type)) {
-                                    event.getInventory().setResult((ItemStack)null);
+                                    event.getInventory().setResult((ItemStack) null);
                                     return;
                                 }
 
@@ -165,7 +152,7 @@ public final class NaturalTreeAxe implements Listener {
                         HumanEntity viewer = event.getView().getPlayer();
                         Player craftingPlayer;
                         if (viewer instanceof Player) {
-                            Player player = (Player)viewer;
+                            Player player = (Player) viewer;
                             craftingPlayer = player;
                         } else {
                             craftingPlayer = null;
@@ -175,7 +162,7 @@ public final class NaturalTreeAxe implements Listener {
                         ItemStack result = new ItemStack(foundAxe.getType());
                         ItemMeta meta = result.getItemMeta();
                         if (meta != null) {
-                            meta.getPersistentDataContainer().set(this.itemTagKey, PersistentDataType.BYTE, (byte)1);
+                            meta.getPersistentDataContainer().set(this.itemTagKey, PersistentDataType.BYTE, (byte) 1);
 
                             try {
                                 String name = this.plugin.lang.tr(crafter, "item.natural_tree_axe.name");
@@ -192,14 +179,16 @@ public final class NaturalTreeAxe implements Listener {
 
                         event.getInventory().setResult(result);
                     } else {
-                        event.getInventory().setResult((ItemStack)null);
+                        event.getInventory().setResult((ItemStack) null);
                     }
                 }
             }
         }
     }
 
-    /** 判断材料是否为任意斧（含原版与自定义命名空间）。 */
+    /**
+     * 判断材料是否为任意斧（含原版与自定义命名空间）。
+     */
     private static boolean isAxe(Material material) {
         if (material == null) {
             return false;
@@ -211,12 +200,16 @@ public final class NaturalTreeAxe implements Listener {
         }
     }
 
-    /** 判断物品是否为任意斧。 */
+    /**
+     * 判断物品是否为任意斧。
+     */
     private static boolean isAxe(ItemStack stack) {
         return stack != null && isAxe(stack.getType());
     }
 
-    /** 判断物品是否为带有自然之树斧持久化标签的斧。 */
+    /**
+     * 判断物品是否为带有自然之树斧持久化标签的斧。
+     */
     private boolean isNaturalTreeAxe(ItemStack stack) {
         if (stack == null) {
             return false;
@@ -227,18 +220,22 @@ public final class NaturalTreeAxe implements Listener {
             if (meta == null) {
                 return false;
             } else {
-                Byte flag = (Byte)meta.getPersistentDataContainer().get(this.itemTagKey, PersistentDataType.BYTE);
+                Byte flag = (Byte) meta.getPersistentDataContainer().get(this.itemTagKey, PersistentDataType.BYTE);
                 return flag != null && flag == 1;
             }
         }
     }
 
-    /** 判断材料是否可用于配方中的“自然”槽位（苔石、垂根或任意树干）。 */
+    /**
+     * 判断材料是否可用于配方中的“自然”槽位（苔石、垂根或任意树干）。
+     */
     private boolean isNaturalCraftBlock(Material material) {
         return material == Material.MOSSY_COBBLESTONE || material == Material.HANGING_ROOTS || this.isTrunkMaterial(material);
     }
 
-    /** 判断材料是否为树干类方块（原木、木、菌柄、菌丝体等，含去皮变体）。 */
+    /**
+     * 判断材料是否为树干类方块（原木、木、菌柄、菌丝体等，含去皮变体）。
+     */
     private boolean isTrunkMaterial(Material material) {
         if (material == null) {
             return false;
@@ -259,7 +256,9 @@ public final class NaturalTreeAxe implements Listener {
         }
     }
 
-    /** 判断材料是否为树叶类方块。 */
+    /**
+     * 判断材料是否为树叶类方块。
+     */
     private boolean isLeavesMaterial(Material material) {
         if (material == null) {
             return false;
@@ -275,7 +274,9 @@ public final class NaturalTreeAxe implements Listener {
         }
     }
 
-    /** 判断材料是否为下界菌盖类方块。 */
+    /**
+     * 判断材料是否为下界菌盖类方块。
+     */
     private boolean isNetherFoliageMaterial(Material material) {
         if (material == null) {
             return false;
@@ -284,12 +285,16 @@ public final class NaturalTreeAxe implements Listener {
         }
     }
 
-    /** 判断材料是否为藤蔓。 */
+    /**
+     * 判断材料是否为藤蔓。
+     */
     private boolean isTreeVineMaterial(Material material) {
         return material == Material.VINE;
     }
 
-    /** 返回树干材料的“家族键”（去掉去皮前缀与 _LOG/_WOOD/_STEM/_HYPHAE 后缀）。 */
+    /**
+     * 返回树干材料的“家族键”（去掉去皮前缀与 _LOG/_WOOD/_STEM/_HYPHAE 后缀）。
+     */
     private static String trunkFamilyKey(Material material) {
         if (material == null) {
             return "";
@@ -301,7 +306,7 @@ public final class NaturalTreeAxe implements Listener {
 
             String[] suffixes = new String[]{"_LOG", "_WOOD", "_STEM", "_HYPHAE"};
 
-            for(String suffix : suffixes) {
+            for (String suffix : suffixes) {
                 if (name.endsWith(suffix)) {
                     return name.substring(0, name.length() - suffix.length());
                 }
@@ -311,7 +316,9 @@ public final class NaturalTreeAxe implements Listener {
         }
     }
 
-    /** 判断材料是否为与给定家族键相同的树干材料。 */
+    /**
+     * 判断材料是否为与给定家族键相同的树干材料。
+     */
     private boolean isSameTrunkFamily(Material material, String familyKey) {
         if (material == null) {
             return false;
@@ -323,7 +330,9 @@ public final class NaturalTreeAxe implements Listener {
         }
     }
 
-    /** 判断方块是否为可一并清除的树叶（非持久化的树叶或下界菌盖）。 */
+    /**
+     * 判断方块是否为可一并清除的树叶（非持久化的树叶或下界菌盖）。
+     */
     private boolean isFoliageBlock(Block block) {
         if (block == null) {
             return false;
@@ -332,7 +341,7 @@ public final class NaturalTreeAxe implements Listener {
             if (this.isLeavesMaterial(material)) {
                 BlockData data = block.getBlockData();
                 if (data instanceof Leaves) {
-                    Leaves leavesData = (Leaves)data;
+                    Leaves leavesData = (Leaves) data;
                     return !leavesData.isPersistent();
                 } else {
                     return true;
@@ -343,7 +352,9 @@ public final class NaturalTreeAxe implements Listener {
         }
     }
 
-    /** 判断材料是否为可支撑树木的自然土壤（各类泥土、草方块、菌丝体、沙等）。 */
+    /**
+     * 判断材料是否为可支撑树木的自然土壤（各类泥土、草方块、菌丝体、沙等）。
+     */
     private boolean isNaturalSoil(Material material) {
         if (material == null) {
             return false;
@@ -355,11 +366,13 @@ public final class NaturalTreeAxe implements Listener {
         }
     }
 
-    /** 从给定方块向下寻找同家族树干的基座（最多下探 12 格）。 */
+    /**
+     * 从给定方块向下寻找同家族树干的基座（最多下探 12 格）。
+     */
     private Block findTrunkBase(Block origin, String familyKey) {
         Block current = origin;
 
-        for(int i = 0; i < 12; ++i) {
+        for (int i = 0; i < 12; ++i) {
             Block below = current.getRelative(0, -1, 0);
             if (!this.isSameTrunkFamily(below.getType(), familyKey)) {
                 break;
@@ -374,23 +387,27 @@ public final class NaturalTreeAxe implements Listener {
         return current;
     }
 
-    /** 快速预判给定方块附近是否像一棵树（附近有足够树叶）。 */
+    /**
+     * 快速预判给定方块附近是否像一棵树（附近有足够树叶）。
+     */
     private boolean quickLooksLikeTree(Block origin) {
         return this.hasFoliageNearby(origin, 4, 6);
     }
 
-    /** 沿着树干向上扫描，统计附近一定范围内的树叶数量是否达到阈值。 */
+    /**
+     * 沿着树干向上扫描，统计附近一定范围内的树叶数量是否达到阈值。
+     */
     private boolean hasFoliageNearby(Block origin, int radius, int min) {
         World world = origin.getWorld();
         int found = 0;
         Block current = origin;
         String computedKey = trunkFamilyKey(origin.getType());
 
-        for(int step = 0; step < 18 && this.isSameTrunkFamily(current.getType(), computedKey); ++step) {
-            for(int dx = -radius; dx <= radius; ++dx) {
-                for(int dz = -radius; dz <= radius; ++dz) {
+        for (int step = 0; step < 18 && this.isSameTrunkFamily(current.getType(), computedKey); ++step) {
+            for (int dx = -radius; dx <= radius; ++dx) {
+                for (int dz = -radius; dz <= radius; ++dz) {
                     if (dx * dx + dz * dz <= radius * radius) {
-                        for(int dy = -1; dy <= 3; ++dy) {
+                        for (int dy = -1; dy <= 3; ++dy) {
                             Block block = world.getBlockAt(current.getX() + dx, current.getY() + dy, current.getZ() + dz);
                             if (this.isFoliageBlock(block)) {
                                 ++found;
@@ -409,12 +426,14 @@ public final class NaturalTreeAxe implements Listener {
         return false;
     }
 
-    /** 从基座向上统计树干高度（最多 56 格）。 */
+    /**
+     * 从基座向上统计树干高度（最多 56 格）。
+     */
     private int trunkHeightFromBase(Block base, String familyKey) {
         int height = 0;
         Block current = base;
 
-        for(int i = 0; i < 56 && this.isSameTrunkFamily(current.getType(), familyKey); ++i) {
+        for (int i = 0; i < 56 && this.isSameTrunkFamily(current.getType(), familyKey); ++i) {
             ++height;
             current = current.getRelative(0, 1, 0);
         }
@@ -422,7 +441,9 @@ public final class NaturalTreeAxe implements Listener {
         return height;
     }
 
-    /** 依据树干类型、高度与是否为 2x2 树，计算树枝/扫描/树叶三种半径。 */
+    /**
+     * 依据树干类型、高度与是否为 2x2 树，计算树枝/扫描/树叶三种半径。
+     */
     private TreeRadii computeRadii(Material trunkType, int trunkHeight, boolean is2x2) {
         int leafRadius = Math.min(18, Math.max(6, trunkHeight / 3 + 3));
         if (is2x2) {
@@ -468,13 +489,15 @@ public final class NaturalTreeAxe implements Listener {
         return new TreeRadii(branchRadius, scanRadius, leafRadius);
     }
 
-    /** 定位树干的中心点与底部脚印（1x1 或 2x2）。 */
+    /**
+     * 定位树干的中心点与底部脚印（1x1 或 2x2）。
+     */
     private TreeCenter findTreeCenter(Block base, String familyKey) {
         World world = base.getWorld();
         int y = base.getY();
 
-        for(int ox = -1; ox <= 0; ++ox) {
-            for(int oz = -1; oz <= 0; ++oz) {
+        for (int ox = -1; ox <= 0; ++ox) {
+            for (int oz = -1; oz <= 0; ++oz) {
                 Block b00 = world.getBlockAt(base.getX() + ox, y, base.getZ() + oz);
                 Block b10 = world.getBlockAt(base.getX() + ox + 1, y, base.getZ() + oz);
                 Block b01 = world.getBlockAt(base.getX() + ox, y, base.getZ() + oz + 1);
@@ -497,20 +520,24 @@ public final class NaturalTreeAxe implements Listener {
         return new TreeCenter(base.getX(), base.getZ(), footprint);
     }
 
-    /** 将方块坐标压缩为一个 long 键，用于集合去重。 */
+    /**
+     * 将方块坐标压缩为一个 long 键，用于集合去重。
+     */
     private long blockKey(Block block) {
-        long x = (long)block.getX() & 67108863L;
-        long z = (long)block.getZ() & 67108863L;
-        long y = (long)block.getY() & 4095L;
+        long x = (long) block.getX() & 67108863L;
+        long z = (long) block.getZ() & 67108863L;
+        long y = (long) block.getY() & 4095L;
         return x << 38 | z << 12 | y;
     }
 
-    /** 按“最近树干”规则严格筛选树叶，剔除更靠近其它树干的叶子。 */
+    /**
+     * 按“最近树干”规则严格筛选树叶，剔除更靠近其它树干的叶子。
+     */
     private void filterLeavesByNearestLogStrict(Set<Block> leaves, Set<Block> myLogs, int radius) {
         if (!leaves.isEmpty() && !myLogs.isEmpty()) {
             Set<Long> myLogKeys = new HashSet(myLogs.size() * 2);
 
-            for(Block block : myLogs) {
+            for (Block block : myLogs) {
                 myLogKeys.add(this.blockKey(block));
             }
 
@@ -526,7 +553,9 @@ public final class NaturalTreeAxe implements Listener {
         }
     }
 
-    /** 在限定半径内计算到最近树干的曼哈顿距离（可限定只统计指定树干集合）。 */
+    /**
+     * 在限定半径内计算到最近树干的曼哈顿距离（可限定只统计指定树干集合）。
+     */
     private int nearestLogDist(Block center, int radius, Set<Long> onlyTheseLogsOrNull) {
         World world = center.getWorld();
         int cx = center.getX();
@@ -534,9 +563,9 @@ public final class NaturalTreeAxe implements Listener {
         int cz = center.getZ();
         int best = Integer.MAX_VALUE;
 
-        for(int dx = -radius; dx <= radius; ++dx) {
-            for(int dy = -radius; dy <= radius; ++dy) {
-                for(int dz = -radius; dz <= radius; ++dz) {
+        for (int dx = -radius; dx <= radius; ++dx) {
+            for (int dy = -radius; dy <= radius; ++dy) {
+                for (int dz = -radius; dz <= radius; ++dz) {
                     int d2 = dx * dx + dy * dy + dz * dz;
                     if (d2 <= radius * radius) {
                         Block block = world.getBlockAt(cx + dx, cy + dy, cz + dz);
@@ -554,7 +583,9 @@ public final class NaturalTreeAxe implements Listener {
         return best;
     }
 
-    /** 在限定半径内计算到最近“非指定集合”树干的曼哈顿距离。 */
+    /**
+     * 在限定半径内计算到最近“非指定集合”树干的曼哈顿距离。
+     */
     private int nearestLogDistExcluding(Block center, int radius, Set<Long> excludeLogs) {
         World world = center.getWorld();
         int cx = center.getX();
@@ -562,9 +593,9 @@ public final class NaturalTreeAxe implements Listener {
         int cz = center.getZ();
         int best = Integer.MAX_VALUE;
 
-        for(int dx = -radius; dx <= radius; ++dx) {
-            for(int dy = -radius; dy <= radius; ++dy) {
-                for(int dz = -radius; dz <= radius; ++dz) {
+        for (int dx = -radius; dx <= radius; ++dx) {
+            for (int dy = -radius; dy <= radius; ++dy) {
+                for (int dz = -radius; dz <= radius; ++dz) {
                     int d2 = dx * dx + dy * dy + dz * dz;
                     if (d2 <= radius * radius) {
                         Block block = world.getBlockAt(cx + dx, cy + dy, cz + dz);
@@ -620,10 +651,10 @@ public final class NaturalTreeAxe implements Listener {
             Queue<Block> queue = new ArrayDeque();
             Set<Long> visited = new HashSet();
 
-            for(Block footprintBlock : center.footprint) {
+            for (Block footprintBlock : center.footprint) {
                 Block current = footprintBlock;
 
-                for(int i = 0; i < 56 && this.isSameTrunkFamily(current.getType(), familyKey); ++i) {
+                for (int i = 0; i < 56 && this.isSameTrunkFamily(current.getType(), familyKey); ++i) {
                     int dx = current.getX() - center.x;
                     int dz = current.getZ() - center.z;
                     if (dx * dx + dz * dz > maxLogRadius2) {
@@ -646,10 +677,10 @@ public final class NaturalTreeAxe implements Listener {
 
             int baseY = base.getY();
 
-            while(!queue.isEmpty() && result.logs.size() < 220) {
-                Block block = (Block)queue.poll();
+            while (!queue.isEmpty() && result.logs.size() < 220) {
+                Block block = (Block) queue.poll();
 
-                for(int[] offset : LOG_NEIGHBOR_OFFSETS) {
+                for (int[] offset : LOG_NEIGHBOR_OFFSETS) {
                     int ox = offset[0];
                     int oy = offset[1];
                     int oz = offset[2];
@@ -695,7 +726,7 @@ public final class NaturalTreeAxe implements Listener {
                 this.expandFoliageFloodBounded(result.leaves, 520, center, radii.leafTreeRadius);
                 this.filterLeavesByNearestLogStrictVanilla7(result.leaves, result.logs);
 
-                for(Block leaf : result.leaves) {
+                for (Block leaf : result.leaves) {
                     Block above = leaf.getRelative(0, 1, 0);
                     if (above.getType() == Material.SNOW) {
                         result.snow.add(above);
@@ -706,7 +737,7 @@ public final class NaturalTreeAxe implements Listener {
                     Set<Block> cut = new LinkedHashSet();
                     int i = 0;
 
-                    for(Block block : result.leaves) {
+                    for (Block block : result.leaves) {
                         cut.add(block);
                         ++i;
                         if (i >= 520) {
@@ -725,24 +756,26 @@ public final class NaturalTreeAxe implements Listener {
         }
     }
 
-    /** 从树干/树叶向外收集附着在其上的藤蔓（限制在树木范围内），填入 out。 */
+    /**
+     * 从树干/树叶向外收集附着在其上的藤蔓（限制在树木范围内），填入 out。
+     */
     private void collectAttachedTreeVines(Set<Block> logs, Set<Block> leaves, Set<Block> out, TreeCenter center, int leafTreeRadius, int baseY) {
         if (!logs.isEmpty() || !leaves.isEmpty()) {
             Set<Long> treeBlockKeys = new HashSet((logs.size() + leaves.size()) * 2);
 
-            for(Block log : logs) {
+            for (Block log : logs) {
                 treeBlockKeys.add(this.blockKey(log));
             }
 
-            for(Block leaf : leaves) {
+            for (Block leaf : leaves) {
                 treeBlockKeys.add(this.blockKey(leaf));
             }
 
             ArrayDeque<Block> queue = new ArrayDeque();
             Set<Long> seen = new HashSet();
 
-            for(Block treeBlock : this.concatTreeBlocks(logs, leaves)) {
-                for(BlockFace face : VINE_SUPPORT_FACES) {
+            for (Block treeBlock : this.concatTreeBlocks(logs, leaves)) {
+                for (BlockFace face : VINE_SUPPORT_FACES) {
                     Block vine = treeBlock.getRelative(face);
                     if (this.isTreeVineMaterial(vine.getType()) && this.isVineAttachedToTree(vine, treeBlockKeys) && this.isWithinVineBounds(vine, center, leafTreeRadius, baseY) && seen.add(this.blockKey(vine))) {
                         queue.add(vine);
@@ -755,8 +788,8 @@ public final class NaturalTreeAxe implements Listener {
                 }
             }
 
-            while(!queue.isEmpty() && out.size() < 320) {
-                Block vine = (Block)queue.poll();
+            while (!queue.isEmpty() && out.size() < 320) {
+                Block vine = (Block) queue.poll();
                 out.add(vine);
                 Block below = vine.getRelative(BlockFace.DOWN);
                 if (this.isTreeVineMaterial(below.getType()) && this.isWithinVineBounds(below, center, leafTreeRadius, baseY) && seen.add(this.blockKey(below))) {
@@ -767,7 +800,9 @@ public final class NaturalTreeAxe implements Listener {
         }
     }
 
-    /** 将树干与树叶合并为可迭代集合。 */
+    /**
+     * 将树干与树叶合并为可迭代集合。
+     */
     private Iterable<Block> concatTreeBlocks(Set<Block> logs, Set<Block> leaves) {
         List<Block> blocks = new ArrayList(logs.size() + leaves.size());
         blocks.addAll(logs);
@@ -775,11 +810,13 @@ public final class NaturalTreeAxe implements Listener {
         return blocks;
     }
 
-    /** 判断藤蔓是否附着在树木方块上（其朝向面有树木方块）。 */
+    /**
+     * 判断藤蔓是否附着在树木方块上（其朝向面有树木方块）。
+     */
     private boolean isVineAttachedToTree(Block vine, Set<Long> treeBlockKeys) {
         BlockData blockData = vine.getBlockData();
         if (blockData instanceof MultipleFacing faces) {
-            for(BlockFace face : VINE_SUPPORT_FACES) {
+            for (BlockFace face : VINE_SUPPORT_FACES) {
                 if (faces.hasFace(face) && treeBlockKeys.contains(this.blockKey(vine.getRelative(face)))) {
                     return true;
                 }
@@ -791,7 +828,9 @@ public final class NaturalTreeAxe implements Listener {
         }
     }
 
-    /** 判断藤蔓是否位于树木的纵向与横向边界内。 */
+    /**
+     * 判断藤蔓是否位于树木的纵向与横向边界内。
+     */
     private boolean isWithinVineBounds(Block vine, TreeCenter center, int leafTreeRadius, int baseY) {
         if (vine.getY() >= vine.getWorld().getMinHeight() && vine.getY() <= baseY + 56) {
             int radius = leafTreeRadius + 1;
@@ -803,20 +842,22 @@ public final class NaturalTreeAxe implements Listener {
         }
     }
 
-    /** 判断树干 5x5x5 范围内是否有树叶（较严格的邻近判定）。 */
+    /**
+     * 判断树干 5x5x5 范围内是否有树叶（较严格的邻近判定）。
+     */
     private boolean logHasNearbyFoliageTight(Block log) {
         World world = log.getWorld();
         int lx = log.getX();
         int ly = log.getY();
         int lz = log.getZ();
 
-        for(int dy = -2; dy <= 2; ++dy) {
+        for (int dy = -2; dy <= 2; ++dy) {
             int y = ly + dy;
 
-            for(int dx = -2; dx <= 2; ++dx) {
+            for (int dx = -2; dx <= 2; ++dx) {
                 int x = lx + dx;
 
-                for(int dz = -2; dz <= 2; ++dz) {
+                for (int dz = -2; dz <= 2; ++dz) {
                     int z = lz + dz;
                     Material material = world.getBlockAt(x, y, z).getType();
                     if (this.isLeavesMaterial(material) || this.isNetherFoliageMaterial(material)) {
@@ -829,14 +870,16 @@ public final class NaturalTreeAxe implements Listener {
         return false;
     }
 
-    /** 以与树干相邻的树叶作为种子，加入 out（限制在树木半径与高度内）。 */
+    /**
+     * 以与树干相邻的树叶作为种子，加入 out（限制在树木半径与高度内）。
+     */
     private void seedFoliageTouchingMyLogs(Set<Block> myLogs, Set<Block> out, int baseY, TreeCenter center, int leafTreeRadius) {
         int r2 = leafTreeRadius * leafTreeRadius;
 
-        for(Block log : myLogs) {
+        for (Block log : myLogs) {
             Block[] neighbors = new Block[]{log.getRelative(1, 0, 0), log.getRelative(-1, 0, 0), log.getRelative(0, 1, 0), log.getRelative(0, -1, 0), log.getRelative(0, 0, 1), log.getRelative(0, 0, -1)};
 
-            for(Block neighbor : neighbors) {
+            for (Block neighbor : neighbors) {
                 int y = neighbor.getY();
                 if (y >= baseY - 2 && y <= baseY + 56) {
                     int rx = neighbor.getX() - center.x;
@@ -861,7 +904,7 @@ public final class NaturalTreeAxe implements Listener {
         if (!leaves.isEmpty() && !myLogs.isEmpty()) {
             Set<Long> myLogKeys = new HashSet(myLogs.size() * 2);
 
-            for(Block block : myLogs) {
+            for (Block block : myLogs) {
                 myLogKeys.add(this.blockKey(block));
             }
 
@@ -891,7 +934,9 @@ public final class NaturalTreeAxe implements Listener {
         }
     }
 
-    /** 在限定半径内计算到最近树干的曼哈顿距离；modeOnlyMine 控制只统计我方树干或只统计其它树干。 */
+    /**
+     * 在限定半径内计算到最近树干的曼哈顿距离；modeOnlyMine 控制只统计我方树干或只统计其它树干。
+     */
     private int nearestLogDistWithin(Block center, int radius, Set<Long> myLogKeys, boolean modeOnlyMine) {
         World world = center.getWorld();
         int cx = center.getX();
@@ -900,9 +945,9 @@ public final class NaturalTreeAxe implements Listener {
         int best = Integer.MAX_VALUE;
         int r2 = radius * radius;
 
-        for(int dx = -radius; dx <= radius; ++dx) {
-            for(int dy = -radius; dy <= radius; ++dy) {
-                for(int dz = -radius; dz <= radius; ++dz) {
+        for (int dx = -radius; dx <= radius; ++dx) {
+            for (int dy = -radius; dy <= radius; ++dy) {
+                for (int dz = -radius; dz <= radius; ++dz) {
                     int d2 = dx * dx + dy * dy + dz * dz;
                     if (d2 <= r2) {
                         Block block = world.getBlockAt(cx + dx, cy + dy, cz + dz);
@@ -930,23 +975,25 @@ public final class NaturalTreeAxe implements Listener {
         return best;
     }
 
-    /** 仅保留与“我方树干”连通的树叶（广度优先），最多保留 cap 个。 */
+    /**
+     * 仅保留与“我方树干”连通的树叶（广度优先），最多保留 cap 个。
+     */
     private Set<Block> keepOnlyFoliageConnectedToMyLogs(Set<Block> candidates, Set<Block> myLogs, TreeCenter center, int leafTreeRadius, int cap) {
         if (!candidates.isEmpty() && !myLogs.isEmpty()) {
             int r2 = leafTreeRadius * leafTreeRadius;
             Set<Long> candKeys = new HashSet(candidates.size() * 2);
 
-            for(Block block : candidates) {
+            for (Block block : candidates) {
                 candKeys.add(this.blockKey(block));
             }
 
             ArrayDeque<Block> queue = new ArrayDeque();
             Set<Long> seen = new HashSet(candidates.size() * 2);
 
-            for(Block log : myLogs) {
+            for (Block log : myLogs) {
                 Block[] neighbors = new Block[]{log.getRelative(1, 0, 0), log.getRelative(-1, 0, 0), log.getRelative(0, 1, 0), log.getRelative(0, -1, 0), log.getRelative(0, 0, 1), log.getRelative(0, 0, -1)};
 
-                for(Block neighbor : neighbors) {
+                for (Block neighbor : neighbors) {
                     long key = this.blockKey(neighbor);
                     if (candKeys.contains(key) && this.isFoliageBlock(neighbor) && seen.add(key)) {
                         int rx = neighbor.getX() - center.x;
@@ -960,13 +1007,13 @@ public final class NaturalTreeAxe implements Listener {
 
             LinkedHashSet<Block> kept = new LinkedHashSet();
 
-            while(!queue.isEmpty() && kept.size() < cap) {
-                Block block = (Block)queue.poll();
+            while (!queue.isEmpty() && kept.size() < cap) {
+                Block block = (Block) queue.poll();
                 kept.add(block);
 
-                for(int dx = -1; dx <= 1; ++dx) {
-                    for(int dy = -1; dy <= 1; ++dy) {
-                        for(int dz = -1; dz <= 1; ++dz) {
+                for (int dx = -1; dx <= 1; ++dx) {
+                    for (int dy = -1; dy <= 1; ++dy) {
+                        for (int dz = -1; dz <= 1; ++dz) {
                             if (dx != 0 || dy != 0 || dz != 0) {
                                 Block neighbor = block.getRelative(dx, dy, dz);
                                 int rx = neighbor.getX() - center.x;
@@ -989,16 +1036,18 @@ public final class NaturalTreeAxe implements Listener {
         }
     }
 
-    /** 以单根树干为中心，在扫描半径内收集可能的树叶种子。 */
+    /**
+     * 以单根树干为中心，在扫描半径内收集可能的树叶种子。
+     */
     private void seedFoliageAroundLog(Block log, Set<Block> out, int scanRadius, int baseY, int leafTreeRadius, TreeCenter center) {
         World world = log.getWorld();
         int cx = log.getX();
         int cy = log.getY();
         int cz = log.getZ();
 
-        for(int dx = -scanRadius; dx <= scanRadius; ++dx) {
-            for(int dz = -scanRadius; dz <= scanRadius; ++dz) {
-                for(int dy = -2; dy <= 5; ++dy) {
+        for (int dx = -scanRadius; dx <= scanRadius; ++dx) {
+            for (int dz = -scanRadius; dz <= scanRadius; ++dz) {
+                for (int dy = -2; dy <= 5; ++dy) {
                     int x = cx + dx;
                     int y = cy + dy;
                     int z = cz + dz;
@@ -1021,11 +1070,13 @@ public final class NaturalTreeAxe implements Listener {
 
     }
 
-    /** 判断树干 5x5x5 范围内是否有树叶（较宽松的邻近判定）。 */
+    /**
+     * 判断树干 5x5x5 范围内是否有树叶（较宽松的邻近判定）。
+     */
     private boolean logHasNearbyFoliage(Block log) {
-        for(int dx = -2; dx <= 2; ++dx) {
-            for(int dy = -2; dy <= 2; ++dy) {
-                for(int dz = -2; dz <= 2; ++dz) {
+        for (int dx = -2; dx <= 2; ++dx) {
+            for (int dy = -2; dy <= 2; ++dy) {
+                for (int dz = -2; dz <= 2; ++dz) {
                     if ((dx != 0 || dy != 0 || dz != 0) && this.isFoliageBlock(log.getRelative(dx, dy, dz))) {
                         return true;
                     }
@@ -1036,23 +1087,25 @@ public final class NaturalTreeAxe implements Listener {
         return false;
     }
 
-    /** 从已有树叶种子出发进行受限的广度扩散，最多扩到 cap 个。 */
+    /**
+     * 从已有树叶种子出发进行受限的广度扩散，最多扩到 cap 个。
+     */
     private void expandFoliageFloodBounded(Set<Block> leaves, int cap, TreeCenter center, int leafTreeRadius) {
         if (!leaves.isEmpty()) {
             int r2 = leafTreeRadius * leafTreeRadius;
             Queue<Block> queue = new ArrayDeque(leaves);
             Set<Long> seen = new HashSet(leaves.size() * 2);
 
-            for(Block block : leaves) {
+            for (Block block : leaves) {
                 seen.add(this.blockKey(block));
             }
 
-            while(!queue.isEmpty() && leaves.size() < cap) {
-                Block block = (Block)queue.poll();
+            while (!queue.isEmpty() && leaves.size() < cap) {
+                Block block = (Block) queue.poll();
 
-                for(int dx = -1; dx <= 1; ++dx) {
-                    for(int dy = -1; dy <= 1; ++dy) {
-                        for(int dz = -1; dz <= 1; ++dz) {
+                for (int dx = -1; dx <= 1; ++dx) {
+                    for (int dy = -1; dy <= 1; ++dy) {
+                        for (int dz = -1; dz <= 1; ++dz) {
                             if (dx != 0 || dy != 0 || dz != 0) {
                                 Block neighbor = block.getRelative(dx, dy, dz);
                                 int rx = neighbor.getX() - center.x;
@@ -1076,24 +1129,28 @@ public final class NaturalTreeAxe implements Listener {
         }
     }
 
-    /** 计算倾倒动画的旋转支点（最低树干方块的中心）。 */
+    /**
+     * 计算倾倒动画的旋转支点（最低树干方块的中心）。
+     */
     private Location computePivot(Set<Block> logs) {
         Block lowest = null;
 
-        for(Block block : logs) {
+        for (Block block : logs) {
             if (lowest == null || block.getY() < lowest.getY()) {
                 lowest = block;
             }
         }
 
         if (lowest == null) {
-            return ((Block)logs.iterator().next()).getLocation().add((double)0.5F, (double)0.5F, (double)0.5F);
+            return ((Block) logs.iterator().next()).getLocation().add((double) 0.5F, (double) 0.5F, (double) 0.5F);
         } else {
-            return lowest.getLocation().add((double)0.5F, (double)0.5F, (double)0.5F);
+            return lowest.getLocation().add((double) 0.5F, (double) 0.5F, (double) 0.5F);
         }
     }
 
-    /** 计算树木倒向：由玩家指向树心的水平方向（退化时取视线方向或 +X）。 */
+    /**
+     * 计算树木倒向：由玩家指向树心的水平方向（退化时取视线方向或 +X）。
+     */
     private Vector computeFallDir(Location pivot, Player player) {
         Vector dir = pivot.toVector().subtract(player.getLocation().toVector());
         dir.setY(0);
@@ -1109,25 +1166,31 @@ public final class NaturalTreeAxe implements Listener {
         return dir.normalize();
     }
 
-    /** 计算旋转轴（竖直方向与倒向的叉积）。 */
+    /**
+     * 计算旋转轴（竖直方向与倒向的叉积）。
+     */
     private Vector computeAxis(Vector fallDir) {
         Vector axis = (new Vector(0, 1, 0)).crossProduct(fallDir);
         return axis.lengthSquared() < 1.0E-4 ? new Vector(1, 0, 0) : axis.normalize();
     }
 
-    /** 用四元数旋转一个向量。 */
+    /**
+     * 用四元数旋转一个向量。
+     */
     private static Vector rotateVector(Vector vector, Quaternionf rotation) {
-        Vector3f input = new Vector3f((float)vector.getX(), (float)vector.getY(), (float)vector.getZ());
+        Vector3f input = new Vector3f((float) vector.getX(), (float) vector.getY(), (float) vector.getZ());
         rotation.transform(input);
         return new Vector(input.x, input.y, input.z);
     }
 
-    /** 为指定方块生成一个方块展示实体，用于播放倾倒动画。 */
+    /**
+     * 为指定方块生成一个方块展示实体，用于播放倾倒动画。
+     */
     private DisplayEntry spawnBlockDisplayFor(World world, Block block) {
         try {
             BlockData blockData = block.getBlockData();
-            Location at = block.getLocation().add((double)0.5F, (double)0.5F, (double)0.5F);
-            BlockDisplay display = (BlockDisplay)world.spawn(at, BlockDisplay.class, (displayEntity) -> {
+            Location at = block.getLocation().add((double) 0.5F, (double) 0.5F, (double) 0.5F);
+            BlockDisplay display = (BlockDisplay) world.spawn(at, BlockDisplay.class, (displayEntity) -> {
                 displayEntity.setBlock(blockData);
                 displayEntity.setViewRange(0.85F);
                 displayEntity.setShadowRadius(0.0F);
@@ -1142,11 +1205,13 @@ public final class NaturalTreeAxe implements Listener {
         }
     }
 
-    /** 安全地获取方块掉落物（异常时返回空列表）。 */
+    /**
+     * 安全地获取方块掉落物（异常时返回空列表）。
+     */
     private List<ItemStack> safeDrops(Block block, ItemStack tool, Player player) {
         try {
             Collection<ItemStack> drops = block.getDrops(tool, player);
-            return (List<ItemStack>)(drops == null ? Collections.emptyList() : new ArrayList<>(drops));
+            return (List<ItemStack>) (drops == null ? Collections.emptyList() : new ArrayList<>(drops));
         } catch (Throwable ignored) {
             return Collections.emptyList();
         }
@@ -1158,8 +1223,8 @@ public final class NaturalTreeAxe implements Listener {
      * 若玩家正处于某次倾倒过程中，则阻止其破坏同一棵树的方块。
      */
     @EventHandler(
-        ignoreCancelled = true,
-        priority = EventPriority.HIGH
+            ignoreCancelled = true,
+            priority = EventPriority.HIGH
     )
     public void onBlockBreak(BlockBreakEvent event) {
         Player player = event.getPlayer();
@@ -1198,15 +1263,15 @@ public final class NaturalTreeAxe implements Listener {
         World world = origin.getWorld();
         List<ItemStack> allDrops = new ArrayList(scan.logs.size() * 2 + scan.leaves.size() + scan.vines.size());
 
-        for(Block block : scan.logs) {
+        for (Block block : scan.logs) {
             allDrops.addAll(this.safeDrops(block, axe, player));
         }
 
-        for(Block block : scan.leaves) {
+        for (Block block : scan.leaves) {
             allDrops.addAll(this.safeDrops(block, axe, player));
         }
 
-        for(Block block : scan.vines) {
+        for (Block block : scan.vines) {
             allDrops.addAll(this.safeDrops(block, axe, player));
         }
 
@@ -1216,40 +1281,40 @@ public final class NaturalTreeAxe implements Listener {
         Vector axis = this.computeAxis(fallDir);
         List<DisplayEntry> entries = new ArrayList(scan.animLogs.size() + scan.animLeaves.size() + scan.animVines.size());
 
-        for(Block block : scan.animLogs) {
+        for (Block block : scan.animLogs) {
             DisplayEntry entry = this.spawnBlockDisplayFor(world, block);
             if (entry != null) {
                 entries.add(entry);
             }
         }
 
-        for(Block block : scan.animLeaves) {
+        for (Block block : scan.animLeaves) {
             DisplayEntry entry = this.spawnBlockDisplayFor(world, block);
             if (entry != null) {
                 entries.add(entry);
             }
         }
 
-        for(Block block : scan.animVines) {
+        for (Block block : scan.animVines) {
             DisplayEntry entry = this.spawnBlockDisplayFor(world, block);
             if (entry != null) {
                 entries.add(entry);
             }
         }
 
-        for(Block block : scan.vines) {
+        for (Block block : scan.vines) {
             block.setType(Material.AIR, false);
         }
 
-        for(Block block : scan.logs) {
+        for (Block block : scan.logs) {
             block.setType(Material.AIR, false);
         }
 
-        for(Block block : scan.leaves) {
+        for (Block block : scan.leaves) {
             block.setType(Material.AIR, false);
         }
 
-        for(Block snowBlock : scan.snow) {
+        for (Block snowBlock : scan.snow) {
             if (snowBlock.getType() == Material.SNOW) {
                 snowBlock.setType(Material.AIR, false);
             }
@@ -1261,19 +1326,21 @@ public final class NaturalTreeAxe implements Listener {
         session.start();
     }
 
-    /** 依据本次折断的原木数扣除斧的耐久；耐久耗尽则移除手中物品并播放损坏音效。 */
+    /**
+     * 依据本次折断的原木数扣除斧的耐久；耐久耗尽则移除手中物品并播放损坏音效。
+     */
     private void damageAxe(Player player, ItemStack axe, int logsBroken) {
         if (axe != null) {
             ItemMeta meta = axe.getItemMeta();
             if (meta instanceof Damageable) {
-                Damageable dmg = (Damageable)meta;
+                Damageable dmg = (Damageable) meta;
                 int damage = dmg.getDamage();
                 int toAdd = Math.max(1, logsBroken);
                 int newDamage = damage + toAdd;
                 short max = axe.getType().getMaxDurability();
                 if (newDamage >= max) {
                     player.getWorld().playSound(player.getLocation(), Sound.ENTITY_ITEM_BREAK, 1.0F, 1.0F);
-                    player.getInventory().setItemInMainHand((ItemStack)null);
+                    player.getInventory().setItemInMainHand((ItemStack) null);
                 } else {
                     dmg.setDamage(newDamage);
                     axe.setItemMeta(dmg);
@@ -1289,7 +1356,9 @@ public final class NaturalTreeAxe implements Listener {
         LOG_NEIGHBOR_OFFSETS = new int[][]{{1, 0, 0}, {-1, 0, 0}, {0, 1, 0}, {0, -1, 0}, {0, 0, 1}, {0, 0, -1}, {1, 1, 0}, {-1, 1, 0}, {1, -1, 0}, {-1, -1, 0}, {0, 1, 1}, {0, 1, -1}, {0, -1, 1}, {0, -1, -1}, {1, 0, 1}, {1, 0, -1}, {-1, 0, 1}, {-1, 0, -1}, {1, 1, 1}, {1, 1, -1}, {-1, 1, 1}, {-1, 1, -1}, {1, -1, 1}, {1, -1, -1}, {-1, -1, 1}, {-1, -1, -1}};
     }
 
-    /** 三种半径的聚合结果：树枝半径、树叶扫描半径、树叶树半径。 */
+    /**
+     * 三种半径的聚合结果：树枝半径、树叶扫描半径、树叶树半径。
+     */
     private static final class TreeRadii {
         final int branchRadius;
         final int leafScanRadius;
@@ -1303,7 +1372,9 @@ public final class NaturalTreeAxe implements Listener {
         }
     }
 
-    /** 树的水平中心坐标与底部脚印方块集合。 */
+    /**
+     * 树的水平中心坐标与底部脚印方块集合。
+     */
     private static final class TreeCenter {
         final int x;
         final int z;
@@ -1317,7 +1388,9 @@ public final class NaturalTreeAxe implements Listener {
         }
     }
 
-    /** 一次树木扫描的结果：树干、树叶、藤蔓、积雪以及用于动画的展示方块子集。 */
+    /**
+     * 一次树木扫描的结果：树干、树叶、藤蔓、积雪以及用于动画的展示方块子集。
+     */
     private static final class ScanResult {
         final Set<Block> logs = new LinkedHashSet();
         Set<Block> leaves = new LinkedHashSet();
@@ -1334,11 +1407,13 @@ public final class NaturalTreeAxe implements Listener {
             super();
         }
 
-        /** 按“先原木、再树叶、最后藤蔓”的顺序挑选至多 maxTotal 个方块用于动画展示。 */
+        /**
+         * 按“先原木、再树叶、最后藤蔓”的顺序挑选至多 maxTotal 个方块用于动画展示。
+         */
         void pickAnimated(int maxTotal) {
             int left = maxTotal;
 
-            for(Block block : this.logs) {
+            for (Block block : this.logs) {
                 if (left-- <= 0) {
                     break;
                 }
@@ -1346,7 +1421,7 @@ public final class NaturalTreeAxe implements Listener {
                 this.animLogs.add(block);
             }
 
-            for(Block block : this.leaves) {
+            for (Block block : this.leaves) {
                 if (left-- <= 0) {
                     break;
                 }
@@ -1354,7 +1429,7 @@ public final class NaturalTreeAxe implements Listener {
                 this.animLeaves.add(block);
             }
 
-            for(Block block : this.vines) {
+            for (Block block : this.vines) {
                 if (left-- <= 0) {
                     break;
                 }
@@ -1365,7 +1440,9 @@ public final class NaturalTreeAxe implements Listener {
         }
     }
 
-    /** 单个方块展示实体及其原始中心坐标。 */
+    /**
+     * 单个方块展示实体及其原始中心坐标。
+     */
     private static final class DisplayEntry {
         final BlockDisplay display;
         final Vector originalCenter;
@@ -1377,7 +1454,9 @@ public final class NaturalTreeAxe implements Listener {
         }
     }
 
-    /** 单次伐木动画会话：负责逐 tick 旋转展示实体、播放粒子/音效，并在结束时结算掉落与耐久。 */
+    /**
+     * 单次伐木动画会话：负责逐 tick 旋转展示实体、播放粒子/音效，并在结束时结算掉落与耐久。
+     */
     private final class FellSession {
         private final UUID playerId;
         private final World world;
@@ -1402,20 +1481,23 @@ public final class NaturalTreeAxe implements Listener {
             this.logsCountForDurability = logsCountForDurability;
         }
 
-        /** 启动逐 tick 的动画任务（每 tick 执行一次）。 */
+        /**
+         * 启动逐 tick 的动画任务（每 tick 执行一次）。
+         */
         void start() {
             this.task = new BukkitRunnable() {
+                @Override
                 public void run() {
                     Player player = Bukkit.getPlayer(FellSession.this.playerId);
                     if (player != null && player.isOnline() && player.getWorld() == FellSession.this.world) {
                         ++FellSession.this.tick;
-                        float progress = Math.min(1.0F, (float)FellSession.this.tick / 80.0F);
-                        float ease = 1.0F - (float)Math.pow((double)(1.0F - progress), (double)2.2F);
-                        float angleRad = (float)((double)ease * (Math.PI / 2D));
-                        Quaternionf rot = (new Quaternionf()).fromAxisAngleRad((float)FellSession.this.axis.getX(), (float)FellSession.this.axis.getY(), (float)FellSession.this.axis.getZ(), angleRad);
+                        float progress = Math.min(1.0F, (float) FellSession.this.tick / 80.0F);
+                        float ease = 1.0F - (float) Math.pow((double) (1.0F - progress), (double) 2.2F);
+                        float angleRad = (float) ((double) ease * (Math.PI / 2D));
+                        Quaternionf rot = (new Quaternionf()).fromAxisAngleRad((float) FellSession.this.axis.getX(), (float) FellSession.this.axis.getY(), (float) FellSession.this.axis.getZ(), angleRad);
                         Vector pivotV = FellSession.this.pivot.toVector();
 
-                        for(DisplayEntry entry : FellSession.this.entries) {
+                        for (DisplayEntry entry : FellSession.this.entries) {
                             BlockDisplay display = entry.display;
                             if (display != null && !display.isDead()) {
                                 Vector relative = entry.originalCenter.clone().subtract(pivotV);
@@ -1429,10 +1511,10 @@ public final class NaturalTreeAxe implements Listener {
                                     Material material = display.getBlock().getMaterial();
                                     if (!material.name().endsWith("_LOG") && !material.name().endsWith("_STEM") && !material.name().endsWith("_HYPHAE")) {
                                         if (material.name().endsWith("_LEAVES") || material == Material.NETHER_WART_BLOCK || material == Material.WARPED_WART_BLOCK || material == Material.VINE) {
-                                            FellSession.this.world.spawnParticle(Particle.BLOCK, loc, 1, 0.08, 0.08, 0.08, (double)0.0F, display.getBlock());
+                                            FellSession.this.world.spawnParticle(Particle.BLOCK, loc, 1, 0.08, 0.08, 0.08, (double) 0.0F, display.getBlock());
                                         }
                                     } else {
-                                        FellSession.this.world.spawnParticle(Particle.BLOCK, loc, 2, 0.08, 0.08, 0.08, (double)0.0F, display.getBlock());
+                                        FellSession.this.world.spawnParticle(Particle.BLOCK, loc, 2, 0.08, 0.08, 0.08, (double) 0.0F, display.getBlock());
                                     }
                                 }
                             }
@@ -1456,12 +1538,14 @@ public final class NaturalTreeAxe implements Listener {
             this.task.runTaskTimer(NaturalTreeAxe.this.plugin, 1L, 1L);
         }
 
-        /** 动画结束：清理展示实体、在落点掉落全部物品并扣除斧耐久，随后移除会话。 */
+        /**
+         * 动画结束：清理展示实体、在落点掉落全部物品并扣除斧耐久，随后移除会话。
+         */
         void finish(Player player) {
             this.cleanup(false);
-            Location dropAt = this.pivot.clone().add(this.fallDir.clone().multiply(1.4)).add((double)0.0F, 0.2, (double)0.0F);
+            Location dropAt = this.pivot.clone().add(this.fallDir.clone().multiply(1.4)).add((double) 0.0F, 0.2, (double) 0.0F);
 
-            for(ItemStack item : this.drops) {
+            for (ItemStack item : this.drops) {
                 if (item != null && item.getType() != Material.AIR) {
                     this.world.dropItemNaturally(dropAt, item);
                 }
@@ -1477,9 +1561,11 @@ public final class NaturalTreeAxe implements Listener {
             NaturalTreeAxe.this.active.remove(this.playerId);
         }
 
-        /** 移除所有展示实体；removeSession 为 true 时同时移除会话记录。 */
+        /**
+         * 移除所有展示实体；removeSession 为 true 时同时移除会话记录。
+         */
         void cleanup(boolean removeSession) {
-            for(DisplayEntry entry : this.entries) {
+            for (DisplayEntry entry : this.entries) {
                 try {
                     if (entry.display != null && !entry.display.isDead()) {
                         entry.display.remove();
@@ -1494,7 +1580,9 @@ public final class NaturalTreeAxe implements Listener {
 
         }
 
-        /** 取消底层动画任务（若存在）。 */
+        /**
+         * 取消底层动画任务（若存在）。
+         */
         void cancel() {
             try {
                 if (this.task != null) {

@@ -1,28 +1,13 @@
-package Kinkin.aeternum.frost;
+package kinkin.aeternum.frost;
 
-import Kinkin.aeternum.AeternumSeasonsPlugin;
-import Kinkin.aeternum.calendar.CalendarState;
-import Kinkin.aeternum.calendar.SeasonService;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
-import java.util.UUID;
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.NamespacedKey;
-import org.bukkit.Particle;
-import org.bukkit.Sound;
-import org.bukkit.World;
+import kinkin.aeternum.AeternumSeasonsPlugin;
+import kinkin.aeternum.calendar.CalendarState;
+import kinkin.aeternum.calendar.SeasonService;
+import org.bukkit.*;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.block.Block;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.HumanEntity;
-import org.bukkit.entity.LivingEntity;
-import org.bukkit.entity.Player;
-import org.bukkit.entity.Wither;
-import org.bukkit.entity.WitherSkull;
+import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.HandlerList;
@@ -42,6 +27,11 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.projectiles.ProjectileSource;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+import java.util.UUID;
 
 /**
  * 永霜世界首领「格拉西利斯（Glacialis）」管理器。
@@ -102,6 +92,7 @@ public final class FrostBossManager implements Listener {
             private int lastDay = -1;
             private int lastYear = -1;
 
+            @Override
             public void run() {
                 World frost = Bukkit.getWorld("aeternum_frost");
                 if (frost != null) {
@@ -137,7 +128,7 @@ public final class FrostBossManager implements Listener {
             List<Player> candidates = frost.getPlayers();
             if (!candidates.isEmpty()) {
                 if (!(this.random.nextDouble() >= 0.37)) {
-                    Player target = (Player)candidates.get(this.random.nextInt(candidates.size()));
+                    Player target = (Player) candidates.get(this.random.nextInt(candidates.size()));
                     this.spawnGlacialisNear(target);
                 }
             }
@@ -153,8 +144,8 @@ public final class FrostBossManager implements Listener {
         Location spawn = base.clone();
         int y = world.getHighestBlockYAt(base) + 15;
         y = Math.min(y, world.getMaxHeight() - 5);
-        spawn.setY((double)y);
-        Wither boss = (Wither)world.spawn(spawn, Wither.class, (wither) -> {
+        spawn.setY((double) y);
+        Wither boss = (Wither) world.spawn(spawn, Wither.class, (wither) -> {
             this.markAsBoss(wither);
             this.buffBossStats(wither);
             String name = this.plugin.lang.tr(player, "boss.glacialis.name");
@@ -165,7 +156,7 @@ public final class FrostBossManager implements Listener {
         this.currentBossId = boss.getUniqueId();
         String msg = this.plugin.lang.tr(player, "boss.glacialis.spawn");
 
-        for(Player online : world.getPlayers()) {
+        for (Player online : world.getPlayers()) {
             online.sendMessage(msg);
             online.playSound(boss.getLocation(), Sound.ENTITY_WITHER_SPAWN, 1.0F, 0.5F);
         }
@@ -176,7 +167,7 @@ public final class FrostBossManager implements Listener {
      * 在实体的持久化数据中写入首领标记。
      */
     private void markAsBoss(Entity entity) {
-        entity.getPersistentDataContainer().set(this.BOSS_KEY, PersistentDataType.BYTE, (byte)1);
+        entity.getPersistentDataContainer().set(this.BOSS_KEY, PersistentDataType.BYTE, (byte) 1);
     }
 
     /**
@@ -184,7 +175,7 @@ public final class FrostBossManager implements Listener {
      */
     private boolean isBoss(Entity entity) {
         PersistentDataContainer pdc = entity.getPersistentDataContainer();
-        Byte flag = (Byte)pdc.get(this.BOSS_KEY, PersistentDataType.BYTE);
+        Byte flag = (Byte) pdc.get(this.BOSS_KEY, PersistentDataType.BYTE);
         return flag != null && flag == 1;
     }
 
@@ -201,13 +192,13 @@ public final class FrostBossManager implements Listener {
     private void buffBossStats(LivingEntity entity) {
         AttributeInstance maxHealth = entity.getAttribute(Attribute.MAX_HEALTH);
         if (maxHealth != null) {
-            maxHealth.setBaseValue((double)600.0F);
+            maxHealth.setBaseValue((double) 600.0F);
             entity.setHealth(maxHealth.getBaseValue());
         }
 
         AttributeInstance attack = entity.getAttribute(Attribute.ATTACK_DAMAGE);
         if (attack != null) {
-            attack.setBaseValue((double)20.0F);
+            attack.setBaseValue((double) 20.0F);
         }
 
         AttributeInstance movement = entity.getAttribute(Attribute.MOVEMENT_SPEED);
@@ -221,8 +212,8 @@ public final class FrostBossManager implements Listener {
      * 首领（或其发射的凋灵头颅）爆炸时：取消方块破坏，在落点铺撒细雪、冻结附近玩家并播放特效。
      */
     @EventHandler(
-        ignoreCancelled = true,
-        priority = EventPriority.HIGH
+            ignoreCancelled = true,
+            priority = EventPriority.HIGH
     )
     public void onBossExplode(EntityExplodeEvent event) {
         Entity source = event.getEntity();
@@ -243,10 +234,10 @@ public final class FrostBossManager implements Listener {
                 Location center = source.getLocation();
                 int radius = 4;
 
-                for(int dx = -radius; dx <= radius; ++dx) {
-                    for(int dz = -radius; dz <= radius; ++dz) {
-                        double distSq = (double)(dx * dx + dz * dz);
-                        if (!(distSq > (double)(radius * radius))) {
+                for (int dx = -radius; dx <= radius; ++dx) {
+                    for (int dz = -radius; dz <= radius; ++dz) {
+                        double distSq = (double) (dx * dx + dz * dz);
+                        if (!(distSq > (double) (radius * radius))) {
                             int x = center.getBlockX() + dx;
                             int z = center.getBlockZ() + dz;
                             int y = center.getBlockY();
@@ -259,14 +250,14 @@ public final class FrostBossManager implements Listener {
                     }
                 }
 
-                for(Entity nearby : world.getNearbyEntities(center, (double)5.0F, (double)5.0F, (double)5.0F)) {
+                for (Entity nearby : world.getNearbyEntities(center, (double) 5.0F, (double) 5.0F, (double) 5.0F)) {
                     if (nearby instanceof Player) {
-                        Player player = (Player)nearby;
+                        Player player = (Player) nearby;
                         player.setFreezeTicks(Math.min(player.getFreezeTicks() + 100, 200));
                     }
                 }
 
-                world.spawnParticle(Particle.SNOWFLAKE, center, 120, (double)2.0F, (double)1.0F, (double)2.0F, 0.1);
+                world.spawnParticle(Particle.SNOWFLAKE, center, 120, (double) 2.0F, (double) 1.0F, (double) 2.0F, 0.1);
                 world.playSound(center, Sound.BLOCK_POWDER_SNOW_FALL, 1.5F, 0.7F);
                 return;
             }
@@ -278,8 +269,8 @@ public final class FrostBossManager implements Listener {
      * 首领凋灵尝试改变方块时取消该行为。
      */
     @EventHandler(
-        ignoreCancelled = true,
-        priority = EventPriority.HIGH
+            ignoreCancelled = true,
+            priority = EventPriority.HIGH
     )
     public void onBossChangeBlock(EntityChangeBlockEvent event) {
         Entity entity = event.getEntity();
@@ -294,8 +285,8 @@ public final class FrostBossManager implements Listener {
      * 首领死亡时清空默认掉落，改为掉落冰川之核与随机数量的永霜碎片，并广播挑战完成。
      */
     @EventHandler(
-        ignoreCancelled = true,
-        priority = EventPriority.HIGH
+            ignoreCancelled = true,
+            priority = EventPriority.HIGH
     )
     public void onBossDeath(EntityDeathEvent event) {
         LivingEntity entity = event.getEntity();
@@ -309,13 +300,13 @@ public final class FrostBossManager implements Listener {
                 world.dropItemNaturally(loc, this.createGlacialisCore(killer));
                 int shards = 4 + (new Random()).nextInt(3);
 
-                for(int i = 0; i < shards; ++i) {
+                for (int i = 0; i < shards; ++i) {
                     world.dropItemNaturally(loc, this.createEverfrostShard(killer));
                 }
 
-                String msg = this.plugin.lang.tr((Player)null, "boss.glacialis.defeated");
+                String msg = this.plugin.lang.tr((Player) null, "boss.glacialis.defeated");
 
-                for(Player player : world.getPlayers()) {
+                for (Player player : world.getPlayers()) {
                     player.sendMessage(msg);
                     player.playSound(loc, Sound.UI_TOAST_CHALLENGE_COMPLETE, 1.0F, 1.2F);
                 }
@@ -337,7 +328,7 @@ public final class FrostBossManager implements Listener {
             lore.add(this.plugin.lang.tr(viewer, "item.everfrost_shard.lore_line1"));
             lore.add(this.plugin.lang.tr(viewer, "item.everfrost_shard.lore_line2"));
             meta.setLore(lore);
-            meta.getPersistentDataContainer().set(this.EVERFROST_SHARD_KEY, PersistentDataType.BYTE, (byte)1);
+            meta.getPersistentDataContainer().set(this.EVERFROST_SHARD_KEY, PersistentDataType.BYTE, (byte) 1);
             item.setItemMeta(meta);
         }
 
@@ -356,7 +347,7 @@ public final class FrostBossManager implements Listener {
             lore.add(this.plugin.lang.tr(viewer, "item.glacialis_core.lore_line1"));
             lore.add(this.plugin.lang.tr(viewer, "item.glacialis_core.lore_line2"));
             meta.setLore(lore);
-            meta.getPersistentDataContainer().set(this.GLACIALIS_CORE_KEY, PersistentDataType.BYTE, (byte)1);
+            meta.getPersistentDataContainer().set(this.GLACIALIS_CORE_KEY, PersistentDataType.BYTE, (byte) 1);
             item.setItemMeta(meta);
         }
 
@@ -375,7 +366,7 @@ public final class FrostBossManager implements Listener {
             lore.add(this.plugin.lang.tr(viewer, nameKeyPrefix + ".lore_line1"));
             lore.add(this.plugin.lang.tr(viewer, nameKeyPrefix + ".lore_line2"));
             meta.setLore(lore);
-            meta.getPersistentDataContainer().set(this.HEAT_ARMOR_KEY, PersistentDataType.BYTE, (byte)1);
+            meta.getPersistentDataContainer().set(this.HEAT_ARMOR_KEY, PersistentDataType.BYTE, (byte) 1);
             item.setItemMeta(meta);
         }
 
@@ -386,25 +377,25 @@ public final class FrostBossManager implements Listener {
      * 注册永霜护甲四件套（头盔、胸甲、护腿、靴子）的合成配方。
      */
     private void registerRecipes() {
-        ShapedRecipe helmetRecipe = new ShapedRecipe(new NamespacedKey(this.plugin, "everfrost_helmet"), this.createHeatArmorPiece((Player)null, Material.DIAMOND_HELMET, "item.heat_armor.helmet"));
+        ShapedRecipe helmetRecipe = new ShapedRecipe(new NamespacedKey(this.plugin, "everfrost_helmet"), this.createHeatArmorPiece((Player) null, Material.DIAMOND_HELMET, "item.heat_armor.helmet"));
         helmetRecipe.shape(new String[]{"SSS", "SCS", " H "});
         helmetRecipe.setIngredient('S', Material.PRISMARINE_SHARD);
         helmetRecipe.setIngredient('C', Material.HEART_OF_THE_SEA);
         helmetRecipe.setIngredient('H', Material.DIAMOND_HELMET);
         Bukkit.addRecipe(helmetRecipe);
-        ShapedRecipe chestRecipe = new ShapedRecipe(new NamespacedKey(this.plugin, "everfrost_chest"), this.createHeatArmorPiece((Player)null, Material.DIAMOND_CHESTPLATE, "item.heat_armor.chest"));
+        ShapedRecipe chestRecipe = new ShapedRecipe(new NamespacedKey(this.plugin, "everfrost_chest"), this.createHeatArmorPiece((Player) null, Material.DIAMOND_CHESTPLATE, "item.heat_armor.chest"));
         chestRecipe.shape(new String[]{" C ", "SAS", "S S"});
         chestRecipe.setIngredient('S', Material.PRISMARINE_SHARD);
         chestRecipe.setIngredient('C', Material.HEART_OF_THE_SEA);
         chestRecipe.setIngredient('A', Material.DIAMOND_CHESTPLATE);
         Bukkit.addRecipe(chestRecipe);
-        ShapedRecipe legsRecipe = new ShapedRecipe(new NamespacedKey(this.plugin, "everfrost_legs"), this.createHeatArmorPiece((Player)null, Material.DIAMOND_LEGGINGS, "item.heat_armor.legs"));
+        ShapedRecipe legsRecipe = new ShapedRecipe(new NamespacedKey(this.plugin, "everfrost_legs"), this.createHeatArmorPiece((Player) null, Material.DIAMOND_LEGGINGS, "item.heat_armor.legs"));
         legsRecipe.shape(new String[]{"SCS", "SAS", "SAS"});
         legsRecipe.setIngredient('S', Material.PRISMARINE_SHARD);
         legsRecipe.setIngredient('C', Material.HEART_OF_THE_SEA);
         legsRecipe.setIngredient('A', Material.DIAMOND_LEGGINGS);
         Bukkit.addRecipe(legsRecipe);
-        ShapedRecipe bootsRecipe = new ShapedRecipe(new NamespacedKey(this.plugin, "everfrost_boots"), this.createHeatArmorPiece((Player)null, Material.DIAMOND_BOOTS, "item.heat_armor.boots"));
+        ShapedRecipe bootsRecipe = new ShapedRecipe(new NamespacedKey(this.plugin, "everfrost_boots"), this.createHeatArmorPiece((Player) null, Material.DIAMOND_BOOTS, "item.heat_armor.boots"));
         bootsRecipe.shape(new String[]{" C ", "SAS", "S S"});
         bootsRecipe.setIngredient('S', Material.PRISMARINE_SHARD);
         bootsRecipe.setIngredient('C', Material.HEART_OF_THE_SEA);
@@ -425,7 +416,7 @@ public final class FrostBossManager implements Listener {
             if (meta == null) {
                 return false;
             } else {
-                Byte flag = (Byte)meta.getPersistentDataContainer().get(this.HEAT_ARMOR_KEY, PersistentDataType.BYTE);
+                Byte flag = (Byte) meta.getPersistentDataContainer().get(this.HEAT_ARMOR_KEY, PersistentDataType.BYTE);
                 return flag != null && flag == 1;
             }
         }
@@ -440,7 +431,7 @@ public final class FrostBossManager implements Listener {
             if (meta == null) {
                 return false;
             } else {
-                Byte flag = (Byte)meta.getPersistentDataContainer().get(key, PersistentDataType.BYTE);
+                Byte flag = (Byte) meta.getPersistentDataContainer().get(key, PersistentDataType.BYTE);
                 return flag != null && flag == 1;
             }
         } else {
@@ -464,7 +455,7 @@ public final class FrostBossManager implements Listener {
      * 从合成界面查看者中取出第一个玩家（用于本地化显示）。
      */
     private Player firstViewer(PrepareItemCraftEvent event) {
-        for(HumanEntity viewer : event.getViewers()) {
+        for (HumanEntity viewer : event.getViewers()) {
             if (viewer instanceof Player player) {
                 return player;
             }
@@ -481,7 +472,7 @@ public final class FrostBossManager implements Listener {
         if (matrix == null) {
             return false;
         } else {
-            for(ItemStack item : matrix) {
+            for (ItemStack item : matrix) {
                 if (item != null && item.getType() != Material.AIR) {
                     if (item.getType() == Material.PRISMARINE_SHARD) {
                         if (!this.hasFlag(item, this.EVERFROST_SHARD_KEY)) {
@@ -502,13 +493,17 @@ public final class FrostBossManager implements Listener {
      */
     private ItemStack localizedResultFor(Recipe recipe, Player viewer) {
         if (recipe instanceof ShapedRecipe) {
-            ShapedRecipe shapedRecipe = (ShapedRecipe)recipe;
+            ShapedRecipe shapedRecipe = (ShapedRecipe) recipe;
             ItemStack result;
             switch (shapedRecipe.getKey().getKey()) {
-                case "everfrost_helmet" -> result = this.createHeatArmorPiece(viewer, Material.DIAMOND_HELMET, "item.heat_armor.helmet");
-                case "everfrost_chest" -> result = this.createHeatArmorPiece(viewer, Material.DIAMOND_CHESTPLATE, "item.heat_armor.chest");
-                case "everfrost_legs" -> result = this.createHeatArmorPiece(viewer, Material.DIAMOND_LEGGINGS, "item.heat_armor.legs");
-                case "everfrost_boots" -> result = this.createHeatArmorPiece(viewer, Material.DIAMOND_BOOTS, "item.heat_armor.boots");
+                case "everfrost_helmet" ->
+                        result = this.createHeatArmorPiece(viewer, Material.DIAMOND_HELMET, "item.heat_armor.helmet");
+                case "everfrost_chest" ->
+                        result = this.createHeatArmorPiece(viewer, Material.DIAMOND_CHESTPLATE, "item.heat_armor.chest");
+                case "everfrost_legs" ->
+                        result = this.createHeatArmorPiece(viewer, Material.DIAMOND_LEGGINGS, "item.heat_armor.legs");
+                case "everfrost_boots" ->
+                        result = this.createHeatArmorPiece(viewer, Material.DIAMOND_BOOTS, "item.heat_armor.boots");
                 default -> result = null;
             }
 
@@ -522,7 +517,7 @@ public final class FrostBossManager implements Listener {
      * 预览合成结果时：若材料标记无效则清空结果，否则替换为本地化成品。
      */
     @EventHandler(
-        ignoreCancelled = true
+            ignoreCancelled = true
     )
     public void onPrepareEverfrostCraft(PrepareItemCraftEvent event) {
         Recipe recipe = event.getRecipe();
@@ -530,7 +525,7 @@ public final class FrostBossManager implements Listener {
             CraftingInventory inventory = event.getInventory();
             ItemStack[] matrix = inventory.getMatrix();
             if (!this.matrixHasValidPdc(matrix)) {
-                inventory.setResult((ItemStack)null);
+                inventory.setResult((ItemStack) null);
             } else {
                 Player viewer = this.firstViewer(event);
                 inventory.setResult(this.localizedResultFor(recipe, viewer));
@@ -542,7 +537,7 @@ public final class FrostBossManager implements Listener {
      * 实际合成时再次校验材料标记，无效则取消合成并清空结果，防止伪造材料。
      */
     @EventHandler(
-        ignoreCancelled = true
+            ignoreCancelled = true
     )
     public void onCraftEverfrost(CraftItemEvent event) {
         Recipe recipe = event.getRecipe();
@@ -551,7 +546,7 @@ public final class FrostBossManager implements Listener {
             if (inventory instanceof CraftingInventory) {
                 if (!this.matrixHasValidPdc(inventory.getMatrix())) {
                     event.setCancelled(true);
-                    inventory.setResult((ItemStack)null);
+                    inventory.setResult((ItemStack) null);
                 }
 
             }

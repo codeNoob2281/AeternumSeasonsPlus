@@ -937,16 +937,6 @@ crop:
     any_season: "&7四季皆可生长"
     greenhouse_light: "&8地下温室: 光照 {light}+"
 
-farming:
-  compost:
-    raw_name: "&a未处理堆肥"
-    raw_lore_1: "&7土壤与残渣的潮湿混合物。"
-    raw_lore_2: "&7在水中浸泡2天。"
-    ready_name: "&2肥沃土壤"
-    ready_lore_1: "&7作物生长速度&ax2&7。"
-    ready_lore_2: "&7踩踏不会破坏耕地。"
-    ready_message: "&a你的堆肥已变为肥沃土壤！"
-
 villager:
   lazy_tag: "&7[&6懒惰&7]"
 

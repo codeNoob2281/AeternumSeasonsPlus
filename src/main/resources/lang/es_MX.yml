@@ -80,9 +80,9 @@ cmd:
         variable: "variable"
         off: "apagado"
       set:
-        fixed:    "&aHUD estático activado."
+        fixed: "&aHUD estático activado."
         variable: "&aHUD variable activado."
-        "off":      "&aHUD desactivado."
+        "off": "&aHUD desactivado."
 
     help: "&eUso: /{label} <info| set| skipday| day| reload| hud>"
 
@@ -393,7 +393,7 @@ guide:
       §2[ ] [ ] [ ]
       §1B = Brujula
       §1R = Reloj  
-      
+  
 
   dimensions:
     snowbound:

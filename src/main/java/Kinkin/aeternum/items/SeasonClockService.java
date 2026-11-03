@@ -1,20 +1,11 @@
-package Kinkin.aeternum.items;
+package kinkin.aeternum.items;
 
-import Kinkin.aeternum.AeternumSeasonsPlugin;
-import Kinkin.aeternum.calendar.CalendarState;
-import Kinkin.aeternum.calendar.SeasonService;
-import Kinkin.aeternum.events.SeasonalEvent;
-import Kinkin.aeternum.events.SeasonalEventService;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import org.bukkit.Bukkit;
-import org.bukkit.Material;
-import org.bukkit.NamespacedKey;
-import org.bukkit.Sound;
-import org.bukkit.World;
+import kinkin.aeternum.AeternumSeasonsPlugin;
+import kinkin.aeternum.calendar.CalendarState;
+import kinkin.aeternum.calendar.SeasonService;
+import kinkin.aeternum.events.SeasonalEvent;
+import kinkin.aeternum.events.SeasonalEventService;
+import org.bukkit.*;
 import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -24,14 +15,12 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.inventory.CraftItemEvent;
 import org.bukkit.event.inventory.PrepareItemCraftEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.inventory.CraftingInventory;
-import org.bukkit.inventory.EquipmentSlot;
-import org.bukkit.inventory.ItemFlag;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.ShapedRecipe;
+import org.bukkit.inventory.*;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
+
+import java.util.*;
 
 /**
  * 季节时钟物品服务。
@@ -50,11 +39,17 @@ public final class SeasonClockService implements Listener {
     private final AeternumSeasonsPlugin plugin;
     private final SeasonService seasons;
     private final SeasonalEventService events;
-    /** 标记物品为季节时钟的持久化键。 */
+    /**
+     * 标记物品为季节时钟的持久化键。
+     */
     private final NamespacedKey KEY_CLOCK;
-    /** 合成配方使用的命名空间键。 */
+    /**
+     * 合成配方使用的命名空间键。
+     */
     private final NamespacedKey RECIPE_KEY;
-    /** 季节时钟物品原型。 */
+    /**
+     * 季节时钟物品原型。
+     */
     private ItemStack proto;
 
     public SeasonClockService(AeternumSeasonsPlugin plugin, SeasonService seasons, SeasonalEventService events) {
@@ -66,19 +61,25 @@ public final class SeasonClockService implements Listener {
         this.RECIPE_KEY = new NamespacedKey(plugin, "season_clock");
     }
 
-    /** 构建物品原型、注册配方并注册事件监听。 */
+    /**
+     * 构建物品原型、注册配方并注册事件监听。
+     */
     public void register() {
         this.buildPrototype();
         this.registerRecipe();
         Bukkit.getPluginManager().registerEvents(this, this.plugin);
     }
 
-    /** 注销事件监听。 */
+    /**
+     * 注销事件监听。
+     */
     public void unregister() {
         HandlerList.unregisterAll(this);
     }
 
-    /** 构建季节时钟物品原型：设置名称、Lore、自定义模型数据与持久化标记。 */
+    /**
+     * 构建季节时钟物品原型：设置名称、Lore、自定义模型数据与持久化标记。
+     */
     private void buildPrototype() {
         ItemStack item = new ItemStack(Material.CLOCK);
         ItemMeta meta = item.getItemMeta();
@@ -93,14 +94,16 @@ public final class SeasonClockService implements Listener {
             }
 
             PersistentDataContainer pdc = meta.getPersistentDataContainer();
-            pdc.set(this.KEY_CLOCK, PersistentDataType.BYTE, (byte)1);
+            pdc.set(this.KEY_CLOCK, PersistentDataType.BYTE, (byte) 1);
             meta.addItemFlags(new ItemFlag[]{ItemFlag.HIDE_ATTRIBUTES});
             item.setItemMeta(meta);
             this.proto = item;
         }
     }
 
-    /** 注册季节时钟的合成配方（上中放指南针，中间放时钟）。 */
+    /**
+     * 注册季节时钟的合成配方（上中放指南针，中间放时钟）。
+     */
     private void registerRecipe() {
         if (this.proto != null) {
             ShapedRecipe recipe = new ShapedRecipe(this.RECIPE_KEY, this.proto.clone());
@@ -111,7 +114,9 @@ public final class SeasonClockService implements Listener {
         }
     }
 
-    /** 判断物品是否为季节时钟（时钟材质 + 持久化标记为 1）。 */
+    /**
+     * 判断物品是否为季节时钟（时钟材质 + 持久化标记为 1）。
+     */
     private boolean isSeasonClock(ItemStack item) {
         if (item != null && item.getType() == Material.CLOCK) {
             if (!item.hasItemMeta()) {
@@ -122,7 +127,7 @@ public final class SeasonClockService implements Listener {
                     return false;
                 } else {
                     PersistentDataContainer pdc = meta.getPersistentDataContainer();
-                    Byte marker = (Byte)pdc.get(this.KEY_CLOCK, PersistentDataType.BYTE);
+                    Byte marker = (Byte) pdc.get(this.KEY_CLOCK, PersistentDataType.BYTE);
                     return marker != null && marker == 1;
                 }
             }
@@ -131,7 +136,9 @@ public final class SeasonClockService implements Listener {
         }
     }
 
-    /** 按玩家语言本地化季节时钟的名称与 Lore。 */
+    /**
+     * 按玩家语言本地化季节时钟的名称与 Lore。
+     */
     private void applyClockLocalization(Player player, ItemStack item) {
         if (item != null && item.hasItemMeta()) {
             ItemMeta meta = item.getItemMeta();
@@ -143,7 +150,9 @@ public final class SeasonClockService implements Listener {
         }
     }
 
-    /** 合成预览：若结果为季节时钟，则替换为按合成者语言本地化的副本。 */
+    /**
+     * 合成预览：若结果为季节时钟，则替换为按合成者语言本地化的副本。
+     */
     @EventHandler
     public void onPrepareCraft(PrepareItemCraftEvent e) {
         HumanEntity viewer = e.getView().getPlayer();
@@ -158,7 +167,9 @@ public final class SeasonClockService implements Listener {
         }
     }
 
-    /** 合成完成：对合成出的季节时钟按玩家语言本地化。 */
+    /**
+     * 合成完成：对合成出的季节时钟按玩家语言本地化。
+     */
     @EventHandler
     public void onCraft(CraftItemEvent e) {
         HumanEntity clicker = e.getWhoClicked();
@@ -170,9 +181,11 @@ public final class SeasonClockService implements Listener {
         }
     }
 
-    /** 右键使用季节时钟：在主手右键空气/方块时发送信息并播放提示音。 */
+    /**
+     * 右键使用季节时钟：在主手右键空气/方块时发送信息并播放提示音。
+     */
     @EventHandler(
-        ignoreCancelled = false
+            ignoreCancelled = false
     )
     public void onUse(PlayerInteractEvent e) {
         if (e.getHand() == EquipmentSlot.HAND) {
@@ -188,7 +201,9 @@ public final class SeasonClockService implements Listener {
         }
     }
 
-    /** 向玩家发送季节时钟信息：日期、进行中的活动事件、次日预告与当前天气。 */
+    /**
+     * 向玩家发送季节时钟信息：日期、进行中的活动事件、次日预告与当前天气。
+     */
     private void sendClockInfo(Player player) {
         CalendarState state = this.seasons.getStateCopy(player.getWorld());
         player.sendMessage(this.tr(player, "clock.use.header"));
@@ -224,34 +239,42 @@ public final class SeasonClockService implements Listener {
         World world = player.getWorld();
         boolean storm = world.hasStorm();
         int ticks = world.getWeatherDuration();
-        long seconds = (long)ticks / 20L;
+        long seconds = (long) ticks / 20L;
         Map<String, Object> varsWeather = new HashMap();
         varsWeather.put("state", storm ? this.tr(player, "clock.weather.raining") : this.tr(player, "clock.weather.clear"));
         varsWeather.put("minutes", Math.max(1L, seconds / 60L));
         player.sendMessage(this.trf(player, "clock.use.weather_line", varsWeather));
     }
 
-    /** 服务端默认语言翻译的便捷包装。 */
+    /**
+     * 服务端默认语言翻译的便捷包装。
+     */
     private String trServer(String key) {
         return this.plugin.lang.trServer(key);
     }
 
-    /** 按玩家语言翻译的便捷包装。 */
+    /**
+     * 按玩家语言翻译的便捷包装。
+     */
     private String tr(Player player, String key) {
         return this.plugin.lang.tr(player, key);
     }
 
-    /** 按玩家语言翻译并替换占位符的便捷包装。 */
+    /**
+     * 按玩家语言翻译并替换占位符的便捷包装。
+     */
     private String trf(Player player, String key, Map<String, Object> vars) {
         return this.plugin.lang.trf(player, key, vars);
     }
 
-    /** 解析活动事件的本地化名称，兼容 {@code _festival}/{@code _blessing} 等旧命名。 */
+    /**
+     * 解析活动事件的本地化名称，兼容 {@code _festival}/{@code _blessing} 等旧命名。
+     */
     private String trEventName(Player player, SeasonalEvent event) {
         String id = event.getId().toLowerCase(Locale.ROOT);
         LinkedHashSet<String> bases = new LinkedHashSet();
         bases.add("event." + id);
-        if (id.equals("season_festival")) {
+        if ("season_festival".equals(id)) {
             bases.add("event.festival");
         }
 
@@ -265,7 +288,7 @@ public final class SeasonClockService implements Listener {
             bases.add("event." + blessingBase);
         }
 
-        for(String base : bases) {
+        for (String base : bases) {
             String value = this.plugin.lang.tr(player, base + ".name");
             if (value != null && !value.equals(base + ".name")) {
                 return value;

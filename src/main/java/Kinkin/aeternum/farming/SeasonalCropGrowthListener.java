@@ -1,11 +1,10 @@
-package Kinkin.aeternum.farming;
+package kinkin.aeternum.farming;
 
-import Kinkin.aeternum.AeternumSeasonsPlugin;
-import Kinkin.aeternum.calendar.CalendarState;
-import Kinkin.aeternum.calendar.Season;
-import Kinkin.aeternum.calendar.SeasonService;
-import Kinkin.aeternum.food.SeasonFoods;
-import java.util.EnumSet;
+import kinkin.aeternum.AeternumSeasonsPlugin;
+import kinkin.aeternum.calendar.CalendarState;
+import kinkin.aeternum.calendar.Season;
+import kinkin.aeternum.calendar.SeasonService;
+import kinkin.aeternum.food.SeasonFoods;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -20,6 +19,8 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockGrowEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.EquipmentSlot;
+
+import java.util.EnumSet;
 
 /**
  * 季节作物生长监听器。
@@ -59,21 +60,27 @@ public final class SeasonalCropGrowthListener implements Listener {
         this.loreListener.unregister();
     }
 
-    /** 从磁盘重新加载作物配置。 */
+    /**
+     * 从磁盘重新加载作物配置。
+     */
     public void reloadFromConfig() {
         this.config.reload();
     }
 
-    /** 预留的方块蔓延处理，目前为空实现。 */
+    /**
+     * 预留的方块蔓延处理，目前为空实现。
+     */
     @EventHandler
     public void onBlockSpread(BlockGrowEvent e) {
         Material newType = e.getNewState().getType();
-        if (newType != Material.MELON && newType == Material.PUMPKIN) {
+        if (newType == Material.PUMPKIN) {
         }
 
     }
 
-    /** 监听作物生长，按季节规则取消或加速生长。 */
+    /**
+     * 监听作物生长，按季节规则取消或加速生长。
+     */
     @EventHandler
     public void onGrow(BlockGrowEvent e) {
         if (this.config.isEnabled()) {
@@ -82,7 +89,7 @@ public final class SeasonalCropGrowthListener implements Listener {
             if (newType != Material.MELON && newType != Material.PUMPKIN) {
                 BlockData blockData = e.getNewState().getBlockData();
                 if (blockData instanceof Ageable) {
-                    Ageable age = (Ageable)blockData;
+                    Ageable age = (Ageable) blockData;
                     EnumSet allowedSeasons = null;
                     SeasonFoods seasonFoods = this.plugin.getSeasonFoods();
                     if (seasonFoods != null) {
@@ -108,7 +115,9 @@ public final class SeasonalCropGrowthListener implements Listener {
         }
     }
 
-    /** 判断在给定季节集合下是否允许尝试人工生长（不满足季节时按概率放行）。 */
+    /**
+     * 判断在给定季节集合下是否允许尝试人工生长（不满足季节时按概率放行）。
+     */
     public boolean allowsArtificialGrowthAttempt(Block block, EnumSet<Season> allowedSeasons) {
         if (this.config.isEnabled() && block != null && allowedSeasons != null && !allowedSeasons.isEmpty()) {
             return this.cropGrowth.isSeasonAllowed(block, allowedSeasons) || Math.random() <= this.config.getOffSeasonMultiplier();
@@ -126,11 +135,11 @@ public final class SeasonalCropGrowthListener implements Listener {
     private boolean isStemInSeason(Block fruitBlock) {
         Material[] stems = new Material[]{Material.MELON_STEM, Material.ATTACHED_MELON_STEM, Material.PUMPKIN_STEM, Material.ATTACHED_PUMPKIN_STEM};
 
-        for(BlockFace face : BlockFace.values()) {
+        for (BlockFace face : BlockFace.values()) {
             if (face.isCartesian()) {
                 Block adjacent = fruitBlock.getRelative(face);
 
-                for(Material stemType : stems) {
+                for (Material stemType : stems) {
                     if (adjacent.getType() == stemType) {
                         if (this.greenhouse.isInGreenhouse(adjacent)) {
                             return true;
@@ -146,9 +155,11 @@ public final class SeasonalCropGrowthListener implements Listener {
         return true;
     }
 
-    /** 监听调试木棍右键，向玩家显示目标作物是否受温室保护。 */
+    /**
+     * 监听调试木棍右键，向玩家显示目标作物是否受温室保护。
+     */
     @EventHandler(
-        ignoreCancelled = true
+            ignoreCancelled = true
     )
     public void onDebugStick(PlayerInteractEvent e) {
         if (this.config.isEnabled() && this.config.isDebugEnabled()) {

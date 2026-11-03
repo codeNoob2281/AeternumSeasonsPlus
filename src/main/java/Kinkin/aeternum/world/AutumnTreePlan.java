@@ -1,18 +1,14 @@
-package Kinkin.aeternum.world;
+package kinkin.aeternum.world;
 
-import java.util.ArrayDeque;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
-import java.util.Set;
-import java.util.function.BooleanSupplier;
-import java.util.function.Function;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.type.Leaves;
+
+import java.util.*;
+import java.util.function.BooleanSupplier;
+import java.util.function.Function;
 
 /**
  * 秋季树木扫描计划（AutumnTreePlan）。
@@ -76,7 +72,7 @@ final class AutumnTreePlan {
      */
     void advance(BooleanSupplier takeBudget) {
         treeAdvanceLoop:
-        while(true) {
+        while (true) {
             if (!this.finished()) {
                 if (this.queue.isEmpty()) {
                     if (this.phase == AutumnTreePlan.Phase.LOGS) {
@@ -84,14 +80,14 @@ final class AutumnTreePlan {
                         this.visited.clear();
                         Iterator logIterator = this.logs.iterator();
 
-                        while(true) {
+                        while (true) {
                             if (!logIterator.hasNext()) {
                                 continue treeAdvanceLoop;
                             }
 
-                            Pos log = (Pos)logIterator.next();
+                            Pos log = (Pos) logIterator.next();
 
-                            for(int[] d : DIRECTIONS) {
+                            for (int[] d : DIRECTIONS) {
                                 this.offer(log.offset(d), 1);
                             }
                         }
@@ -103,7 +99,7 @@ final class AutumnTreePlan {
                         return;
                     }
 
-                    Node node = (Node)this.queue.removeFirst();
+                    Node node = (Node) this.queue.removeFirst();
                     Pos pos = node.pos();
                     if (pos.y() < this.world.getMinHeight() || pos.y() >= this.world.getMaxHeight()) {
                         continue;
@@ -132,7 +128,7 @@ final class AutumnTreePlan {
                                 int findDirectionCount = findDirections.length;
                                 int findDirectionIndex = 0;
 
-                                while(true) {
+                                while (true) {
                                     if (findDirectionIndex >= findDirectionCount) {
                                         continue treeAdvanceLoop;
                                     }
@@ -159,7 +155,7 @@ final class AutumnTreePlan {
                                 int logDirectionCount = logDirections.length;
                                 int logDirectionIndex = 0;
 
-                                while(true) {
+                                while (true) {
                                     if (logDirectionIndex >= logDirectionCount) {
                                         continue treeAdvanceLoop;
                                     }
@@ -176,7 +172,7 @@ final class AutumnTreePlan {
                                 continue;
                             }
 
-                            Leaves data = (Leaves)block.getBlockData();
+                            Leaves data = (Leaves) block.getBlockData();
                             if (data.getDistance() < node.depth()) {
                                 continue;
                             }
@@ -191,7 +187,7 @@ final class AutumnTreePlan {
                                 int leafDirectionCount = leafDirections.length;
                                 int leafDirectionIndex = 0;
 
-                                while(true) {
+                                while (true) {
                                     if (leafDirectionIndex >= leafDirectionCount) {
                                         continue treeAdvanceLoop;
                                     }
@@ -212,7 +208,9 @@ final class AutumnTreePlan {
         }
     }
 
-    /** 将坐标入队（仅当尚未访问过时），并记录已访问集合以防止重复。 */
+    /**
+     * 将坐标入队（仅当尚未访问过时），并记录已访问集合以防止重复。
+     */
     private void offer(Pos pos, int depth) {
         if (this.visited.add(pos)) {
             this.queue.addLast(new Node(pos, depth));
@@ -228,7 +226,7 @@ final class AutumnTreePlan {
         if (this.originalType.apply(block) == this.original) {
             BlockData blockData = block.getBlockData();
             if (blockData instanceof Leaves) {
-                Leaves data = (Leaves)blockData;
+                Leaves data = (Leaves) blockData;
                 if (!data.isPersistent()) {
                     result = true;
                     return result;
@@ -240,14 +238,18 @@ final class AutumnTreePlan {
         return result;
     }
 
-    /** 依据世界种子与锚点坐标计算一个稳定的调色板索引，用于选取该树的秋季颜色。 */
+    /**
+     * 依据世界种子与锚点坐标计算一个稳定的调色板索引，用于选取该树的秋季颜色。
+     */
     static int paletteIndex(long seed, Pos anchor, int size) {
-        long hash = seed ^ (long)anchor.x() * 341873128712L ^ (long)anchor.z() * 132897987541L;
+        long hash = seed ^ (long) anchor.x() * 341873128712L ^ (long) anchor.z() * 132897987541L;
         hash ^= hash >>> 33;
-        return Math.floorMod((int)hash, size);
+        return Math.floorMod((int) hash, size);
     }
 
-    /** 比较两个锚点的先后顺序：先比 Y，再比 X，最后比 Z，用于选出树的代表锚点。 */
+    /**
+     * 比较两个锚点的先后顺序：先比 Y，再比 X，最后比 Z，用于选出树的代表锚点。
+     */
     private static int compareAnchor(Pos a, Pos b) {
         int y = Integer.compare(a.y(), b.y());
         if (y != 0) {
@@ -258,37 +260,47 @@ final class AutumnTreePlan {
         }
     }
 
-    /** 根据树叶材质推断其所属的原木材质集合，判断给定方块是否为该树的原木。 */
+    /**
+     * 根据树叶材质推断其所属的原木材质集合，判断给定方块是否为该树的原木。
+     */
     private static boolean isLog(Material log, Material leaf) {
         return leaf == Material.SPRUCE_LEAVES ? log == Material.SPRUCE_LOG || log == Material.SPRUCE_WOOD || log == Material.STRIPPED_SPRUCE_LOG || log == Material.STRIPPED_SPRUCE_WOOD : leaf == Material.BIRCH_LEAVES && (log == Material.BIRCH_LOG || log == Material.BIRCH_WOOD || log == Material.STRIPPED_BIRCH_LOG || log == Material.STRIPPED_BIRCH_WOOD);
     }
 
-    /** 不可变的整数坐标，用于表示方块位置及计算偏移。 */
-    static record Pos(int x, int y, int z) {
+    /**
+     * 不可变的整数坐标，用于表示方块位置及计算偏移。
+     */
+    record Pos(int x, int y, int z) {
         Pos {
         }
 
-        /** 返回沿给定方向（六向之一）偏移一格后的新坐标。 */
+        /**
+         * 返回沿给定方向（六向之一）偏移一格后的新坐标。
+         */
         Pos offset(int[] d) {
             return new Pos(this.x + d[0], this.y + d[1], this.z + d[2]);
         }
     }
 
-    /** 广度优先搜索队列中的节点：记录位置与距离起始点的深度。 */
-    private static record Node(Pos pos, int depth) {
+    /**
+     * 广度优先搜索队列中的节点：记录位置与距离起始点的深度。
+     */
+    private record Node(Pos pos, int depth) {
         private Node {
         }
     }
 
-    /** 搜索阶段枚举，决定当前节点应如何被解释与扩展。 */
-    private static enum Phase {
+    /**
+     * 搜索阶段枚举，决定当前节点应如何被解释与扩展。
+     */
+    private enum Phase {
         FIND_LOG,
         LOGS,
         LEAVES,
         DONE,
         ABORTED;
 
-        private Phase() {
+        Phase() {
         }
 
         // $FF: synthetic method

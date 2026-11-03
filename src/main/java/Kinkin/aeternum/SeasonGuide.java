@@ -1,11 +1,12 @@
-package Kinkin.aeternum;
+package kinkin.aeternum;
 
-import Kinkin.aeternum.calendar.CalendarState;
-import Kinkin.aeternum.calendar.Season;
-import Kinkin.aeternum.calendar.SeasonService;
-import Kinkin.aeternum.lang.LanguageManager;
-import java.util.Map;
+import kinkin.aeternum.calendar.CalendarState;
+import kinkin.aeternum.calendar.Season;
+import kinkin.aeternum.calendar.SeasonService;
+import kinkin.aeternum.lang.LanguageManager;
 import org.bukkit.entity.Player;
+
+import java.util.Map;
 
 /**
  * 季节指南（Season Guide）文本输出工具。
@@ -65,7 +66,7 @@ public final class SeasonGuide {
         text = lang.tr(player, "guide.section.crops");
         player.sendMessage("§a" + text);
 
-        for(Season season : Season.values()) {
+        for (Season season : Season.values()) {
             String seasonName = lang.tr(player, "season." + season.name());
             String lineKey = "guide.crops." + season.name();
             player.sendMessage("§7- " + seasonName + ": §f" + lang.tr(player, lineKey));
@@ -75,7 +76,7 @@ public final class SeasonGuide {
         text = lang.tr(player, "guide.section.migration");
         player.sendMessage("§b" + text);
 
-        for(Season season : Season.values()) {
+        for (Season season : Season.values()) {
             String seasonName = lang.tr(player, "season." + season.name());
             String lineKey = "guide.migration." + season.name();
             player.sendMessage("§7- " + seasonName + ": §f" + lang.tr(player, lineKey));
@@ -94,7 +95,7 @@ public final class SeasonGuide {
         text = lang.tr(player, "guide.section.weather");
         player.sendMessage("§9" + text);
 
-        for(Season season : Season.values()) {
+        for (Season season : Season.values()) {
             String seasonName = lang.tr(player, "season." + season.name());
             String lineKey = "guide.weather." + season.name();
             player.sendMessage("§7- " + seasonName + ": §f" + lang.tr(player, lineKey));

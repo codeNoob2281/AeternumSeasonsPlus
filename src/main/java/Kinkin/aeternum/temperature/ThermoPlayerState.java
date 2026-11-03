@@ -1,4 +1,4 @@
-package Kinkin.aeternum.temperature;
+package kinkin.aeternum.temperature;
 
 /**
  * 单个玩家的温度状态缓存。
@@ -8,23 +8,41 @@ package Kinkin.aeternum.temperature;
  * 保持玩家的温度相关状态。</p>
  */
 public final class ThermoPlayerState {
-    /** 当前动作栏展示的温度；{@link Integer#MIN_VALUE} 表示尚未初始化。 */
+    /**
+     * 当前动作栏展示的温度；{@link Integer#MIN_VALUE} 表示尚未初始化。
+     */
     public int displayedTemp = Integer.MIN_VALUE;
-    /** 动作栏剩余显示时长（tick）。 */
+    /**
+     * 动作栏剩余显示时长（tick）。
+     */
     public int actionbarTicks = 0;
-    /** 已持续受热暴露的时间（tick）。 */
+    /**
+     * 已持续受热暴露的时间（tick）。
+     */
     public int heatExposureTicks = 0;
-    /** 已持续受冷暴露的时间（tick）。 */
+    /**
+     * 已持续受冷暴露的时间（tick）。
+     */
     public int coldExposureTicks = 0;
-    /** 涉水/饮水后的缓解剩余时长（tick）。 */
+    /**
+     * 涉水/饮水后的缓解剩余时长（tick）。
+     */
     public int wetReliefTicks = 0;
-    /** 饥饿掉落的冷却剩余时长（tick）。 */
+    /**
+     * 饥饿掉落的冷却剩余时长（tick）。
+     */
     public int hungerCooldownTicks = 0;
-    /** 受热伤害的冷却剩余时长（tick）。 */
+    /**
+     * 受热伤害的冷却剩余时长（tick）。
+     */
     public int heatDamageCooldownTicks = 0;
-    /** 受冷伤害的冷却剩余时长（tick）。 */
+    /**
+     * 受冷伤害的冷却剩余时长（tick）。
+     */
     public int coldDamageCooldownTicks = 0;
-    /** 沙暴音效的冷却剩余时长（tick）。 */
+    /**
+     * 沙暴音效的冷却剩余时长（tick）。
+     */
     public int stormSoundCooldownTicks = 0;
 
     public ThermoPlayerState() {

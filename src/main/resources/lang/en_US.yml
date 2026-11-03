@@ -578,7 +578,7 @@ frost_guide:
     
     §1You can build your base, mine and explore,
     §4but remember the enemies are stronger§7.
-    
+  
 
   page2: |
     §9Dangers of the ice
@@ -953,16 +953,6 @@ crop:
     grows_in: "Grows in: {seasons}"
     any_season: "&7Grows in any season"
     greenhouse_light: "&8Underground greenhouse: light {light}+"
-
-farming:
-  compost:
-    raw_name: "&aRaw Compost"
-    raw_lore_1: "&7A damp mix of soil and scraps."
-    raw_lore_2: "&7Soak it near water for 2 days."
-    ready_name: "&2Rich Fertilized Soil"
-    ready_lore_1: "&7Crops here grow &ax2 &7faster."
-    ready_lore_2: "&7Stepping won't break the farmland."
-    ready_message: "&aYour compost has turned into rich fertilized soil!"
 
 villager:
   lazy_tag: "&7[&6Lazy&7]"

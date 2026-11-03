@@ -1,16 +1,7 @@
-package Kinkin.aeternum.farming;
+package kinkin.aeternum.farming;
 
-import Kinkin.aeternum.AeternumSeasonsPlugin;
-import Kinkin.aeternum.calendar.Season;
-import java.util.ArrayList;
-import java.util.EnumSet;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
+import kinkin.aeternum.AeternumSeasonsPlugin;
+import kinkin.aeternum.calendar.Season;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -20,6 +11,10 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
+
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 /**
  * 季节作物物品描述服务。
@@ -52,7 +47,7 @@ public final class CropLoreService {
     /**
      * 为物品栈补充季节 Lore（已存在则先移除旧 Lore 再重新写入）。
      *
-     * @param stack 目标物品栈
+     * @param stack  目标物品栈
      * @param viewer 语言上下文玩家，可为 null
      * @return 若成功修改物品则返回 true
      */
@@ -70,8 +65,8 @@ public final class CropLoreService {
                     boolean alreadyMarked = pdc.has(this.KEY_MARK, PersistentDataType.BYTE);
                     List<String> lore = meta.hasLore() ? new ArrayList(meta.getLore()) : new ArrayList();
                     if (alreadyMarked) {
-                        String prev1 = (String)pdc.get(this.KEY_LINE1, PersistentDataType.STRING);
-                        String prev2 = (String)pdc.get(this.KEY_LINE2, PersistentDataType.STRING);
+                        String prev1 = (String) pdc.get(this.KEY_LINE1, PersistentDataType.STRING);
+                        String prev2 = (String) pdc.get(this.KEY_LINE2, PersistentDataType.STRING);
                         if (prev1 != null && !prev1.isBlank() || prev2 != null && !prev2.isBlank()) {
                             lore.removeIf((line) -> {
                                 if (line == null) {
@@ -90,7 +85,7 @@ public final class CropLoreService {
                     if (seasons.size() >= 4) {
                         growsIn = this.trSafe(viewer, "crop.lore.any_season", "&7Grows in any season");
                     } else {
-                        String joined = (String)seasons.stream().map((season) -> this.plugin.lang.tr(viewer, "season." + season.name())).collect(Collectors.joining(", "));
+                        String joined = (String) seasons.stream().map((season) -> this.plugin.lang.tr(viewer, "season." + season.name())).collect(Collectors.joining(", "));
                         growsIn = this.trSafe(viewer, "crop.lore.grows_in", "&7Grows in: {seasons}").replace("{seasons}", joined);
                     }
 
@@ -99,7 +94,7 @@ public final class CropLoreService {
                     String lightLine = this.trSafe(viewer, "crop.lore.greenhouse_light", "&8Underground greenhouse: light {light}+").replace("{light}", String.valueOf(reqLight));
                     lore.add(lightLine);
                     meta.setLore(lore);
-                    pdc.set(this.KEY_MARK, PersistentDataType.BYTE, (byte)1);
+                    pdc.set(this.KEY_MARK, PersistentDataType.BYTE, (byte) 1);
                     pdc.set(this.KEY_LINE1, PersistentDataType.STRING, ChatColor.stripColor(growsIn));
                     pdc.set(this.KEY_LINE2, PersistentDataType.STRING, ChatColor.stripColor(lightLine));
                     stack.setItemMeta(meta);
@@ -132,8 +127,8 @@ public final class CropLoreService {
                     PersistentDataContainer pdc = meta.getPersistentDataContainer();
                     if (pdc.has(this.KEY_MARK, PersistentDataType.BYTE)) {
                         List<String> lines = meta.hasLore() ? new ArrayList(meta.getLore()) : new ArrayList();
-                        String previous1 = (String)pdc.get(this.KEY_LINE1, PersistentDataType.STRING);
-                        String previous2 = (String)pdc.get(this.KEY_LINE2, PersistentDataType.STRING);
+                        String previous1 = (String) pdc.get(this.KEY_LINE1, PersistentDataType.STRING);
+                        String previous2 = (String) pdc.get(this.KEY_LINE2, PersistentDataType.STRING);
                         lines.removeIf((line) -> {
                             String stripped = ChatColor.stripColor(line);
                             return stripped != null && (stripped.equals(previous1) || stripped.equals(previous2));
@@ -149,9 +144,9 @@ public final class CropLoreService {
                     if (!plain.isSimilar(new ItemStack(original.getType()))) {
                         return null;
                     } else {
-                        ItemStack template = (ItemStack)this.villagerTemplates.computeIfAbsent(original.getType(), (material) -> {
+                        ItemStack template = (ItemStack) this.villagerTemplates.computeIfAbsent(original.getType(), (material) -> {
                             ItemStack item = new ItemStack(material);
-                            this.apply(item, (Player)null);
+                            this.apply(item, (Player) null);
                             return item;
                         });
                         ItemStack result = template.clone();
@@ -167,7 +162,9 @@ public final class CropLoreService {
         }
     }
 
-    /** 粗略判断物品是否为第三方自定义物品（含自定义模型数据或其它命名空间的 PDC 键）。 */
+    /**
+     * 粗略判断物品是否为第三方自定义物品（含自定义模型数据或其它命名空间的 PDC 键）。
+     */
     private boolean isProbablyCustomItem(ItemMeta meta) {
         if (meta.hasCustomModelData()) {
             return true;
@@ -177,7 +174,7 @@ public final class CropLoreService {
             if (keys != null && !keys.isEmpty()) {
                 String ours = this.KEY_MARK.getNamespace();
 
-                for(NamespacedKey key : keys) {
+                for (NamespacedKey key : keys) {
                     if (key != null) {
                         String namespace = key.getNamespace();
                         if (namespace != null && !namespace.equalsIgnoreCase(ours)) {
@@ -193,7 +190,9 @@ public final class CropLoreService {
         }
     }
 
-    /** 兜底移除所有语言文件中“任意季节/生长季节/温室光照”相关 Lore 行。 */
+    /**
+     * 兜底移除所有语言文件中“任意季节/生长季节/温室光照”相关 Lore 行。
+     */
     private List<String> stripOldLoreFallback(List<String> lore) {
         if (lore != null && !lore.isEmpty()) {
             Set<String> anySeasonLines = this.normalizedFullLinesForKey("crop.lore.any_season");
@@ -201,7 +200,7 @@ public final class CropLoreService {
             Set<String> lightPrefixes = this.normalizedPrefixesForKey("crop.lore.greenhouse_light", "light");
             List<String> out = new ArrayList(lore.size());
 
-            for(String line : lore) {
+            for (String line : lore) {
                 if (line != null) {
                     String plain = this.norm(line);
                     if (!anySeasonLines.contains(plain) && !this.startsWithAny(plain, growsPrefixes) && !this.startsWithAny(plain, lightPrefixes)) {
@@ -216,11 +215,13 @@ public final class CropLoreService {
         }
     }
 
-    /** 判断小写文本是否以给定前缀集合中的任一前缀开头。 */
+    /**
+     * 判断小写文本是否以给定前缀集合中的任一前缀开头。
+     */
     private boolean startsWithAny(String plainLower, Set<String> prefixesLower) {
         if (plainLower != null && !plainLower.isEmpty()) {
             if (prefixesLower != null && !prefixesLower.isEmpty()) {
-                for(String prefix : prefixesLower) {
+                for (String prefix : prefixesLower) {
                     if (prefix != null && !prefix.isEmpty() && plainLower.startsWith(prefix)) {
                         return true;
                     }
@@ -235,11 +236,13 @@ public final class CropLoreService {
         }
     }
 
-    /** 汇集某语言键所有翻译的规范化全文。 */
+    /**
+     * 汇集某语言键所有翻译的规范化全文。
+     */
     private Set<String> normalizedFullLinesForKey(String key) {
         Set<String> out = new HashSet();
 
-        for(String translation : this.plugin.lang.getAllTranslations(key)) {
+        for (String translation : this.plugin.lang.getAllTranslations(key)) {
             if (translation != null && !translation.isBlank()) {
                 out.add(this.norm(translation));
             }
@@ -248,12 +251,14 @@ public final class CropLoreService {
         return out;
     }
 
-    /** 汇集某语言键所有翻译中、占位符之前的规范化前缀。 */
+    /**
+     * 汇集某语言键所有翻译中、占位符之前的规范化前缀。
+     */
     private Set<String> normalizedPrefixesForKey(String key, String placeholderName) {
         Set<String> out = new HashSet();
         String token = "{" + placeholderName.toLowerCase(Locale.ROOT) + "}";
 
-        for(String translation : this.plugin.lang.getAllTranslations(key)) {
+        for (String translation : this.plugin.lang.getAllTranslations(key)) {
             if (translation != null && !translation.isBlank()) {
                 String plain = ChatColor.stripColor(translation);
                 if (plain != null) {
@@ -270,18 +275,24 @@ public final class CropLoreService {
         return out;
     }
 
-    /** 去除颜色代码并转为小写、去空白后的规范化文本。 */
+    /**
+     * 去除颜色代码并转为小写、去空白后的规范化文本。
+     */
     private String norm(String s) {
         return ChatColor.stripColor(s == null ? "" : s).toLowerCase(Locale.ROOT).trim();
     }
 
-    /** 安全翻译：若语言键无对应翻译则使用带颜色代码的兜底文本。 */
+    /**
+     * 安全翻译：若语言键无对应翻译则使用带颜色代码的兜底文本。
+     */
     private String trSafe(Player player, String key, String fallback) {
         String v = this.plugin.lang.tr(player, key);
         return v != null && !v.equals(key) ? v : ChatColor.translateAlternateColorCodes('&', fallback);
     }
 
-    /** 将种子/物品映射到对应作物方块材质并返回其允许季节；无法映射时返回 null。 */
+    /**
+     * 将种子/物品映射到对应作物方块材质并返回其允许季节；无法映射时返回 null。
+     */
     private EnumSet<Season> seasonsForItem(Material itemType) {
         if (this.config.isManagedCrop(itemType)) {
             return this.config.getAllowedSeasons(itemType);

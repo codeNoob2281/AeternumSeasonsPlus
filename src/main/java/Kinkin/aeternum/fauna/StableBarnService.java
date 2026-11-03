@@ -1,27 +1,9 @@
-package Kinkin.aeternum.fauna;
+package kinkin.aeternum.fauna;
 
-import Kinkin.aeternum.AeternumSeasonsPlugin;
-import Kinkin.aeternum.calendar.Season;
-import java.io.File;
-import java.io.IOException;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ThreadLocalRandom;
+import kinkin.aeternum.AeternumSeasonsPlugin;
+import kinkin.aeternum.calendar.Season;
 import net.md_5.bungee.api.ChatColor;
-import org.bukkit.Bukkit;
-import org.bukkit.DyeColor;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.NamespacedKey;
-import org.bukkit.Particle;
-import org.bukkit.Sound;
-import org.bukkit.World;
+import org.bukkit.*;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.attribute.AttributeModifier;
@@ -29,15 +11,7 @@ import org.bukkit.attribute.AttributeModifier.Operation;
 import org.bukkit.block.Block;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.entity.Ageable;
-import org.bukkit.entity.Animals;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.EntityType;
-import org.bukkit.entity.Horse;
-import org.bukkit.entity.LivingEntity;
-import org.bukkit.entity.Mob;
-import org.bukkit.entity.Player;
-import org.bukkit.entity.Sheep;
+import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.HandlerList;
@@ -50,6 +24,13 @@ import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
+
+import java.io.File;
+import java.io.IOException;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * 稳定谷仓（Stable Barn）服务。
@@ -198,7 +179,7 @@ public final class StableBarnService implements Listener {
 
         Set<Material> allow = new HashSet();
 
-        for(String s : this.fauna.getStringList("stables.roof.allow")) {
+        for (String s : this.fauna.getStringList("stables.roof.allow")) {
             Material m = Material.matchMaterial(s);
             if (m != null) {
                 allow.add(m);
@@ -219,9 +200,9 @@ public final class StableBarnService implements Listener {
                 }
             }
 
-            for(int dx = -area; dx <= area; ++dx) {
-                for(int dz = -area; dz <= area; ++dz) {
-                    for(int dy = minH; dy <= maxH; ++dy) {
+            for (int dx = -area; dx <= area; ++dx) {
+                for (int dz = -area; dz <= area; ++dz) {
+                    for (int dy = minH; dy <= maxH; ++dy) {
                         Block b = w.getBlockAt(bx + dx, by + dy, bz + dz);
                         Material type = b.getType();
                         if (type != Material.AIR) {
@@ -259,9 +240,9 @@ public final class StableBarnService implements Listener {
                 int cz = loc.getBlockZ();
                 int hay = 0;
 
-                for(int x = cx - radius; x <= cx + radius; ++x) {
-                    for(int y = cy - 2; y <= cy + 2; ++y) {
-                        for(int z = cz - radius; z <= cz + radius; ++z) {
+                for (int x = cx - radius; x <= cx + radius; ++x) {
+                    for (int y = cy - 2; y <= cy + 2; ++y) {
+                        for (int z = cz - radius; z <= cz + radius; ++z) {
                             if (w.getBlockAt(x, y, z).getType() == Material.HAY_BLOCK) {
                                 ++hay;
                                 if (hay >= minHay) {
@@ -281,8 +262,8 @@ public final class StableBarnService implements Listener {
      * 繁殖监听：谷仓内繁殖可产出额外幼崽；若要求必须在谷仓内而条件不满足则取消繁殖。
      */
     @EventHandler(
-        priority = EventPriority.HIGHEST,
-        ignoreCancelled = true
+            priority = EventPriority.HIGHEST,
+            ignoreCancelled = true
     )
     public void onBreed(EntityBreedEvent e) {
         if (this.enabled()) {
@@ -297,7 +278,7 @@ public final class StableBarnService implements Listener {
                     e.setCancelled(true);
                     LivingEntity breeder = e.getBreeder();
                     if (breeder instanceof Player) {
-                        Player player = (Player)breeder;
+                        Player player = (Player) breeder;
                         player.sendMessage(color(this.plugin.lang.tr(player, "fauna.barn.breed_fail")));
                     }
 
@@ -321,20 +302,20 @@ public final class StableBarnService implements Listener {
         if (amount > 0) {
             Entity child = e.getEntity();
             if (child instanceof Ageable) {
-                Ageable childAgeable = (Ageable)child;
+                Ageable childAgeable = (Ageable) child;
                 World world = child.getWorld();
                 Location loc = child.getLocation();
                 EntityType type = child.getType();
 
-                for(int i = 0; i < amount; ++i) {
+                for (int i = 0; i < amount; ++i) {
                     Entity spawned = world.spawnEntity(loc, type);
                     if (spawned instanceof Ageable) {
-                        Ageable baby = (Ageable)spawned;
+                        Ageable baby = (Ageable) spawned;
                         baby.setBaby();
                     }
                 }
 
-                world.spawnParticle(Particle.HEART, loc.clone().add((double)0.0F, 0.8, (double)0.0F), 8, 0.35, (double)0.25F, 0.35, 0.02);
+                world.spawnParticle(Particle.HEART, loc.clone().add((double) 0.0F, 0.8, (double) 0.0F), 8, 0.35, (double) 0.25F, 0.35, 0.02);
                 world.playSound(loc, Sound.ENTITY_CHICKEN_EGG, 0.7F, 1.2F);
             }
         }
@@ -344,8 +325,8 @@ public final class StableBarnService implements Listener {
      * 死亡监听：动物在谷仓内死亡时额外掉落对应产物。
      */
     @EventHandler(
-        priority = EventPriority.HIGHEST,
-        ignoreCancelled = true
+            priority = EventPriority.HIGHEST,
+            ignoreCancelled = true
     )
     public void onDeath(EntityDeathEvent e) {
         if (this.enabled()) {
@@ -393,20 +374,20 @@ public final class StableBarnService implements Listener {
      * 剪毛监听：羊在谷仓内被剪毛时额外掉落羊毛。
      */
     @EventHandler(
-        priority = EventPriority.HIGHEST,
-        ignoreCancelled = true
+            priority = EventPriority.HIGHEST,
+            ignoreCancelled = true
     )
     public void onShear(PlayerShearEntityEvent e) {
         if (this.enabled()) {
             if (this.fauna.getBoolean("stables.drops.enabled", true)) {
                 Entity entity = e.getEntity();
                 if (entity instanceof Sheep) {
-                    Sheep sheep = (Sheep)entity;
+                    Sheep sheep = (Sheep) entity;
                     if (this.isInBarn(sheep.getLocation())) {
                         int extra = this.randRange("stables.drops.sheep.extra_wool_min", "stables.drops.sheep.extra_wool_max", 1, 2);
                         if (extra > 0) {
                             Material wool = this.woolFromColor(sheep.getColor());
-                            sheep.getWorld().dropItemNaturally(sheep.getLocation().add((double)0.0F, (double)0.5F, (double)0.0F), new ItemStack(wool, extra));
+                            sheep.getWorld().dropItemNaturally(sheep.getLocation().add((double) 0.0F, (double) 0.5F, (double) 0.0F), new ItemStack(wool, extra));
                         }
                     }
                 }
@@ -436,7 +417,7 @@ public final class StableBarnService implements Listener {
             case GREEN -> wool = Material.GREEN_WOOL;
             case RED -> wool = Material.RED_WOOL;
             case BLACK -> wool = Material.BLACK_WOOL;
-            default -> throw new MatchException((String)null, (Throwable)null);
+            default -> throw new MatchException((String) null, (Throwable) null);
         }
 
         return wool;
@@ -483,8 +464,8 @@ public final class StableBarnService implements Listener {
                         this.horseScan.clear();
                         this.horseIdx = 0;
 
-                        for(World w : Bukkit.getWorlds()) {
-                            for(Horse h : w.getEntitiesByClass(Horse.class)) {
+                        for (World w : Bukkit.getWorlds()) {
+                            for (Horse h : w.getEntitiesByClass(Horse.class)) {
                                 this.horseScan.add(h);
                             }
                         }
@@ -492,15 +473,15 @@ public final class StableBarnService implements Listener {
 
                     int done = 0;
 
-                    while(done < perTick && this.horseIdx < this.horseScan.size()) {
-                        Horse h = (Horse)this.horseScan.get(this.horseIdx++);
+                    while (done < perTick && this.horseIdx < this.horseScan.size()) {
+                        Horse h = (Horse) this.horseScan.get(this.horseIdx++);
                         ++done;
                         if (h != null && !h.isDead() && h.isValid()) {
                             this.tickHorse(h);
                         }
                     }
 
-                }, (long)interval, (long)interval);
+                }, (long) interval, (long) interval);
             }
         }
     }
@@ -510,14 +491,14 @@ public final class StableBarnService implements Listener {
      */
     private void tickHorse(Horse h) {
         PersistentDataContainer pdc = h.getPersistentDataContainer();
-        double max = this.fauna.getDouble("horse_stable.stamina.max", (double)100.0F);
-        double drain = this.fauna.getDouble("horse_stable.stamina.drain_per_tick", (double)2.0F);
-        double regen = this.fauna.getDouble("horse_stable.stamina.regen_per_tick", (double)3.0F);
-        double barnBonus = this.fauna.getDouble("horse_stable.stamina.regen_in_barn_bonus", (double)4.0F);
-        double tiredTh = this.fauna.getDouble("horse_stable.stamina.tired_threshold", (double)15.0F);
-        double recTh = this.fauna.getDouble("horse_stable.stamina.recover_threshold", (double)35.0F);
+        double max = this.fauna.getDouble("horse_stable.stamina.max", (double) 100.0F);
+        double drain = this.fauna.getDouble("horse_stable.stamina.drain_per_tick", (double) 2.0F);
+        double regen = this.fauna.getDouble("horse_stable.stamina.regen_per_tick", (double) 3.0F);
+        double barnBonus = this.fauna.getDouble("horse_stable.stamina.regen_in_barn_bonus", (double) 4.0F);
+        double tiredTh = this.fauna.getDouble("horse_stable.stamina.tired_threshold", (double) 15.0F);
+        double recTh = this.fauna.getDouble("horse_stable.stamina.recover_threshold", (double) 35.0F);
         double tiredMul = this.fauna.getDouble("horse_stable.stamina.tired_speed_multiplier", 0.7);
-        double stamina = (Double)pdc.getOrDefault(this.HORSE_STAMINA, PersistentDataType.DOUBLE, max);
+        double stamina = (Double) pdc.getOrDefault(this.HORSE_STAMINA, PersistentDataType.DOUBLE, max);
         boolean ridden = h.getPassengers().stream().anyMatch((passenger) -> passenger instanceof Player);
         boolean moving = h.getVelocity().lengthSquared() > 0.01;
         boolean inBarn = this.isInBarn(h.getLocation());
@@ -535,27 +516,27 @@ public final class StableBarnService implements Listener {
             stamina += barnBonus;
         }
 
-        stamina = Math.max((double)0.0F, Math.min(max, stamina));
+        stamina = Math.max((double) 0.0F, Math.min(max, stamina));
         pdc.set(this.HORSE_STAMINA, PersistentDataType.DOUBLE, stamina);
-        boolean tired = (Byte)pdc.getOrDefault(this.HORSE_TIRED, PersistentDataType.BYTE, (byte)0) == 1;
+        boolean tired = (Byte) pdc.getOrDefault(this.HORSE_TIRED, PersistentDataType.BYTE, (byte) 0) == 1;
         if (!tired && stamina <= tiredTh) {
             this.applyTiredSpeed(h, tiredMul);
-            pdc.set(this.HORSE_TIRED, PersistentDataType.BYTE, (byte)1);
+            pdc.set(this.HORSE_TIRED, PersistentDataType.BYTE, (byte) 1);
 
-            for(Entity passenger : h.getPassengers()) {
+            for (Entity passenger : h.getPassengers()) {
                 if (passenger instanceof Player) {
-                    Player pl = (Player)passenger;
+                    Player pl = (Player) passenger;
                     pl.sendMessage(color(this.plugin.lang.tr(pl, "fauna.horse.tired")));
                     break;
                 }
             }
         } else if (tired && stamina >= recTh) {
             this.clearTiredSpeed(h);
-            pdc.set(this.HORSE_TIRED, PersistentDataType.BYTE, (byte)0);
+            pdc.set(this.HORSE_TIRED, PersistentDataType.BYTE, (byte) 0);
         }
 
         if (this.fauna.getBoolean("horse_stable.regen_in_barn.enabled", true) && inBarn) {
-            double heal = this.fauna.getDouble("horse_stable.regen_in_barn.heal_amount", (double)1.0F);
+            double heal = this.fauna.getDouble("horse_stable.regen_in_barn.heal_amount", (double) 1.0F);
             boolean onlyIfNotFull = this.fauna.getBoolean("horse_stable.regen_in_barn.only_if_not_full", true);
             AttributeInstance healthAttr = h.getAttribute(Attribute.MAX_HEALTH);
             if (healthAttr != null) {
@@ -575,13 +556,13 @@ public final class StableBarnService implements Listener {
     private void tickHorseAffinity(Horse h, boolean ridden, boolean moving, boolean inBarn) {
         if (this.fauna.getBoolean("horse_stable.affinity.enabled", true)) {
             PersistentDataContainer pdc = h.getPersistentDataContainer();
-            double maxAffinity = Math.max((double)1.0F, this.fauna.getDouble("horse_stable.affinity.max", (double)100.0F));
+            double maxAffinity = Math.max((double) 1.0F, this.fauna.getDouble("horse_stable.affinity.max", (double) 100.0F));
             double gainRidingMove = this.fauna.getDouble("horse_stable.affinity.gain_riding_move", 0.3);
             double gainInBarn = this.fauna.getDouble("horse_stable.affinity.gain_in_barn", 0.1);
             double gainHealthy = this.fauna.getDouble("horse_stable.affinity.gain_healthy", 0.1);
-            double decay = Math.max((double)0.0F, this.fauna.getDouble("horse_stable.affinity.decay_when_neglected", (double)0.0F));
-            double notifyEvery = Math.max((double)1.0F, this.fauna.getDouble("horse_stable.affinity.notify_every", (double)10.0F));
-            double affinity = (Double)pdc.getOrDefault(this.HORSE_AFFINITY, PersistentDataType.DOUBLE, (double)0.0F);
+            double decay = Math.max((double) 0.0F, this.fauna.getDouble("horse_stable.affinity.decay_when_neglected", (double) 0.0F));
+            double notifyEvery = Math.max((double) 1.0F, this.fauna.getDouble("horse_stable.affinity.notify_every", (double) 10.0F));
+            double affinity = (Double) pdc.getOrDefault(this.HORSE_AFFINITY, PersistentDataType.DOUBLE, (double) 0.0F);
             if (ridden && moving) {
                 affinity += gainRidingMove;
             }
@@ -593,16 +574,16 @@ public final class StableBarnService implements Listener {
             AttributeInstance healthAttr = h.getAttribute(Attribute.MAX_HEALTH);
             if (healthAttr != null) {
                 double currentMaxHealth = healthAttr.getValue();
-                if (h.getHealth() >= Math.max((double)1.0F, currentMaxHealth - (double)1.0F)) {
+                if (h.getHealth() >= Math.max((double) 1.0F, currentMaxHealth - (double) 1.0F)) {
                     affinity += gainHealthy;
                 }
             }
 
-            if (!ridden && !inBarn && decay > (double)0.0F) {
+            if (!ridden && !inBarn && decay > (double) 0.0F) {
                 affinity -= decay;
             }
 
-            affinity = Math.max((double)0.0F, Math.min(maxAffinity, affinity));
+            affinity = Math.max((double) 0.0F, Math.min(maxAffinity, affinity));
             pdc.set(this.HORSE_AFFINITY, PersistentDataType.DOUBLE, affinity);
             this.applyHorseAffinityBonuses(h, affinity / maxAffinity);
             this.maybeNotifyHorseAffinity(h, affinity, notifyEvery);
@@ -614,17 +595,17 @@ public final class StableBarnService implements Listener {
      */
     private void maybeNotifyHorseAffinity(Horse h, double affinity, double notifyEvery) {
         PersistentDataContainer pdc = h.getPersistentDataContainer();
-        int step = (int)Math.floor(affinity / notifyEvery);
-        int oldStep = (Integer)pdc.getOrDefault(this.HORSE_AFFINITY_STEP, PersistentDataType.INTEGER, 0);
+        int step = (int) Math.floor(affinity / notifyEvery);
+        int oldStep = (Integer) pdc.getOrDefault(this.HORSE_AFFINITY_STEP, PersistentDataType.INTEGER, 0);
         if (step > oldStep) {
             pdc.set(this.HORSE_AFFINITY_STEP, PersistentDataType.INTEGER, step);
-            Location loc = h.getLocation().clone().add((double)0.0F, (double)1.25F, (double)0.0F);
-            h.getWorld().spawnParticle(Particle.HEART, loc, 6, (double)0.25F, (double)0.25F, (double)0.25F, 0.02);
+            Location loc = h.getLocation().clone().add((double) 0.0F, (double) 1.25F, (double) 0.0F);
+            h.getWorld().spawnParticle(Particle.HEART, loc, 6, (double) 0.25F, (double) 0.25F, (double) 0.25F, 0.02);
             h.getWorld().playSound(loc, Sound.ENTITY_HORSE_AMBIENT, 0.8F, 1.15F);
 
-            for(Entity passenger : h.getPassengers()) {
+            for (Entity passenger : h.getPassengers()) {
                 if (passenger instanceof Player) {
-                    Player player = (Player)passenger;
+                    Player player = (Player) passenger;
                     String affinityText = this.trimDouble(affinity);
                     player.sendMessage(color("&d❤ Afinidad del caballo: &f" + affinityText));
                     break;
@@ -638,9 +619,9 @@ public final class StableBarnService implements Listener {
      * 按亲密度进度为马匹施加/更新速度与生命上限修饰符。
      */
     private void applyHorseAffinityBonuses(Horse h, double progress) {
-        progress = this.clamp(progress, (double)0.0F, (double)1.0F);
-        double speedBonusAtMax = Math.max((double)0.0F, this.fauna.getDouble("horse_stable.affinity.speed_bonus_at_max", 0.12));
-        double healthBonusAtMax = Math.max((double)0.0F, this.fauna.getDouble("horse_stable.affinity.health_bonus_at_max", (double)6.0F));
+        progress = this.clamp(progress, (double) 0.0F, (double) 1.0F);
+        double speedBonusAtMax = Math.max((double) 0.0F, this.fauna.getDouble("horse_stable.affinity.speed_bonus_at_max", 0.12));
+        double healthBonusAtMax = Math.max((double) 0.0F, this.fauna.getDouble("horse_stable.affinity.health_bonus_at_max", (double) 6.0F));
         AttributeInstance speedAttr = h.getAttribute(Attribute.MOVEMENT_SPEED);
         if (speedAttr != null) {
             this.removeModifier(speedAttr, AFFINITY_SPEED_MOD_UUID);
@@ -676,7 +657,7 @@ public final class StableBarnService implements Listener {
         AttributeInstance a = h.getAttribute(Attribute.MOVEMENT_SPEED);
         if (a != null) {
             this.removeModifier(a, TIRED_MOD_UUID);
-            double amount = multiplier - (double)1.0F;
+            double amount = multiplier - (double) 1.0F;
             AttributeModifier mod = new AttributeModifier(TIRED_MOD_UUID, "aeternum_horse_tired", amount, Operation.MULTIPLY_SCALAR_1);
             a.addModifier(mod);
         }
@@ -696,7 +677,7 @@ public final class StableBarnService implements Listener {
      * 移除属性上指定 UUID 的全部修饰符。
      */
     private void removeModifier(AttributeInstance attr, UUID uuid) {
-        for(AttributeModifier mod : new ArrayList<>(attr.getModifiers())) {
+        for (AttributeModifier mod : new ArrayList<>(attr.getModifiers())) {
             if (uuid.equals(mod.getUniqueId())) {
                 attr.removeModifier(mod);
             }
@@ -723,8 +704,8 @@ public final class StableBarnService implements Listener {
                             this.aiScan.clear();
                             this.aiIdx = 0;
 
-                            for(World w : Bukkit.getWorlds()) {
-                                for(Mob m : w.getEntitiesByClass(Mob.class)) {
+                            for (World w : Bukkit.getWorlds()) {
+                                for (Mob m : w.getEntitiesByClass(Mob.class)) {
                                     if (m instanceof Animals && !m.isDead() && m.isValid()) {
                                         this.aiScan.add(m);
                                     }
@@ -734,11 +715,11 @@ public final class StableBarnService implements Listener {
 
                         int done = 0;
 
-                        while(done < perTick && this.aiIdx < this.aiScan.size()) {
-                            Mob m = (Mob)this.aiScan.get(this.aiIdx++);
+                        while (done < perTick && this.aiIdx < this.aiScan.size()) {
+                            Mob m = (Mob) this.aiScan.get(this.aiIdx++);
                             ++done;
                             if (m != null && !m.isDead() && m.isValid() && m instanceof Animals) {
-                                Animals animal = (Animals)m;
+                                Animals animal = (Animals) m;
                                 if (m.getPassengers().isEmpty() && !m.isLeashed()) {
                                     this.tickAnimalAI(animal, season);
                                 }
@@ -746,7 +727,7 @@ public final class StableBarnService implements Listener {
                         }
 
                     }
-                }, (long)interval, (long)interval);
+                }, (long) interval, (long) interval);
             }
         }
     }
@@ -794,13 +775,13 @@ public final class StableBarnService implements Listener {
             int bestScore = Integer.MIN_VALUE;
             ThreadLocalRandom rnd = ThreadLocalRandom.current();
 
-            for(int i = 0; i < samples; ++i) {
+            for (int i = 0; i < samples; ++i) {
                 int dx = rnd.nextInt(-radius, radius + 1);
                 int dz = rnd.nextInt(-radius, radius + 1);
                 int x = origin.getBlockX() + dx;
                 int z = origin.getBlockZ() + dz;
                 int y = w.getHighestBlockYAt(x, z);
-                Location cand = new Location(w, (double)x + (double)0.5F, (double)y, (double)z + (double)0.5F);
+                Location cand = new Location(w, (double) x + (double) 0.5F, (double) y, (double) z + (double) 0.5F);
                 if (this.hasRoofNear(cand)) {
                     int score = 10;
                     if (preferBarn && this.isInBarn(cand)) {
@@ -808,7 +789,7 @@ public final class StableBarnService implements Listener {
                     }
 
                     double dist = cand.distanceSquared(origin);
-                    score -= (int)Math.min((double)20.0F, dist / (double)10.0F);
+                    score -= (int) Math.min((double) 20.0F, dist / (double) 10.0F);
                     if (score > bestScore) {
                         bestScore = score;
                         best = cand;
@@ -828,7 +809,7 @@ public final class StableBarnService implements Listener {
             Location loc = a.getLocation();
             Vector dir = target.toVector().subtract(loc.toVector());
             dir.setY(0);
-            if (!(dir.lengthSquared() < (double)2.5F)) {
+            if (!(dir.lengthSquared() < (double) 2.5F)) {
                 dir.normalize().multiply(strength);
                 Vector v = a.getVelocity();
                 a.setVelocity(new Vector(this.clamp(v.getX() + dir.getX(), -0.35, 0.35), v.getY(), this.clamp(v.getZ() + dir.getZ(), -0.35, 0.35)));
@@ -847,7 +828,7 @@ public final class StableBarnService implements Listener {
      * 把数值限制在 [0,1] 区间。
      */
     private double clamp01(double value) {
-        return this.clamp(value, (double)0.0F, (double)1.0F);
+        return this.clamp(value, (double) 0.0F, (double) 1.0F);
     }
 
     /**
@@ -862,7 +843,7 @@ public final class StableBarnService implements Listener {
      */
     private Season currentSeason() {
         try {
-            for(String m : List.of("getSeasons", "getSeasonService", "seasons", "seasonService")) {
+            for (String m : List.of("getSeasons", "getSeasonService", "seasons", "seasonService")) {
                 try {
                     Method mm = this.plugin.getClass().getMethod(m);
                     Object service = mm.invoke(this.plugin);
@@ -877,7 +858,7 @@ public final class StableBarnService implements Listener {
         }
 
         try {
-            for(String f : List.of("seasons", "seasonService")) {
+            for (String f : List.of("seasons", "seasonService")) {
                 try {
                     Field ff = this.plugin.getClass().getDeclaredField(f);
                     ff.setAccessible(true);
@@ -903,12 +884,12 @@ public final class StableBarnService implements Listener {
             return null;
         } else {
             try {
-                for(String m : List.of("getCurrentSeason", "getSeason", "currentSeason")) {
+                for (String m : List.of("getCurrentSeason", "getSeason", "currentSeason")) {
                     try {
                         Method mm = service.getClass().getMethod(m, World.class);
                         Object out = mm.invoke(service, Bukkit.getWorlds().isEmpty() ? null : Bukkit.getWorlds().get(0));
                         if (out instanceof Season) {
-                            Season s = (Season)out;
+                            Season s = (Season) out;
                             return s;
                         }
                     } catch (NoSuchMethodException ignoredWorldMethod) {
@@ -918,7 +899,7 @@ public final class StableBarnService implements Listener {
                         Method mm2 = service.getClass().getMethod(m);
                         Object out2 = mm2.invoke(service);
                         if (out2 instanceof Season) {
-                            Season s = (Season)out2;
+                            Season s = (Season) out2;
                             return s;
                         }
                     } catch (NoSuchMethodException ignoredNoArgMethod) {

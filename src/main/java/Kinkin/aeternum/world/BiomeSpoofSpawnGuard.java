@@ -1,7 +1,6 @@
-package Kinkin.aeternum.world;
+package kinkin.aeternum.world;
 
-import Kinkin.aeternum.AeternumSeasonsPlugin;
-import java.util.Locale;
+import kinkin.aeternum.AeternumSeasonsPlugin;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -14,6 +13,8 @@ import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
+
+import java.util.Locale;
 
 /**
  * 生物群系伪装下的自然生成守卫（BiomeSpoofSpawnGuard）。
@@ -35,17 +36,23 @@ public final class BiomeSpoofSpawnGuard implements Listener {
         this.spoof = spoof;
     }
 
-    /** 启用或停用本守卫。 */
+    /**
+     * 启用或停用本守卫。
+     */
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
     }
 
-    /** 向 Bukkit 注册本监听器。 */
+    /**
+     * 向 Bukkit 注册本监听器。
+     */
     public void register() {
         Bukkit.getPluginManager().registerEvents(this, this.plugin);
     }
 
-    /** 从 Bukkit 注销本监听器。 */
+    /**
+     * 从 Bukkit 注销本监听器。
+     */
     public void unregister() {
         HandlerList.unregisterAll(this);
     }
@@ -54,8 +61,8 @@ public final class BiomeSpoofSpawnGuard implements Listener {
      * 监听生物生成：对受群系限制的自然/区块生成生物，若其原始群系并非其栖息地则取消生成。
      */
     @EventHandler(
-        priority = EventPriority.HIGH,
-        ignoreCancelled = true
+            priority = EventPriority.HIGH,
+            ignoreCancelled = true
     )
     public void onCreatureSpawn(CreatureSpawnEvent event) {
         if (this.enabled) {
@@ -77,7 +84,9 @@ public final class BiomeSpoofSpawnGuard implements Listener {
         }
     }
 
-    /** 判断该生物类型是否属于需要按群系限制的自然生成生物。 */
+    /**
+     * 判断该生物类型是否属于需要按群系限制的自然生成生物。
+     */
     private boolean hasBiomeRestrictedNaturalSpawn(EntityType type) {
         boolean restricted;
         switch (type) {
@@ -106,7 +115,9 @@ public final class BiomeSpoofSpawnGuard implements Listener {
         return restricted;
     }
 
-    /** 判断给定生物类型是否栖息于给定原始群系（群系名做关键词匹配）。 */
+    /**
+     * 判断给定生物类型是否栖息于给定原始群系（群系名做关键词匹配）。
+     */
     public static boolean isOriginalHabitat(EntityType type, Biome biome) {
         if (biome == null) {
             return false;
@@ -120,23 +131,23 @@ public final class BiomeSpoofSpawnGuard implements Listener {
                     habitat = name.contains("JUNGLE");
                     break;
                 case MOOSHROOM:
-                    habitat = name.equals("MUSHROOM_FIELDS");
+                    habitat = "MUSHROOM_FIELDS".equals(name);
                     break;
                 case POLAR_BEAR:
-                    habitat = name.equals("SNOWY_PLAINS") || name.equals("ICE_SPIKES") || name.contains("FROZEN_OCEAN");
+                    habitat = "SNOWY_PLAINS".equals(name) || "ICE_SPIKES".equals(name) || name.contains("FROZEN_OCEAN");
                     break;
                 case GOAT:
-                    habitat = name.equals("SNOWY_SLOPES") || name.equals("JAGGED_PEAKS") || name.equals("FROZEN_PEAKS");
+                    habitat = "SNOWY_SLOPES".equals(name) || "JAGGED_PEAKS".equals(name) || "FROZEN_PEAKS".equals(name);
                     break;
                 case FROG:
                 case BOGGED:
                     habitat = name.contains("SWAMP") || name.contains("MANGROVE");
                     break;
                 case AXOLOTL:
-                    habitat = name.equals("LUSH_CAVES");
+                    habitat = "LUSH_CAVES".equals(name);
                     break;
                 case TROPICAL_FISH:
-                    habitat = name.equals("LUSH_CAVES") || name.contains("WARM_OCEAN") || name.contains("LUKEWARM_OCEAN");
+                    habitat = "LUSH_CAVES".equals(name) || name.contains("WARM_OCEAN") || name.contains("LUKEWARM_OCEAN");
                     break;
                 case PUFFERFISH:
                     habitat = name.contains("WARM_OCEAN") || name.contains("LUKEWARM_OCEAN");
@@ -151,7 +162,7 @@ public final class BiomeSpoofSpawnGuard implements Listener {
                     habitat = name.contains("DESERT");
                     break;
                 case STRAY:
-                    habitat = name.contains("SNOW") || name.contains("FROZEN") || name.equals("ICE_SPIKES") || name.equals("GROVE");
+                    habitat = name.contains("SNOW") || name.contains("FROZEN") || "ICE_SPIKES".equals(name) || "GROVE".equals(name);
                     break;
                 case DROWNED:
                     habitat = name.contains("OCEAN") || name.contains("RIVER");

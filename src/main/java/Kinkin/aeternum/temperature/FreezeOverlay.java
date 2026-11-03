@@ -1,13 +1,14 @@
-package Kinkin.aeternum.temperature;
+package kinkin.aeternum.temperature;
+
+import org.bukkit.GameMode;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.Player;
 
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import org.bukkit.GameMode;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.Player;
 
 /**
  * 冻结遮罩管理器。
@@ -18,11 +19,17 @@ import org.bukkit.entity.Player;
  * 恢复/清理状态。若对应方法不存在则退化为仅设置冻结 tick。</p>
  */
 final class FreezeOverlay {
-    /** 记录当前受控玩家及其冻结状态。 */
+    /**
+     * 记录当前受控玩家及其冻结状态。
+     */
     private final Map<UUID, Held> held;
-    /** 反射得到的“锁定冻结 tick”方法，可能为 null。 */
+    /**
+     * 反射得到的“锁定冻结 tick”方法，可能为 null。
+     */
     private final Method lock;
-    /** 反射得到的“是否已锁定冻结 tick”查询方法，可能为 null。 */
+    /**
+     * 反射得到的“是否已锁定冻结 tick”查询方法，可能为 null。
+     */
     private final Method locked;
 
     FreezeOverlay() {
@@ -51,9 +58,9 @@ final class FreezeOverlay {
      * 将玩家的冻结 tick 抬升指定量（不超过最大冻结值），必要时尝试获取原版冻结锁。
      */
     void hold(Player player, int increase) {
-        Held previous = (Held)this.held.get(player.getUniqueId());
+        Held previous = (Held) this.held.get(player.getUniqueId());
         int prior = previous == null ? player.getFreezeTicks() : Math.max(previous.level(), player.getFreezeTicks());
-        int level = (int)Math.min((long)player.getMaxFreezeTicks(), (long)prior + (long)increase);
+        int level = (int) Math.min((long) player.getMaxFreezeTicks(), (long) prior + (long) increase);
         boolean ownsLock = previous != null && previous.ownsLock();
         if (!ownsLock && this.lock != null && this.locked != null) {
             try {
@@ -73,7 +80,7 @@ final class FreezeOverlay {
      * 释放对玩家的冻结控制：若当前持有冻结锁则解锁，并移除记录。
      */
     void release(Player player) {
-        Held previous = (Held)this.held.remove(player.getUniqueId());
+        Held previous = (Held) this.held.remove(player.getUniqueId());
         if (previous != null && previous.ownsLock()) {
             try {
                 this.lock.invoke(player, false);
@@ -88,7 +95,7 @@ final class FreezeOverlay {
      * 未持锁但冻结值被外部降低时重新抬升回目标等级。
      */
     void tick() {
-        for(Held entry : List.copyOf(this.held.values())) {
+        for (Held entry : List.copyOf(this.held.values())) {
             Player player = entry.player();
             if (player.isOnline() && !player.isDead() && player.getGameMode() != GameMode.CREATIVE && player.getGameMode() != GameMode.SPECTATOR && entry.world().equals(player.getWorld().getUID())) {
                 int current = player.getFreezeTicks();
@@ -108,7 +115,7 @@ final class FreezeOverlay {
      * 释放并清空所有当前受控玩家。
      */
     void clear() {
-        for(Held entry : List.copyOf(this.held.values())) {
+        for (Held entry : List.copyOf(this.held.values())) {
             this.release(entry.player());
         }
 
@@ -122,7 +129,7 @@ final class FreezeOverlay {
      * @param level    维持的冻结 tick 等级
      * @param ownsLock 是否由本遮罩持有原版冻结锁
      */
-    private static record Held(Player player, UUID world, int level, boolean ownsLock) {
+    private record Held(Player player, UUID world, int level, boolean ownsLock) {
         private Held {
         }
     }

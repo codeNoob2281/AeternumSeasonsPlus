@@ -1,9 +1,8 @@
-package Kinkin.aeternum.events;
+package kinkin.aeternum.events;
 
-import Kinkin.aeternum.AeternumSeasonsPlugin;
-import Kinkin.aeternum.calendar.CalendarState;
-import Kinkin.aeternum.calendar.Season;
-import java.util.concurrent.ThreadLocalRandom;
+import kinkin.aeternum.AeternumSeasonsPlugin;
+import kinkin.aeternum.calendar.CalendarState;
+import kinkin.aeternum.calendar.Season;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.Particle;
@@ -17,6 +16,8 @@ import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.inventory.ItemStack;
 
+import java.util.concurrent.ThreadLocalRandom;
+
 /**
  * 岩浆潮汐事件（Magma Tides）。
  *
@@ -29,15 +30,25 @@ import org.bukkit.inventory.ItemStack;
 public final class MagmaTidesEvent implements SeasonalEvent {
     private final AeternumSeasonsPlugin plugin;
     private boolean enabled;
-    /** 事件最短持续天数。 */
+    /**
+     * 事件最短持续天数。
+     */
     private int minDur;
-    /** 事件最长持续天数。 */
+    /**
+     * 事件最长持续天数。
+     */
     private int maxDur;
-    /** 每天触发事件的基础概率。 */
+    /**
+     * 每天触发事件的基础概率。
+     */
     private double baseChance;
-    /** 岩浆怪变大一级的概率。 */
+    /**
+     * 岩浆怪变大一级的概率。
+     */
     private double biggerCubeChance;
-    /** 击杀岩浆怪额外掉落岩浆膏的概率。 */
+    /**
+     * 击杀岩浆怪额外掉落岩浆膏的概率。
+     */
     private double extraCreamChance;
 
     public MagmaTidesEvent(AeternumSeasonsPlugin plugin) {
@@ -46,7 +57,9 @@ public final class MagmaTidesEvent implements SeasonalEvent {
         this.reloadFromConfig();
     }
 
-    /** 从 events.yml 重新读取本事件的配置项。 */
+    /**
+     * 从 events.yml 重新读取本事件的配置项。
+     */
     private void reloadFromConfig() {
         FileConfiguration config = YamlEvents.get(this.plugin);
         this.enabled = config.getBoolean("events.magma_tides.enabled", true);
@@ -57,27 +70,35 @@ public final class MagmaTidesEvent implements SeasonalEvent {
         this.extraCreamChance = config.getDouble("events.magma_tides.extra_cream_chance", 0.4);
     }
 
+    @Override
     public String getId() {
         return "magma_tides";
     }
 
+    @Override
     public String getDisplayName() {
         return "Magma Tides";
     }
 
+    @Override
     public boolean isSeasonAllowed(Season season) {
         return true;
     }
 
+    @Override
     public int getMinDurationDays() {
         return this.minDur;
     }
 
+    @Override
     public int getMaxDurationDays() {
         return this.maxDur;
     }
 
-    /** 仅当有玩家位于下界、且通过基础概率判定时才允许开始。 */
+    /**
+     * 仅当有玩家位于下界、且通过基础概率判定时才允许开始。
+     */
+    @Override
     public boolean canStartToday(CalendarState state, EventContext context) {
         if (!this.enabled) {
             return false;
@@ -91,9 +112,12 @@ public final class MagmaTidesEvent implements SeasonalEvent {
         }
     }
 
-    /** 事件开始时向下界玩家发送标题提示。 */
+    /**
+     * 事件开始时向下界玩家发送标题提示。
+     */
+    @Override
     public void onStart(CalendarState state, EventContext context) {
-        for(Player player : Bukkit.getOnlinePlayers()) {
+        for (Player player : Bukkit.getOnlinePlayers()) {
             if (player.getWorld().getEnvironment() == Environment.NETHER) {
                 player.sendTitle(this.plugin.lang.tr(player, "event.magma_tides.title"), this.plugin.lang.tr(player, "event.magma_tides.subtitle"), 20, 80, 40);
             }
@@ -101,9 +125,12 @@ public final class MagmaTidesEvent implements SeasonalEvent {
 
     }
 
-    /** 事件结束时向下界玩家发送结束提示。 */
+    /**
+     * 事件结束时向下界玩家发送结束提示。
+     */
+    @Override
     public void onEnd(CalendarState state, EventContext context) {
-        for(Player player : Bukkit.getOnlinePlayers()) {
+        for (Player player : Bukkit.getOnlinePlayers()) {
             if (player.getWorld().getEnvironment() == Environment.NETHER) {
                 player.sendMessage(this.plugin.lang.tr(player, "event.magma_tides.end"));
             }
@@ -111,13 +138,17 @@ public final class MagmaTidesEvent implements SeasonalEvent {
 
     }
 
+    @Override
     public void onDayTick(CalendarState state, EventContext context) {
     }
 
+    @Override
     public void onTick(CalendarState state, EventContext context) {
     }
 
-    /** 监听生物生成：下界岩浆怪按概率变大一级（不超过 4）。 */
+    /**
+     * 监听生物生成：下界岩浆怪按概率变大一级（不超过 4）。
+     */
     @EventHandler
     public void onSpawn(CreatureSpawnEvent event) {
         LivingEntity entity = event.getEntity();
@@ -126,13 +157,15 @@ public final class MagmaTidesEvent implements SeasonalEvent {
                 if (!(Math.random() > this.biggerCubeChance)) {
                     int size = cube.getSize();
                     cube.setSize(Math.min(4, size + 1));
-                    cube.getWorld().spawnParticle(Particle.LAVA, cube.getLocation().add((double)0.0F, 0.8, (double)0.0F), 10, 0.4, 0.3, 0.4, 0.01);
+                    cube.getWorld().spawnParticle(Particle.LAVA, cube.getLocation().add((double) 0.0F, 0.8, (double) 0.0F), 10, 0.4, 0.3, 0.4, 0.01);
                 }
             }
         }
     }
 
-    /** 监听岩浆怪死亡：玩家击杀时按概率额外掉落岩浆膏。 */
+    /**
+     * 监听岩浆怪死亡：玩家击杀时按概率额外掉落岩浆膏。
+     */
     @EventHandler
     public void onDeath(EntityDeathEvent event) {
         LivingEntity entity = event.getEntity();

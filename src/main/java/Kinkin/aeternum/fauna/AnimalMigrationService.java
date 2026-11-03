@@ -1,43 +1,17 @@
-package Kinkin.aeternum.fauna;
+package kinkin.aeternum.fauna;
 
-import Kinkin.aeternum.AeternumSeasonsPlugin;
-import Kinkin.aeternum.calendar.CalendarState;
-import Kinkin.aeternum.calendar.Season;
-import Kinkin.aeternum.calendar.SeasonService;
-import Kinkin.aeternum.world.BiomeSpoofAdapter;
-import Kinkin.aeternum.world.BiomeSpoofSpawnGuard;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.EnumMap;
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Random;
-import java.util.Set;
-import java.util.UUID;
-import java.util.function.Predicate;
-import org.bukkit.Bukkit;
-import org.bukkit.HeightMap;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.NamespacedKey;
-import org.bukkit.Particle;
-import org.bukkit.Sound;
-import org.bukkit.World;
+import kinkin.aeternum.AeternumSeasonsPlugin;
+import kinkin.aeternum.calendar.CalendarState;
+import kinkin.aeternum.calendar.Season;
+import kinkin.aeternum.calendar.SeasonService;
+import kinkin.aeternum.world.BiomeSpoofAdapter;
+import kinkin.aeternum.world.BiomeSpoofSpawnGuard;
+import org.bukkit.*;
 import org.bukkit.World.Environment;
 import org.bukkit.block.Biome;
 import org.bukkit.block.Block;
 import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.entity.Ageable;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.EntityType;
-import org.bukkit.entity.LivingEntity;
-import org.bukkit.entity.Player;
-import org.bukkit.entity.Tameable;
+import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.HandlerList;
@@ -46,6 +20,9 @@ import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.scheduler.BukkitTask;
+
+import java.util.*;
+import java.util.function.Predicate;
 
 /**
  * 动物季节性迁徙服务。
@@ -146,11 +123,11 @@ public final class AnimalMigrationService implements Listener, Runnable {
         this.animalsPerTick = Math.max(8, y.getInt("migration.animals_per_tick", 40));
         this.searchRadiusBlocks = Math.max(24, y.getInt("migration.search_radius_blocks", 160));
         this.showParticles = y.getBoolean("migration.particles", true);
-        this.springSpawnBoostChance = this.clamp01(y.getDouble("migration.spawn.spring_boost_chance", (double)0.25F));
-        this.summerSpawnBoostChance = this.clamp01(y.getDouble("migration.spawn.summer_boost_chance", (double)0.25F));
+        this.springSpawnBoostChance = this.clamp01(y.getDouble("migration.spawn.spring_boost_chance", (double) 0.25F));
+        this.summerSpawnBoostChance = this.clamp01(y.getDouble("migration.spawn.summer_boost_chance", (double) 0.25F));
         this.autumnSpawnBoostChance = this.clamp01(y.getDouble("migration.spawn.autumn_boost_chance", 0.2));
         this.winterSpawnBoostChance = this.clamp01(y.getDouble("migration.spawn.winter_boost_chance", 0.18));
-        this.winterWarmAnimalCullChance = this.clamp01(y.getDouble("migration.soft_despawn.warm_in_winter_chance", (double)0.25F));
+        this.winterWarmAnimalCullChance = this.clamp01(y.getDouble("migration.soft_despawn.warm_in_winter_chance", (double) 0.25F));
         this.winterCleanupEnabled = y.getBoolean("migration.winter_cleanup.enabled", false);
         this.winterCleanupMaxDays = Math.max(1, y.getInt("migration.winter_cleanup.days", 3));
         this.winterCleanupBaseRadius = Math.max(24, y.getInt("migration.winter_cleanup.base_radius_blocks", 64));
@@ -194,14 +171,14 @@ public final class AnimalMigrationService implements Listener, Runnable {
      * 生物生成监听：记录玩家主动生成的生物；对自然/区块生成/增援的受管动物按季节概率补充生成，并在冬季清理寒冷群系中的暖气候动物。
      */
     @EventHandler(
-        priority = EventPriority.HIGHEST,
-        ignoreCancelled = true
+            priority = EventPriority.HIGHEST,
+            ignoreCancelled = true
     )
     public void onCreatureSpawn(CreatureSpawnEvent e) {
         if (this.enabled) {
             CreatureSpawnEvent.SpawnReason reason = e.getSpawnReason();
             if (this.isPlayerProtectedSpawnReason(reason)) {
-                e.getEntity().getPersistentDataContainer().set(this.playerProtectedFaunaKey, PersistentDataType.BYTE, (byte)1);
+                e.getEntity().getPersistentDataContainer().set(this.playerProtectedFaunaKey, PersistentDataType.BYTE, (byte) 1);
             } else if (reason == SpawnReason.NATURAL || reason == SpawnReason.CHUNK_GEN || reason == SpawnReason.REINFORCEMENTS) {
                 World world = e.getLocation().getWorld();
                 if (world != null) {
@@ -211,7 +188,7 @@ public final class AnimalMigrationService implements Listener, Runnable {
                             CalendarState st = this.seasons.getStateCopy(world);
                             Biome biome = this.biomeAt(e.getLocation());
                             double chance = this.getExtraSpawnChance(st.season, type, biome, world.getEnvironment());
-                            if (chance > (double)0.0F) {
+                            if (chance > (double) 0.0F) {
                                 this.handleBoost(e, chance);
                             }
 
@@ -236,13 +213,13 @@ public final class AnimalMigrationService implements Listener, Runnable {
             case SUMMER -> seasonChance = this.summerSpawnBoostChance;
             case AUTUMN -> seasonChance = this.autumnSpawnBoostChance;
             case WINTER -> seasonChance = this.winterSpawnBoostChance;
-            default -> throw new MatchException((String)null, (Throwable)null);
+            default -> throw new MatchException((String) null, (Throwable) null);
         }
 
         double base = seasonChance;
         if (env == Environment.NETHER) {
             if (!this.netherFauna.contains(type)) {
-                return (double)0.0F;
+                return (double) 0.0F;
             } else {
                 return season == Season.WINTER && type == EntityType.STRIDER ? base : base * 0.35;
             }
@@ -253,14 +230,14 @@ public final class AnimalMigrationService implements Listener, Runnable {
                 case SUMMER -> boostSet = this.summerBoost;
                 case AUTUMN -> boostSet = this.autumnBoost;
                 case WINTER -> boostSet = this.winterBoost;
-                default -> throw new MatchException((String)null, (Throwable)null);
+                default -> throw new MatchException((String) null, (Throwable) null);
             }
 
             EnumSet<EntityType> seasonalSet = boostSet;
             if (seasonalSet.contains(type)) {
                 return base;
             } else {
-                return this.isBiomeSuitableForType(type, biome) ? base * this.outOfSeasonSpawnMultiplier : (double)0.0F;
+                return this.isBiomeSuitableForType(type, biome) ? base * this.outOfSeasonSpawnMultiplier : (double) 0.0F;
             }
         }
     }
@@ -271,7 +248,7 @@ public final class AnimalMigrationService implements Listener, Runnable {
     private void handleBoost(CreatureSpawnEvent e, double chance) {
         if (!(this.random.nextDouble() >= chance)) {
             Location loc = e.getLocation();
-            Location extra = this.findSpawnLocationForType(loc.clone().add(this.randomOffset(6), (double)0.0F, this.randomOffset(6)), e.getEntityType(), 8);
+            Location extra = this.findSpawnLocationForType(loc.clone().add(this.randomOffset(6), (double) 0.0F, this.randomOffset(6)), e.getEntityType(), 8);
             if (extra != null) {
                 this.spawnManaged(extra, e.getEntityType(), true);
             }
@@ -282,12 +259,13 @@ public final class AnimalMigrationService implements Listener, Runnable {
      * 返回 [-max, max] 范围内的随机偏移。
      */
     private double randomOffset(int max) {
-        return (this.random.nextDouble() * (double)2.0F - (double)1.0F) * (double)max;
+        return (this.random.nextDouble() * (double) 2.0F - (double) 1.0F) * (double) max;
     }
 
     /**
      * 周期任务：执行冬季清理、玩家附近动物迁徙与补偿生成（受每 tick 预算约束）。
      */
+    @Override
     public void run() {
         if (this.enabled) {
             ++this.cycleCounter;
@@ -304,7 +282,7 @@ public final class AnimalMigrationService implements Listener, Runnable {
             int compensationBudget = this.compensationMaxSpawnsPerCycle;
             Set<UUID> visited = new HashSet();
 
-            for(World world : Bukkit.getWorlds()) {
+            for (World world : Bukkit.getWorlds()) {
                 if (migrationBudget <= 0 && compensationBudget <= 0) {
                     break;
                 }
@@ -314,7 +292,7 @@ public final class AnimalMigrationService implements Listener, Runnable {
                     if (env == Environment.NORMAL || env == Environment.NETHER) {
                         CalendarState worldState = this.seasons.getStateCopy(world);
 
-                        for(Player player : world.getPlayers()) {
+                        for (Player player : world.getPlayers()) {
                             if (migrationBudget > 0) {
                                 migrationBudget = this.processNearbyFauna(player, worldState, visited, migrationBudget);
                             }
@@ -343,13 +321,13 @@ public final class AnimalMigrationService implements Listener, Runnable {
         } else {
             World world = player.getWorld();
 
-            for(Entity entity : world.getNearbyEntities(player.getLocation(), (double)this.searchRadiusBlocks, (double)Math.max(24, this.searchRadiusBlocks / 2), (double)this.searchRadiusBlocks)) {
+            for (Entity entity : world.getNearbyEntities(player.getLocation(), (double) this.searchRadiusBlocks, (double) Math.max(24, this.searchRadiusBlocks / 2), (double) this.searchRadiusBlocks)) {
                 if (budget <= 0) {
                     break;
                 }
 
                 if (entity instanceof LivingEntity) {
-                    LivingEntity le = (LivingEntity)entity;
+                    LivingEntity le = (LivingEntity) entity;
                     if (le.isValid() && !le.isDead() && this.isInterestingAnimal(le) && !this.isProtectedFromMigration(le) && visited.add(le.getUniqueId())) {
                         this.handleMigrationFor(st, le);
                         --budget;
@@ -371,24 +349,24 @@ public final class AnimalMigrationService implements Listener, Runnable {
         if (budget > 0) {
             Set<UUID> visited = new HashSet();
 
-            for(World world : Bukkit.getWorlds()) {
+            for (World world : Bukkit.getWorlds()) {
                 if (budget <= 0) {
                     break;
                 }
 
                 if (world.getEnvironment() == Environment.NORMAL) {
-                    for(Player player : world.getPlayers()) {
+                    for (Player player : world.getPlayers()) {
                         if (budget <= 0) {
                             break;
                         }
 
-                        for(Entity entity : world.getNearbyEntities(player.getLocation(), (double)radius, (double)Math.max(20, radius / 2), (double)radius)) {
+                        for (Entity entity : world.getNearbyEntities(player.getLocation(), (double) radius, (double) Math.max(20, radius / 2), (double) radius)) {
                             if (budget <= 0) {
                                 break;
                             }
 
                             if (entity instanceof LivingEntity) {
-                                LivingEntity le = (LivingEntity)entity;
+                                LivingEntity le = (LivingEntity) entity;
                                 if (le.isValid() && !le.isDead() && this.isInterestingAnimal(le) && !this.isProtectedFromMigration(le) && visited.add(le.getUniqueId())) {
                                     EntityType type = le.getType();
                                     if (this.warmClimateAnimals.contains(type) && !this.coldClimateAnimals.contains(type) && !this.hasRestrictedOriginalHabitat(type)) {
@@ -420,19 +398,19 @@ public final class AnimalMigrationService implements Listener, Runnable {
             } else {
                 Location center = player.getLocation();
                 long zoneKey = this.zoneKey(center);
-                Long lastCycle = (Long)this.areaCooldowns.get(zoneKey);
-                if (lastCycle != null && this.cycleCounter - lastCycle < (long)this.compensationZoneCooldownCycles) {
+                Long lastCycle = (Long) this.areaCooldowns.get(zoneKey);
+                if (lastCycle != null && this.cycleCounter - lastCycle < (long) this.compensationZoneCooldownCycles) {
                     return budget;
                 } else {
                     boolean aquaticZone = this.isAquaticZone(center);
                     int radius = this.compensationRadiusBlocks;
-                    Collection<Entity> nearby = world.getNearbyEntities(center, (double)radius, (double)Math.max(20, radius / 2), (double)radius);
+                    Collection<Entity> nearby = world.getNearbyEntities(center, (double) radius, (double) Math.max(20, radius / 2), (double) radius);
                     int current = 0;
                     EnumMap<EntityType, Integer> localCounts = new EnumMap(EntityType.class);
 
-                    for(Entity entity : nearby) {
+                    for (Entity entity : nearby) {
                         if (entity instanceof LivingEntity) {
-                            LivingEntity le = (LivingEntity)entity;
+                            LivingEntity le = (LivingEntity) entity;
                             if (le.isValid() && !le.isDead()) {
                                 EntityType type = le.getType();
                                 if (this.isCountRelevantForZone(type, aquaticZone)) {
@@ -450,11 +428,11 @@ public final class AnimalMigrationService implements Listener, Runnable {
                         int attempts = Math.min(this.compensationMaxSpawnsPerPlayer, Math.min(budget, target - current));
                         boolean spawnedAny = false;
 
-                        for(int i = 0; i < attempts; ++i) {
+                        for (int i = 0; i < attempts; ++i) {
                             EntityType type = this.pickCompensationType(center, st.season, aquaticZone);
-                            if (type != null && (Integer)localCounts.getOrDefault(type, 0) < this.typeLocalCap(type)) {
+                            if (type != null && (Integer) localCounts.getOrDefault(type, 0) < this.typeLocalCap(type)) {
                                 Location spawnLoc = this.findSpawnLocationForType(center, type, radius);
-                                if (spawnLoc != null && this.isSafeDistanceFromPlayers(spawnLoc, (double)12.0F)) {
+                                if (spawnLoc != null && this.isSafeDistanceFromPlayers(spawnLoc, (double) 12.0F)) {
                                     Entity spawned = this.spawnManaged(spawnLoc, type, false);
                                     if (spawned != null) {
                                         localCounts.merge(type, 1, Integer::sum);
@@ -500,7 +478,7 @@ public final class AnimalMigrationService implements Listener, Runnable {
             this.buildLandPool(pool, biome, season);
         }
 
-        return pool.isEmpty() ? null : (EntityType)pool.get(this.random.nextInt(pool.size()));
+        return pool.isEmpty() ? null : (EntityType) pool.get(this.random.nextInt(pool.size()));
     }
 
     /**
@@ -638,7 +616,7 @@ public final class AnimalMigrationService implements Listener, Runnable {
     }
 
     private void addWeighted(List<EntityType> pool, EntityType type, int weight) {
-        for(int i = 0; i < Math.max(0, weight); ++i) {
+        for (int i = 0; i < Math.max(0, weight); ++i) {
             pool.add(type);
         }
 
@@ -690,8 +668,8 @@ public final class AnimalMigrationService implements Listener, Runnable {
      * 清理已过期的区域补偿冷却记录。
      */
     private void trimCooldowns() {
-        long cutoff = this.cycleCounter - (long)this.compensationZoneCooldownCycles * 4L;
-        this.areaCooldowns.entrySet().removeIf((entry) -> (Long)entry.getValue() < cutoff);
+        long cutoff = this.cycleCounter - (long) this.compensationZoneCooldownCycles * 4L;
+        this.areaCooldowns.entrySet().removeIf((entry) -> (Long) entry.getValue() < cutoff);
     }
 
     /**
@@ -699,8 +677,8 @@ public final class AnimalMigrationService implements Listener, Runnable {
      */
     private long zoneKey(Location loc) {
         long worldBits = loc.getWorld().getUID().getLeastSignificantBits();
-        long gx = (long)(loc.getBlockX() >> 5);
-        long gz = (long)(loc.getBlockZ() >> 5);
+        long gx = (long) (loc.getBlockX() >> 5);
+        long gz = (long) (loc.getBlockZ() >> 5);
         return worldBits ^ gx << 32 ^ gz & 4294967295L;
     }
 
@@ -710,7 +688,7 @@ public final class AnimalMigrationService implements Listener, Runnable {
     private boolean isSafeDistanceFromPlayers(Location loc, double minDistance) {
         double minDistSq = minDistance * minDistance;
 
-        for(Player player : loc.getWorld().getPlayers()) {
+        for (Player player : loc.getWorld().getPlayers()) {
             if (player.getLocation().distanceSquared(loc) < minDistSq) {
                 return false;
             }
@@ -738,7 +716,7 @@ public final class AnimalMigrationService implements Listener, Runnable {
                 return true;
             } else {
                 if (entity instanceof Tameable) {
-                    Tameable tameable = (Tameable)entity;
+                    Tameable tameable = (Tameable) entity;
                     if (tameable.isTamed()) {
                         return true;
                     }
@@ -763,9 +741,9 @@ public final class AnimalMigrationService implements Listener, Runnable {
             int baseY = location.getBlockY();
             int baseZ = location.getBlockZ();
 
-            for(int dx = -2; dx <= 2; ++dx) {
-                for(int dz = -2; dz <= 2; ++dz) {
-                    for(int dy = -1; dy <= 2; ++dy) {
+            for (int dx = -2; dx <= 2; ++dx) {
+                for (int dz = -2; dz <= 2; ++dz) {
+                    for (int dy = -1; dy <= 2; ++dy) {
                         String material = world.getBlockAt(baseX + dx, baseY + dy, baseZ + dz).getType().name();
                         if (material.endsWith("_FENCE") || material.endsWith("_FENCE_GATE") || material.endsWith("_WALL")) {
                             return true;
@@ -989,7 +967,7 @@ public final class AnimalMigrationService implements Listener, Runnable {
     private boolean containsAny(Biome biome, String... tokens) {
         String key = this.biomeKey(biome);
 
-        for(String token : tokens) {
+        for (String token : tokens) {
             if (key.contains(token)) {
                 return true;
             }
@@ -1091,10 +1069,10 @@ public final class AnimalMigrationService implements Listener, Runnable {
         int by = center.getBlockY();
         int bz = center.getBlockZ();
 
-        for(int dx = -radius; dx <= radius; ++dx) {
+        for (int dx = -radius; dx <= radius; ++dx) {
             int dz = -radius;
 
-            while(dz <= radius) {
+            while (dz <= radius) {
                 Block block = world.getBlockAt(bx + dx, by, bz + dz);
                 if (!block.isLiquid() && block.getType() != Material.WATER) {
                     Block below = world.getBlockAt(bx + dx, by - 1, bz + dz);
@@ -1224,7 +1202,7 @@ public final class AnimalMigrationService implements Listener, Runnable {
         World world = origin.getWorld();
         int tries = 24;
 
-        for(int i = 0; i < tries; ++i) {
+        for (int i = 0; i < tries; ++i) {
             int dx = this.random.nextInt(radius * 2 + 1) - radius;
             int dz = this.random.nextInt(radius * 2 + 1) - radius;
             int x = origin.getBlockX() + dx;
@@ -1234,13 +1212,13 @@ public final class AnimalMigrationService implements Listener, Runnable {
             if (world.isChunkLoaded(cx, cz)) {
                 int y = world.getHighestBlockYAt(x, z, HeightMap.MOTION_BLOCKING_NO_LEAVES);
                 if (y > world.getMinHeight() + 1 && y < world.getMaxHeight() - 2) {
-                    Biome biome = this.biomeAt(new Location(world, (double)x, (double)y, (double)z));
+                    Biome biome = this.biomeAt(new Location(world, (double) x, (double) y, (double) z));
                     if (biomePredicate.test(biome)) {
                         Block feet = world.getBlockAt(x, y, z);
                         Block head = world.getBlockAt(x, y + 1, z);
                         Block base = world.getBlockAt(x, y - 1, z);
                         if (base.getType().isSolid() && !base.isLiquid() && feet.isPassable() && head.isPassable() && !feet.isLiquid() && !head.isLiquid()) {
-                            return new Location(world, (double)x + (double)0.5F, (double)y, (double)z + (double)0.5F);
+                            return new Location(world, (double) x + (double) 0.5F, (double) y, (double) z + (double) 0.5F);
                         }
                     }
                 }
@@ -1257,7 +1235,7 @@ public final class AnimalMigrationService implements Listener, Runnable {
         World world = origin.getWorld();
         int tries = 24;
 
-        for(int i = 0; i < tries; ++i) {
+        for (int i = 0; i < tries; ++i) {
             int dx = this.random.nextInt(radius * 2 + 1) - radius;
             int dz = this.random.nextInt(radius * 2 + 1) - radius;
             int x = origin.getBlockX() + dx;
@@ -1267,14 +1245,14 @@ public final class AnimalMigrationService implements Listener, Runnable {
             if (world.isChunkLoaded(cx, cz)) {
                 int y = world.getHighestBlockYAt(x, z, HeightMap.MOTION_BLOCKING_NO_LEAVES);
                 if (y > world.getMinHeight() + 1 && y < world.getMaxHeight() - 2) {
-                    Biome biome = this.biomeAt(new Location(world, (double)x, (double)y, (double)z));
+                    Biome biome = this.biomeAt(new Location(world, (double) x, (double) y, (double) z));
                     if (this.isBeachBiome(biome) || this.isWarmOceanBiome(biome)) {
                         Block base = world.getBlockAt(x, y - 1, z);
                         Block feet = world.getBlockAt(x, y, z);
                         Block head = world.getBlockAt(x, y + 1, z);
                         Material baseType = base.getType();
-                        if ((baseType == Material.SAND || baseType == Material.RED_SAND) && feet.isPassable() && head.isPassable() && this.isNearWater(new Location(world, (double)x, (double)y, (double)z), 3)) {
-                            return new Location(world, (double)x + (double)0.5F, (double)y, (double)z + (double)0.5F);
+                        if ((baseType == Material.SAND || baseType == Material.RED_SAND) && feet.isPassable() && head.isPassable() && this.isNearWater(new Location(world, (double) x, (double) y, (double) z), 3)) {
+                            return new Location(world, (double) x + (double) 0.5F, (double) y, (double) z + (double) 0.5F);
                         }
                     }
                 }
@@ -1290,7 +1268,7 @@ public final class AnimalMigrationService implements Listener, Runnable {
     private Location findNearbyWaterSpot(Location origin, Predicate<Biome> biomePredicate, int radius, int tries) {
         World world = origin.getWorld();
 
-        for(int i = 0; i < tries; ++i) {
+        for (int i = 0; i < tries; ++i) {
             int dx = this.random.nextInt(radius * 2 + 1) - radius;
             int dz = this.random.nextInt(radius * 2 + 1) - radius;
             int x = origin.getBlockX() + dx;
@@ -1302,14 +1280,14 @@ public final class AnimalMigrationService implements Listener, Runnable {
                 int startY = Math.min(world.getSeaLevel() + 3, world.getMaxHeight() - 2);
                 int endY = Math.max(world.getMinHeight() + 1, floorY);
 
-                for(int y = startY; y >= endY; --y) {
+                for (int y = startY; y >= endY; --y) {
                     Block block = world.getBlockAt(x, y, z);
                     if (block.getType() == Material.WATER) {
-                        Biome biome = this.biomeAt(new Location(world, (double)x, (double)y, (double)z));
+                        Biome biome = this.biomeAt(new Location(world, (double) x, (double) y, (double) z));
                         if (biomePredicate.test(biome)) {
                             Block above = world.getBlockAt(x, y + 1, z);
                             if (above.getType() == Material.WATER || above.isPassable()) {
-                                return new Location(world, (double)x + (double)0.5F, (double)y + 0.15, (double)z + (double)0.5F);
+                                return new Location(world, (double) x + (double) 0.5F, (double) y + 0.15, (double) z + (double) 0.5F);
                             }
                         }
                         break;
@@ -1335,10 +1313,10 @@ public final class AnimalMigrationService implements Listener, Runnable {
             } else {
                 try {
                     Entity spawned = world.spawnEntity(loc, type);
-                    spawned.getPersistentDataContainer().set(this.managedFaunaKey, PersistentDataType.BYTE, (byte)1);
+                    spawned.getPersistentDataContainer().set(this.managedFaunaKey, PersistentDataType.BYTE, (byte) 1);
                     if (spawned instanceof Ageable) {
-                        Ageable ageable = (Ageable)spawned;
-                        if (this.random.nextDouble() < (fromBoost ? (double)0.5F : 0.35)) {
+                        Ageable ageable = (Ageable) spawned;
+                        if (this.random.nextDouble() < (fromBoost ? (double) 0.5F : 0.35)) {
                             ageable.setBaby();
                         }
                     }
@@ -1383,7 +1361,7 @@ public final class AnimalMigrationService implements Listener, Runnable {
                 return false;
             } else {
                 if (this.showParticles) {
-                    entity.getWorld().spawnParticle(Particle.CAMPFIRE_COSY_SMOKE, entity.getLocation().add((double)0.0F, (double)0.5F, (double)0.0F), 10, (double)0.25F, (double)0.25F, (double)0.25F, 0.01);
+                    entity.getWorld().spawnParticle(Particle.CAMPFIRE_COSY_SMOKE, entity.getLocation().add((double) 0.0F, (double) 0.5F, (double) 0.0F), 10, (double) 0.25F, (double) 0.25F, (double) 0.25F, 0.01);
                 }
 
                 entity.remove();
@@ -1398,6 +1376,6 @@ public final class AnimalMigrationService implements Listener, Runnable {
      * 把数值限制在 [0,1] 区间。
      */
     private double clamp01(double value) {
-        return Math.max((double)0.0F, Math.min((double)1.0F, value));
+        return Math.max((double) 0.0F, Math.min((double) 1.0F, value));
     }
 }

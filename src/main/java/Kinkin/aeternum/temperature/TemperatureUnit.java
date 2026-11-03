@@ -1,4 +1,4 @@
-package Kinkin.aeternum.temperature;
+package kinkin.aeternum.temperature;
 
 /**
  * 温度单位枚举。
@@ -10,7 +10,7 @@ public enum TemperatureUnit {
     CELSIUS,
     FAHRENHEIT;
 
-    private TemperatureUnit() {
+    TemperatureUnit() {
     }
 
     /**
@@ -24,7 +24,7 @@ public enum TemperatureUnit {
             return CELSIUS;
         } else {
             String normalized = raw.trim().toUpperCase();
-            return !normalized.equals("F") && !normalized.equals("FAHRENHEIT") && !normalized.equals("FAHRENHEITS") ? CELSIUS : FAHRENHEIT;
+            return !"F".equals(normalized) && !"FAHRENHEIT".equals(normalized) && !"FAHRENHEITS".equals(normalized) ? CELSIUS : FAHRENHEIT;
         }
     }
 
@@ -32,7 +32,7 @@ public enum TemperatureUnit {
      * 将摄氏度换算为当前单位的整数值；华氏度按四舍五入计算，摄氏度原样返回。
      */
     public int fromCelsiusRounded(int celsius) {
-        return this == FAHRENHEIT ? (int)Math.round((double)celsius * (double)9.0F / (double)5.0F + (double)32.0F) : celsius;
+        return this == FAHRENHEIT ? (int) Math.round((double) celsius * (double) 9.0F / (double) 5.0F + (double) 32.0F) : celsius;
     }
 
     // $FF: synthetic method

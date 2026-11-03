@@ -1,4 +1,4 @@
-package Kinkin.aeternum.dimension;
+package kinkin.aeternum.dimension;
 
 import org.bukkit.generator.BiomeProvider;
 import org.bukkit.generator.ChunkGenerator;
@@ -16,37 +16,58 @@ public final class FrostWorldGenerator extends ChunkGenerator {
         super();
     }
 
-    /** 返回极寒维度使用的生物群系提供器（以世界种子初始化）。 */
+    /**
+     * 返回极寒维度使用的生物群系提供器（以世界种子初始化）。
+     */
+    @Override
     public @NotNull BiomeProvider getDefaultBiomeProvider(@NotNull WorldInfo worldInfo) {
         return new FrostOnlyBiomeProvider(worldInfo.getSeed());
     }
 
-    /** 是否生成噪声地形。 */
+    /**
+     * 是否生成噪声地形。
+     */
+    @Override
     public boolean shouldGenerateNoise() {
         return true;
     }
 
-    /** 是否生成地表层。 */
+    /**
+     * 是否生成地表层。
+     */
+    @Override
     public boolean shouldGenerateSurface() {
         return true;
     }
 
-    /** 是否生成洞穴。 */
+    /**
+     * 是否生成洞穴。
+     */
+    @Override
     public boolean shouldGenerateCaves() {
         return true;
     }
 
-    /** 是否生成装饰物（植被等）。 */
+    /**
+     * 是否生成装饰物（植被等）。
+     */
+    @Override
     public boolean shouldGenerateDecorations() {
         return true;
     }
 
-    /** 是否生成生物。 */
+    /**
+     * 是否生成生物。
+     */
+    @Override
     public boolean shouldGenerateMobs() {
         return true;
     }
 
-    /** 是否生成结构。 */
+    /**
+     * 是否生成结构。
+     */
+    @Override
     public boolean shouldGenerateStructures() {
         return true;
     }

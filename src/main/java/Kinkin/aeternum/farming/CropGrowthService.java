@@ -1,12 +1,13 @@
-package Kinkin.aeternum.farming;
+package kinkin.aeternum.farming;
 
-import Kinkin.aeternum.calendar.CalendarState;
-import Kinkin.aeternum.calendar.Season;
-import Kinkin.aeternum.calendar.SeasonService;
-import java.util.EnumSet;
-import java.util.concurrent.ThreadLocalRandom;
+import kinkin.aeternum.calendar.CalendarState;
+import kinkin.aeternum.calendar.Season;
+import kinkin.aeternum.calendar.SeasonService;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
+
+import java.util.EnumSet;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * 作物生长计算服务。
@@ -35,7 +36,7 @@ public final class CropGrowthService {
      * @return 生长决策
      */
     public GrowthDecision evaluate(Block block) {
-        return this.evaluate(block, (EnumSet)null);
+        return this.evaluate(block, (EnumSet) null);
     }
 
     /**
@@ -45,7 +46,7 @@ public final class CropGrowthService {
      * 判断是否允许生长；再根据光照、地下、降雨与冬季温室等因素调整生长速度；
      * 最后据此决定取消生长或额外推进若干生长阶段。</p>
      *
-     * @param block 待评估的作物方块
+     * @param block                  待评估的作物方块
      * @param allowedSeasonsOverride 可选的季节覆盖（用于人工生长等场景），为 null 时使用配置
      * @return 生长决策
      */
@@ -63,7 +64,7 @@ public final class CropGrowthService {
                 if (!allowed.contains(season) && !inGreenhouse && seesSky) {
                     return new GrowthDecision(true, 0);
                 } else {
-                    double speed = (double)1.0F;
+                    double speed = (double) 1.0F;
                     int light = block.getLightLevel();
                     if (light < this.config.getRequiredLight()) {
                         speed *= this.config.getLowLightMultiplier();
@@ -81,16 +82,16 @@ public final class CropGrowthService {
                         speed += this.config.getWinterGreenhouseBonus();
                     }
 
-                    if (speed <= (double)0.0F) {
+                    if (speed <= (double) 0.0F) {
                         return new GrowthDecision(true, 0);
                     } else {
                         double roll = ThreadLocalRandom.current().nextDouble();
-                        if (speed < (double)1.0F) {
+                        if (speed < (double) 1.0F) {
                             return roll > speed ? new GrowthDecision(true, 0) : new GrowthDecision(false, 0);
                         } else {
-                            double over = speed - (double)1.0F;
-                            int extra = (int)Math.floor(over);
-                            double frac = over - (double)extra;
+                            double over = speed - (double) 1.0F;
+                            int extra = (int) Math.floor(over);
+                            double frac = over - (double) extra;
                             if (roll < frac) {
                                 ++extra;
                             }
@@ -108,7 +109,7 @@ public final class CropGrowthService {
     /**
      * 判断指定作物在当前季节是否允许生长。
      *
-     * @param block 待判定的作物方块
+     * @param block          待判定的作物方块
      * @param allowedSeasons 允许的季节集合
      * @return 若当前季节被允许，或作物在温室内/看不到天空，则返回 true
      */
@@ -137,12 +138,16 @@ public final class CropGrowthService {
             this.extraAges = extraAges;
         }
 
-        /** 是否取消本次生长。 */
+        /**
+         * 是否取消本次生长。
+         */
         public boolean cancel() {
             return this.cancel;
         }
 
-        /** 额外推进的生长阶段数。 */
+        /**
+         * 额外推进的生长阶段数。
+         */
         public int extraAges() {
             return this.extraAges;
         }

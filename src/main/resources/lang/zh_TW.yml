@@ -81,7 +81,7 @@ cmd:
         variable: "可變"
         off: "關閉"
       set:
-        fixed:    "&a已啟用靜態 HUD。"
+        fixed: "&a已啟用靜態 HUD。"
         variable: "&a已啟用可變 HUD。"
         "off": "&c已禁用 HUD。"
 
@@ -939,16 +939,6 @@ crop:
     grows_in: "生長季節: {seasons}"
     any_season: "&7在任何季節生長"
     greenhouse_light: "&8地下溫室: 光照 {light}+"
-
-farming:
-  compost:
-    raw_name: "&a生堆肥"
-    raw_lore_1: "&7泥土和有機殘渣的濕潤混合物。"
-    raw_lore_2: "&7將它放在水邊 2 天。"
-    ready_name: "&2富饒土壤"
-    ready_lore_1: "&7這裡的作物生長速度快 &ax2 &7。"
-    ready_lore_2: "&7踩踏時耕地不會被破壞。"
-    ready_message: "&a你的堆肥已變成富饒土壤。"
 
 villager:
   lazy_tag: "&7[&6懶惰&7]"

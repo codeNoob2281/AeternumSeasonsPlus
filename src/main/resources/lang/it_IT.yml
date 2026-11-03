@@ -951,16 +951,6 @@ crop:
     any_season: "&7Cresce in qualsiasi stagione"
     greenhouse_light: "&8Serra sotterranea: luce {light}+"
 
-farming:
-  compost:
-    raw_name: "&aCompost grezzo"
-    raw_lore_1: "&7Miscela umida di terra e resti organici."
-    raw_lore_2: "&7Lascialo vicino all’acqua per 2 giorni."
-    ready_name: "&2Terra fertilizzata ricca"
-    ready_lore_1: "&7Le colture qui crescono &ax2 &7più velocemente."
-    ready_lore_2: "&7Calpestarla non distrugge il terreno coltivabile."
-    ready_message: "&aIl tuo compost si è trasformato in una terra fertilizzata ricca."
-
 villager:
   lazy_tag: "&7[&6Fannullone&7]"
 

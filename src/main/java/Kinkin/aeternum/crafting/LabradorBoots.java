@@ -1,12 +1,6 @@
-package Kinkin.aeternum.crafting;
+package kinkin.aeternum.crafting;
 
-import Kinkin.aeternum.AeternumSeasonsPlugin;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.ThreadLocalRandom;
+import kinkin.aeternum.AeternumSeasonsPlugin;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -35,6 +29,9 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
+import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
+
 /**
  * 拉布拉多靴（Labrador Boots）。
  *
@@ -61,26 +58,32 @@ public final class LabradorBoots implements Listener {
         this.tagKey = new NamespacedKey(plugin, "labrador_boots");
     }
 
-    /** 向服务器注册事件监听器与合成配方。 */
+    /**
+     * 向服务器注册事件监听器与合成配方。
+     */
     public void register() {
         Bukkit.getPluginManager().registerEvents(this, this.plugin);
         this.registerRecipe();
     }
 
-    /** 注销事件监听器并移除已注册的合成配方。 */
+    /**
+     * 注销事件监听器并移除已注册的合成配方。
+     */
     public void unregister() {
         HandlerList.unregisterAll(this);
         Bukkit.removeRecipe(this.recipeKey);
     }
 
-    /** 注册拉布拉多靴的合成配方：B 任意靴子、W 小麦、S 任意铲子。 */
+    /**
+     * 注册拉布拉多靴的合成配方：B 任意靴子、W 小麦、S 任意铲子。
+     */
     private void registerRecipe() {
         ItemStack dummy = new ItemStack(Material.LEATHER_BOOTS);
         ShapedRecipe recipe = new ShapedRecipe(this.recipeKey, dummy);
         recipe.shape(new String[]{"WBW", "WSW", "WWW"});
         List<Material> bootsList = new ArrayList();
 
-        for(Material material : Material.values()) {
+        for (Material material : Material.values()) {
             if (material != null && material.name().endsWith("_BOOTS")) {
                 bootsList.add(material);
             }
@@ -89,7 +92,7 @@ public final class LabradorBoots implements Listener {
         RecipeChoice bootsChoice = new RecipeChoice.MaterialChoice(bootsList);
         List<Material> shovelList = new ArrayList();
 
-        for(Material material : Material.values()) {
+        for (Material material : Material.values()) {
             if (material != null && material.name().endsWith("_SHOVEL")) {
                 shovelList.add(material);
             }
@@ -111,19 +114,19 @@ public final class LabradorBoots implements Listener {
         if (event.getRecipe() != null) {
             Recipe recipe = event.getRecipe();
             if (recipe instanceof ShapedRecipe) {
-                ShapedRecipe shaped = (ShapedRecipe)recipe;
+                ShapedRecipe shaped = (ShapedRecipe) recipe;
                 if (this.recipeKey.equals(shaped.getKey())) {
                     ItemStack[] matrix = event.getInventory().getMatrix();
                     ItemStack boots = null;
                     int wheatCount = 0;
                     boolean hasShovel = false;
 
-                    for(ItemStack stack : matrix) {
+                    for (ItemStack stack : matrix) {
                         if (stack != null && stack.getType() != Material.AIR) {
                             Material type = stack.getType();
                             if (this.isBoots(type)) {
                                 if (boots != null) {
-                                    event.getInventory().setResult((ItemStack)null);
+                                    event.getInventory().setResult((ItemStack) null);
                                     return;
                                 }
 
@@ -132,12 +135,12 @@ public final class LabradorBoots implements Listener {
                                 wheatCount += stack.getAmount();
                             } else {
                                 if (!this.isShovel(type)) {
-                                    event.getInventory().setResult((ItemStack)null);
+                                    event.getInventory().setResult((ItemStack) null);
                                     return;
                                 }
 
                                 if (hasShovel) {
-                                    event.getInventory().setResult((ItemStack)null);
+                                    event.getInventory().setResult((ItemStack) null);
                                     return;
                                 }
 
@@ -150,14 +153,14 @@ public final class LabradorBoots implements Listener {
                         Player crafter = null;
                         HumanEntity viewer = event.getView().getPlayer();
                         if (viewer instanceof Player) {
-                            Player player = (Player)viewer;
+                            Player player = (Player) viewer;
                             crafter = player;
                         }
 
                         ItemMeta meta = boots.getItemMeta();
                         if (meta != null) {
                             PersistentDataContainer pdc = meta.getPersistentDataContainer();
-                            pdc.set(this.tagKey, PersistentDataType.BYTE, (byte)1);
+                            pdc.set(this.tagKey, PersistentDataType.BYTE, (byte) 1);
 
                             try {
                                 String name = this.plugin.lang.tr(crafter, "item.labrador_boots.name");
@@ -174,14 +177,16 @@ public final class LabradorBoots implements Listener {
 
                         event.getInventory().setResult(boots);
                     } else {
-                        event.getInventory().setResult((ItemStack)null);
+                        event.getInventory().setResult((ItemStack) null);
                     }
                 }
             }
         }
     }
 
-    /** 判断给定材料是否为任意靴子（含原版与自定义命名空间）。 */
+    /**
+     * 判断给定材料是否为任意靴子（含原版与自定义命名空间）。
+     */
     private boolean isBoots(Material material) {
         if (material == null) {
             return false;
@@ -193,7 +198,9 @@ public final class LabradorBoots implements Listener {
         }
     }
 
-    /** 判断给定材料是否为任意铲子（含原版与自定义命名空间）。 */
+    /**
+     * 判断给定材料是否为任意铲子（含原版与自定义命名空间）。
+     */
     private boolean isShovel(Material material) {
         if (material == null) {
             return false;
@@ -205,7 +212,9 @@ public final class LabradorBoots implements Listener {
         }
     }
 
-    /** 判断玩家当前穿着的靴子是否带有拉布拉多靴的持久化标签。 */
+    /**
+     * 判断玩家当前穿着的靴子是否带有拉布拉多靴的持久化标签。
+     */
     private boolean hasLabradorBoots(Player player) {
         ItemStack boots = player.getInventory().getBoots();
         if (boots != null && boots.getType() != Material.AIR) {
@@ -213,7 +222,7 @@ public final class LabradorBoots implements Listener {
             if (meta == null) {
                 return false;
             } else {
-                Byte flag = (Byte)meta.getPersistentDataContainer().get(this.tagKey, PersistentDataType.BYTE);
+                Byte flag = (Byte) meta.getPersistentDataContainer().get(this.tagKey, PersistentDataType.BYTE);
                 return flag != null && flag == 1;
             }
         } else {
@@ -221,10 +230,12 @@ public final class LabradorBoots implements Listener {
         }
     }
 
-    /** 监听农田被踩踏（玩家踩踏耕地方块）：穿着拉布拉多靴时取消踩踏并播放粒子。 */
+    /**
+     * 监听农田被踩踏（玩家踩踏耕地方块）：穿着拉布拉多靴时取消踩踏并播放粒子。
+     */
     @EventHandler(
-        ignoreCancelled = true,
-        priority = EventPriority.HIGH
+            ignoreCancelled = true,
+            priority = EventPriority.HIGH
     )
     public void onFarmlandTrample(EntityChangeBlockEvent event) {
         Entity entity = event.getEntity();
@@ -232,22 +243,24 @@ public final class LabradorBoots implements Listener {
             if (event.getBlock().getType() == Material.FARMLAND) {
                 if (this.hasLabradorBoots(player)) {
                     event.setCancelled(true);
-                    event.getBlock().getWorld().spawnParticle(Particle.HAPPY_VILLAGER, event.getBlock().getLocation().add((double)0.5F, (double)1.0F, (double)0.5F), 6, 0.3, 0.2, 0.3);
+                    event.getBlock().getWorld().spawnParticle(Particle.HAPPY_VILLAGER, event.getBlock().getLocation().add((double) 0.5F, (double) 1.0F, (double) 0.5F), 6, 0.3, 0.2, 0.3);
                 }
             }
         }
     }
 
-    /** 监听玩家移动：穿着拉布拉多靴走在农田上时，为其附加短暂的速度提升。 */
+    /**
+     * 监听玩家移动：穿着拉布拉多靴走在农田上时，为其附加短暂的速度提升。
+     */
     @EventHandler(
-        ignoreCancelled = true
+            ignoreCancelled = true
     )
     public void onMove(PlayerMoveEvent event) {
         if (event.getTo() != null) {
             if (event.getFrom().getBlockX() != event.getTo().getBlockX() || event.getFrom().getBlockY() != event.getTo().getBlockY() || event.getFrom().getBlockZ() != event.getTo().getBlockZ()) {
                 Player player = event.getPlayer();
                 if (this.hasLabradorBoots(player)) {
-                    Block below = event.getTo().clone().subtract((double)0.0F, 0.1, (double)0.0F).getBlock();
+                    Block below = event.getTo().clone().subtract((double) 0.0F, 0.1, (double) 0.0F).getBlock();
                     if (below.getType() == Material.FARMLAND) {
                         player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 10, 0, true, false, true));
                     }
@@ -257,9 +270,11 @@ public final class LabradorBoots implements Listener {
         }
     }
 
-    /** 监听方块破坏：穿着拉布拉多靴收割成熟作物时，有概率额外掉落对应的种子/作物。 */
+    /**
+     * 监听方块破坏：穿着拉布拉多靴收割成熟作物时，有概率额外掉落对应的种子/作物。
+     */
     @EventHandler(
-        ignoreCancelled = true
+            ignoreCancelled = true
     )
     public void onCropBreak(BlockBreakEvent event) {
         Player player = event.getPlayer();
@@ -269,7 +284,7 @@ public final class LabradorBoots implements Listener {
             if (SEED_CROPS.contains(type)) {
                 BlockData blockData = block.getBlockData();
                 if (blockData instanceof Ageable) {
-                    Ageable ageable = (Ageable)blockData;
+                    Ageable ageable = (Ageable) blockData;
                     if (ageable.getAge() >= ageable.getMaximumAge()) {
                         if (this.rnd.nextDouble() < 0.35) {
                             int extra = this.rnd.nextInt(1, 3);
@@ -285,7 +300,7 @@ public final class LabradorBoots implements Listener {
                             Material seedType = seedMaterial;
                             if (seedType != null) {
                                 ItemStack extraSeeds = new ItemStack(seedType, extra);
-                                block.getWorld().dropItemNaturally(block.getLocation().add((double)0.5F, 0.2, (double)0.5F), extraSeeds);
+                                block.getWorld().dropItemNaturally(block.getLocation().add((double) 0.5F, 0.2, (double) 0.5F), extraSeeds);
                             }
                         }
 

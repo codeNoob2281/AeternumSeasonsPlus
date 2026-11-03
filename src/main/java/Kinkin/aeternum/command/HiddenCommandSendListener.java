@@ -1,4 +1,4 @@
-package Kinkin.aeternum.command;
+package kinkin.aeternum.command;
 
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -12,7 +12,9 @@ import org.bukkit.event.player.PlayerCommandSendEvent;
  * 不影响命令本身的注册与执行。</p>
  */
 public final class HiddenCommandSendListener implements Listener {
-    /** 需要隐藏的命令名。 */
+    /**
+     * 需要隐藏的命令名。
+     */
     private static final String CMD = "seasonbiomefix";
 
     public HiddenCommandSendListener() {
@@ -25,6 +27,6 @@ public final class HiddenCommandSendListener implements Listener {
     @EventHandler
     public void onPlayerCommandSend(PlayerCommandSendEvent event) {
         event.getCommands().remove("seasonbiomefix");
-        event.getCommands().removeIf((command) -> command.equalsIgnoreCase("seasonbiomefix") || command.toLowerCase().endsWith(":seasonbiomefix"));
+        event.getCommands().removeIf((command) -> "seasonbiomefix".equalsIgnoreCase(command) || command.toLowerCase().endsWith(":seasonbiomefix"));
     }
 }

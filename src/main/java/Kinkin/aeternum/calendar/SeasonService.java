@@ -1,21 +1,7 @@
-package Kinkin.aeternum.calendar;
+package kinkin.aeternum.calendar;
 
-import Kinkin.aeternum.AeternumSeasonsPlugin;
-import Kinkin.aeternum.compat.WorldCompat;
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.EnumMap;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.UUID;
-import java.util.logging.Logger;
-import java.util.stream.Collectors;
+import kinkin.aeternum.AeternumSeasonsPlugin;
+import kinkin.aeternum.compat.WorldCompat;
 import org.bukkit.Bukkit;
 import org.bukkit.GameRule;
 import org.bukkit.World;
@@ -28,14 +14,20 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerBedEnterEvent;
+import org.bukkit.event.player.PlayerBedEnterEvent.BedEnterResult;
 import org.bukkit.event.player.PlayerBedLeaveEvent;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
-import org.bukkit.event.player.PlayerBedEnterEvent.BedEnterResult;
 import org.bukkit.event.server.ServerCommandEvent;
 import org.bukkit.event.world.TimeSkipEvent;
 import org.bukkit.event.world.WorldLoadEvent;
 import org.bukkit.event.world.WorldUnloadEvent;
 import org.bukkit.scheduler.BukkitTask;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.*;
+import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 /**
  * 季节与日历服务。
@@ -55,22 +47,38 @@ import org.bukkit.scheduler.BukkitTask;
  */
 public final class SeasonService implements Listener {
     private final AeternumSeasonsPlugin plugin;
-    /** 永久冬季世界的名称。 */
+    /**
+     * 永久冬季世界的名称。
+     */
     private static final String FROST_WORLD_NAME = "aeternum_frost";
-    /** 下界对应的“热”世界名称。 */
+    /**
+     * 下界对应的“热”世界名称。
+     */
     private static final String HEAT_WORLD_NAME = "aeternum_heat";
-    /** 自定义时钟的调度周期（tick）。 */
+    /**
+     * 自定义时钟的调度周期（tick）。
+     */
     private static final long CUSTOM_CLOCK_UPDATE_PERIOD_TICKS = 20L;
-    /** 每个频道的运行时，按频道索引。 */
+    /**
+     * 每个频道的运行时，按频道索引。
+     */
     private final EnumMap<CalendarChannel, ChannelRuntime> runtimes = new EnumMap(CalendarChannel.class);
-    /** 世界名（小写）到显式指定频道的映射。 */
+    /**
+     * 世界名（小写）到显式指定频道的映射。
+     */
     private final Map<String, CalendarChannel> explicitWorldChannels = new HashMap();
-    /** 是否已向 Bukkit 注册事件监听。 */
+    /**
+     * 是否已向 Bukkit 注册事件监听。
+     */
     private boolean registered;
-    private long lastFrostManualAdvanceMs = 0L;
-    /** 玩家进入床时记录的时间快照，用于离开床时判断是否应推进日期。 */
+    private final long lastFrostManualAdvanceMs = 0L;
+    /**
+     * 玩家进入床时记录的时间快照，用于离开床时判断是否应推进日期。
+     */
     private final Map<UUID, SleepSnapshot> sleepSnapshots = new HashMap();
-    /** 已排队、等待确认的时间命令，按世界 UUID 索引。 */
+    /**
+     * 已排队、等待确认的时间命令，按世界 UUID 索引。
+     */
     private final Map<UUID, ManualTimeCommand> pendingManualTimeCommands = new HashMap();
 
     public SeasonService(AeternumSeasonsPlugin plugin) {
@@ -79,22 +87,26 @@ public final class SeasonService implements Listener {
         this.rebuildFromConfig();
     }
 
-    /** 注册事件监听（幂等）并为所有已启用的频道启动时钟任务。 */
+    /**
+     * 注册事件监听（幂等）并为所有已启用的频道启动时钟任务。
+     */
     public void register() {
         if (!this.registered) {
             Bukkit.getPluginManager().registerEvents(this, this.plugin);
             this.registered = true;
         }
 
-        for(ChannelRuntime rt : this.runtimes.values()) {
+        for (ChannelRuntime rt : this.runtimes.values()) {
             rt.registerTasks();
         }
 
     }
 
-    /** 停止所有频道任务、清空临时状态并注销事件监听。 */
+    /**
+     * 停止所有频道任务、清空临时状态并注销事件监听。
+     */
     public void unregister() {
-        for(ChannelRuntime rt : this.runtimes.values()) {
+        for (ChannelRuntime rt : this.runtimes.values()) {
             rt.unregisterTasks();
         }
 
@@ -104,25 +116,29 @@ public final class SeasonService implements Listener {
         this.registered = false;
     }
 
-    /** 重新从配置构建所有频道；若此前已注册，则重启其时钟任务。 */
+    /**
+     * 重新从配置构建所有频道；若此前已注册，则重启其时钟任务。
+     */
     public synchronized void reloadCalendarSettings() {
         boolean wasRegistered = this.registered;
         if (wasRegistered) {
-            for(ChannelRuntime rt : this.runtimes.values()) {
+            for (ChannelRuntime rt : this.runtimes.values()) {
                 rt.unregisterTasks();
             }
         }
 
         this.rebuildFromConfig();
         if (wasRegistered) {
-            for(ChannelRuntime rt : this.runtimes.values()) {
+            for (ChannelRuntime rt : this.runtimes.values()) {
                 rt.registerTasks();
             }
         }
 
     }
 
-    /** 清空并按当前配置重建两个频道的运行时，然后刷新世界到频道的映射。 */
+    /**
+     * 清空并按当前配置重建两个频道的运行时，然后刷新世界到频道的映射。
+     */
     private void rebuildFromConfig() {
         this.runtimes.clear();
         this.explicitWorldChannels.clear();
@@ -134,10 +150,12 @@ public final class SeasonService implements Listener {
         this.indexWorldMappings(nether);
     }
 
-    /** 将一个运行时中配置的世界名登记到显式频道映射表。 */
+    /**
+     * 将一个运行时中配置的世界名登记到显式频道映射表。
+     */
     private void indexWorldMappings(ChannelRuntime rt) {
         if (rt != null && rt.enabled) {
-            for(String name : rt.worldNames) {
+            for (String name : rt.worldNames) {
                 if (name != null && !name.isBlank()) {
                     this.explicitWorldChannels.put(name.trim().toLowerCase(Locale.ROOT), rt.channel);
                 }
@@ -159,7 +177,7 @@ public final class SeasonService implements Listener {
         CalendarMode mode = CalendarMode.fromString(this.getString(section, "mode", "SEASONS"), CalendarMode.SEASONS);
         Set<String> worlds = new LinkedHashSet();
 
-        for(String worldName : this.getStringList(section, "worlds")) {
+        for (String worldName : this.getStringList(section, "worlds")) {
             if (worldName != null && !worldName.isBlank()) {
                 worlds.add(worldName.trim());
             }
@@ -177,7 +195,7 @@ public final class SeasonService implements Listener {
         }
 
         if (bySeasonSec != null) {
-            for(String key : bySeasonSec.getKeys(false)) {
+            for (String key : bySeasonSec.getKeys(false)) {
                 Season season;
                 try {
                     season = Season.valueOf(key.trim().toUpperCase(Locale.ROOT));
@@ -209,7 +227,7 @@ public final class SeasonService implements Listener {
             List<String> order = monthsSection.getStringList("order");
             ConfigurationSection defs = monthsSection.getConfigurationSection("definitions");
             if (defs != null) {
-                for(String monthId : order) {
+                for (String monthId : order) {
                     if (monthId != null && !monthId.isBlank()) {
                         ConfigurationSection monthDef = defs.getConfigurationSection(monthId);
                         if (monthDef != null) {
@@ -246,13 +264,17 @@ public final class SeasonService implements Listener {
         return new ChannelRuntime(channel, enabled, mode, worlds, daysPerSeason, bySeason, advanceOnSleep, seasonDaylightMinutes, seasonNightMinutes, followWorldTime, requirePlayersOnServer, timeAnchorWorld, maxCatchupDays, effectiveMonths, stateFile, state);
     }
 
-    /** 读取某个频道在配置中的 section。 */
+    /**
+     * 读取某个频道在配置中的 section。
+     */
     private ConfigurationSection getChannelSection(CalendarChannel channel) {
         ConfigurationSection root = this.plugin.cfg.calendar.getConfigurationSection("calendar.channels");
         return root == null ? null : root.getConfigurationSection(channel.name());
     }
 
-    /** 读取旧版平铺路径或新版 calendar.* 路径下的 section，优先使用平铺路径。 */
+    /**
+     * 读取旧版平铺路径或新版 calendar.* 路径下的 section，优先使用平铺路径。
+     */
     private ConfigurationSection readLegacySection(String plainPath, String calendarPath) {
         if (this.plugin.cfg.calendar.isConfigurationSection(plainPath)) {
             return this.plugin.cfg.calendar.getConfigurationSection(plainPath);
@@ -261,27 +283,37 @@ public final class SeasonService implements Listener {
         }
     }
 
-    /** 安全地获取子 section（父 section 为 null 时返回 null）。 */
+    /**
+     * 安全地获取子 section（父 section 为 null 时返回 null）。
+     */
     private ConfigurationSection getSubSection(ConfigurationSection root, String path) {
         return root == null ? null : root.getConfigurationSection(path);
     }
 
-    /** 从 section 读取字符串，section 为 null 时返回默认值。 */
+    /**
+     * 从 section 读取字符串，section 为 null 时返回默认值。
+     */
     private String getString(ConfigurationSection section, String path, String defaultValue) {
         return section == null ? defaultValue : section.getString(path, defaultValue);
     }
 
-    /** 从 section 读取整数，section 为 null 时返回默认值。 */
+    /**
+     * 从 section 读取整数，section 为 null 时返回默认值。
+     */
     private int getInt(ConfigurationSection section, String path, int defaultValue) {
         return section == null ? defaultValue : section.getInt(path, defaultValue);
     }
 
-    /** 从 section 读取布尔值，section 为 null 时返回默认值。 */
+    /**
+     * 从 section 读取布尔值，section 为 null 时返回默认值。
+     */
     private boolean getBoolean(ConfigurationSection section, String path, boolean defaultValue) {
         return section == null ? defaultValue : section.getBoolean(path, defaultValue);
     }
 
-    /** 从 section 读取字符串列表，section 为 null 时返回空列表。 */
+    /**
+     * 从 section 读取字符串列表，section 为 null 时返回空列表。
+     */
     private List<String> getStringList(ConfigurationSection section, String path) {
         return section == null ? List.of() : section.getStringList(path);
     }
@@ -295,7 +327,7 @@ public final class SeasonService implements Listener {
     private CalendarState loadState(CalendarChannel channel, CalendarMode mode, List<CalendarMonthDefinition> months, File file) {
         if (!file.exists()) {
             if (mode == CalendarMode.MONTHS && !months.isEmpty()) {
-                CalendarMonthDefinition first = (CalendarMonthDefinition)months.get(0);
+                CalendarMonthDefinition first = (CalendarMonthDefinition) months.get(0);
                 CalendarState state = new CalendarState(1, 1, first.getSeason());
                 state.monthsEnabled = true;
                 state.monthId = first.getId();
@@ -320,13 +352,13 @@ public final class SeasonService implements Listener {
 
             CalendarState state = new CalendarState(year, day, season);
             if (mode == CalendarMode.MONTHS && !months.isEmpty()) {
-                String monthId = yaml.getString("month", ((CalendarMonthDefinition)months.get(0)).getId());
+                String monthId = yaml.getString("month", ((CalendarMonthDefinition) months.get(0)).getId());
                 int monthIndex = this.findMonthIndex(months, monthId);
                 if (monthIndex < 0) {
                     monthIndex = 0;
                 }
 
-                CalendarMonthDefinition monthDef = (CalendarMonthDefinition)months.get(monthIndex);
+                CalendarMonthDefinition monthDef = (CalendarMonthDefinition) months.get(monthIndex);
                 state.monthsEnabled = true;
                 state.monthId = monthDef.getId();
                 state.monthDisplayName = monthDef.getDisplayName();
@@ -352,10 +384,10 @@ public final class SeasonService implements Listener {
         if (world == null) {
             return null;
         } else {
-            CalendarChannel explicit = (CalendarChannel)this.explicitWorldChannels.get(world.getName().toLowerCase(Locale.ROOT));
+            CalendarChannel explicit = (CalendarChannel) this.explicitWorldChannels.get(world.getName().toLowerCase(Locale.ROOT));
             if (explicit != null && this.isChannelEnabled(explicit)) {
                 return explicit;
-            } else if (world.getName().equalsIgnoreCase("aeternum_heat") && this.isChannelEnabled(CalendarChannel.NETHER)) {
+            } else if ("aeternum_heat".equalsIgnoreCase(world.getName()) && this.isChannelEnabled(CalendarChannel.NETHER)) {
                 return CalendarChannel.NETHER;
             } else if (world.getEnvironment() == Environment.NETHER && this.isChannelEnabled(CalendarChannel.NETHER)) {
                 return CalendarChannel.NETHER;
@@ -365,57 +397,75 @@ public final class SeasonService implements Listener {
         }
     }
 
-    /** 判断世界是否为永久冬季世界（aeternum_frost）。 */
+    /**
+     * 判断世界是否为永久冬季世界（aeternum_frost）。
+     */
     public boolean isPermanentWinterWorld(World world) {
-        return world != null && world.getName().equalsIgnoreCase("aeternum_frost");
+        return world != null && "aeternum_frost".equalsIgnoreCase(world.getName());
     }
 
-    /** 判断指定频道的运行时是否存在且已启用。 */
+    /**
+     * 判断指定频道的运行时是否存在且已启用。
+     */
     public boolean isChannelEnabled(CalendarChannel channel) {
-        ChannelRuntime rt = (ChannelRuntime)this.runtimes.get(channel);
+        ChannelRuntime rt = (ChannelRuntime) this.runtimes.get(channel);
         return rt != null && rt.enabled;
     }
 
-    /** 返回当前解析到指定频道的所有已加载世界。 */
+    /**
+     * 返回当前解析到指定频道的所有已加载世界。
+     */
     public List<World> getWorlds(CalendarChannel channel) {
-        return (List)Bukkit.getWorlds().stream().filter((world) -> this.resolveChannel(world) == channel).collect(Collectors.toList());
+        return (List) Bukkit.getWorlds().stream().filter((world) -> this.resolveChannel(world) == channel).collect(Collectors.toList());
     }
 
-    /** 世界加载时标记频道世界缓存为脏，促使下次访问时重建。 */
+    /**
+     * 世界加载时标记频道世界缓存为脏，促使下次访问时重建。
+     */
     @EventHandler
     public void onWorldLoad(WorldLoadEvent event) {
         this.markRuntimeWorldCachesDirty();
     }
 
-    /** 世界卸载时从各频道缓存中驱逐该世界。 */
+    /**
+     * 世界卸载时从各频道缓存中驱逐该世界。
+     */
     @EventHandler
     public void onWorldUnload(WorldUnloadEvent event) {
-        for(ChannelRuntime runtime : this.runtimes.values()) {
+        for (ChannelRuntime runtime : this.runtimes.values()) {
             runtime.evictCachedWorld(event.getWorld());
         }
 
     }
 
-    /** 将所有频道的世界缓存标记为脏。 */
+    /**
+     * 将所有频道的世界缓存标记为脏。
+     */
     private void markRuntimeWorldCachesDirty() {
-        for(ChannelRuntime runtime : this.runtimes.values()) {
+        for (ChannelRuntime runtime : this.runtimes.values()) {
             runtime.markWorldCacheDirty();
         }
 
     }
 
-    /** 返回主世界频道状态的副本。 */
+    /**
+     * 返回主世界频道状态的副本。
+     */
     public synchronized CalendarState getStateCopy() {
         return this.getStateCopy(CalendarChannel.OVERWORLD);
     }
 
-    /** 返回指定频道状态的副本；频道不存在时返回默认春季状态。 */
+    /**
+     * 返回指定频道状态的副本；频道不存在时返回默认春季状态。
+     */
     public synchronized CalendarState getStateCopy(CalendarChannel channel) {
-        ChannelRuntime rt = (ChannelRuntime)this.runtimes.get(channel);
+        ChannelRuntime rt = (ChannelRuntime) this.runtimes.get(channel);
         return rt == null ? new CalendarState(1, 1, Season.SPRING) : rt.state.copy();
     }
 
-    /** 返回世界对应频道状态的副本；永久冬季世界强制为冬季。 */
+    /**
+     * 返回世界对应频道状态的副本；永久冬季世界强制为冬季。
+     */
     public synchronized CalendarState getStateCopy(World world) {
         CalendarChannel channel = this.resolveChannel(world);
         CalendarState state = channel != null ? this.getStateCopy(channel) : this.getStateCopy(CalendarChannel.OVERWORLD);
@@ -426,126 +476,166 @@ public final class SeasonService implements Listener {
         return state;
     }
 
-    /** 预演明天的状态并返回副本，不影响实际状态。 */
+    /**
+     * 预演明天的状态并返回副本，不影响实际状态。
+     */
     public synchronized CalendarState peekTomorrowState(CalendarChannel channel) {
-        ChannelRuntime rt = (ChannelRuntime)this.runtimes.get(channel);
+        ChannelRuntime rt = (ChannelRuntime) this.runtimes.get(channel);
         return rt == null ? null : rt.peekTomorrow();
     }
 
-    /** 返回主世界频道配置的默认每季天数。 */
+    /**
+     * 返回主世界频道配置的默认每季天数。
+     */
     public int getDefaultDaysPerSeason() {
         return this.getDefaultDaysPerSeason(CalendarChannel.OVERWORLD);
     }
 
-    /** 返回指定频道配置的默认每季天数。 */
+    /**
+     * 返回指定频道配置的默认每季天数。
+     */
     public int getDefaultDaysPerSeason(CalendarChannel channel) {
-        ChannelRuntime rt = (ChannelRuntime)this.runtimes.get(channel);
+        ChannelRuntime rt = (ChannelRuntime) this.runtimes.get(channel);
         return rt != null ? rt.daysPerSeason : 28;
     }
 
-    /** 返回主世界频道当前周期的天数。 */
+    /**
+     * 返回主世界频道当前周期的天数。
+     */
     public int getDaysPerSeason() {
         return this.getDaysPerSeason(CalendarChannel.OVERWORLD);
     }
 
-    /** 返回指定频道当前周期的天数（月份模式下为当月天数）。 */
+    /**
+     * 返回指定频道当前周期的天数（月份模式下为当月天数）。
+     */
     public int getDaysPerSeason(CalendarChannel channel) {
-        ChannelRuntime rt = (ChannelRuntime)this.runtimes.get(channel);
+        ChannelRuntime rt = (ChannelRuntime) this.runtimes.get(channel);
         return rt != null ? rt.getCurrentPeriodLength() : 28;
     }
 
-    /** 返回指定频道当前周期的天数（月份模式下为当月天数）。 */
+    /**
+     * 返回指定频道当前周期的天数（月份模式下为当月天数）。
+     */
     public int getCurrentPeriodLength(CalendarChannel channel) {
-        ChannelRuntime rt = (ChannelRuntime)this.runtimes.get(channel);
+        ChannelRuntime rt = (ChannelRuntime) this.runtimes.get(channel);
         return rt != null ? rt.getCurrentPeriodLength() : 28;
     }
 
-    /** 返回指定频道当前月份的标识；未启用月份模式时为 null。 */
+    /**
+     * 返回指定频道当前月份的标识；未启用月份模式时为 null。
+     */
     public String getCurrentMonthId(CalendarChannel channel) {
-        ChannelRuntime rt = (ChannelRuntime)this.runtimes.get(channel);
+        ChannelRuntime rt = (ChannelRuntime) this.runtimes.get(channel);
         return rt != null ? rt.state.monthId : null;
     }
 
-    /** 返回指定频道当前月份的显示名；未启用月份模式时为 null。 */
+    /**
+     * 返回指定频道当前月份的显示名；未启用月份模式时为 null。
+     */
     public String getCurrentMonthDisplayName(CalendarChannel channel) {
-        ChannelRuntime rt = (ChannelRuntime)this.runtimes.get(channel);
+        ChannelRuntime rt = (ChannelRuntime) this.runtimes.get(channel);
         return rt != null ? rt.state.monthDisplayName : null;
     }
 
-    /** 判断指定频道是否处于月份模式。 */
+    /**
+     * 判断指定频道是否处于月份模式。
+     */
     public boolean isMonthsEnabled(CalendarChannel channel) {
-        ChannelRuntime rt = (ChannelRuntime)this.runtimes.get(channel);
+        ChannelRuntime rt = (ChannelRuntime) this.runtimes.get(channel);
         return rt != null && rt.mode == CalendarMode.MONTHS;
     }
 
-    /** 返回指定频道的日历模式；频道不存在时默认为季节模式。 */
+    /**
+     * 返回指定频道的日历模式；频道不存在时默认为季节模式。
+     */
     public CalendarMode getMode(CalendarChannel channel) {
-        ChannelRuntime rt = (ChannelRuntime)this.runtimes.get(channel);
+        ChannelRuntime rt = (ChannelRuntime) this.runtimes.get(channel);
         return rt != null ? rt.mode : CalendarMode.SEASONS;
     }
 
-    /** 将主世界频道推进一天。 */
+    /**
+     * 将主世界频道推进一天。
+     */
     public synchronized void nextDay() {
         this.nextDay(CalendarChannel.OVERWORLD);
     }
 
-    /** 将指定频道推进一天。 */
+    /**
+     * 将指定频道推进一天。
+     */
     public synchronized void nextDay(CalendarChannel channel) {
-        ChannelRuntime rt = (ChannelRuntime)this.runtimes.get(channel);
+        ChannelRuntime rt = (ChannelRuntime) this.runtimes.get(channel);
         if (rt != null) {
             rt.nextDay(false);
         }
 
     }
 
-    /** 设置主世界频道的季节。 */
+    /**
+     * 设置主世界频道的季节。
+     */
     public synchronized void setSeason(Season season) {
         this.setSeason(CalendarChannel.OVERWORLD, season);
     }
 
-    /** 设置指定频道的季节。 */
+    /**
+     * 设置指定频道的季节。
+     */
     public synchronized void setSeason(CalendarChannel channel, Season season) {
-        ChannelRuntime rt = (ChannelRuntime)this.runtimes.get(channel);
+        ChannelRuntime rt = (ChannelRuntime) this.runtimes.get(channel);
         if (rt != null) {
             rt.setSeason(season);
         }
 
     }
 
-    /** 设置主世界频道的日期。 */
+    /**
+     * 设置主世界频道的日期。
+     */
     public synchronized void setDay(int day) {
         this.setDay(CalendarChannel.OVERWORLD, day);
     }
 
-    /** 设置指定频道的日期（会自动限制在当前周期范围内）。 */
+    /**
+     * 设置指定频道的日期（会自动限制在当前周期范围内）。
+     */
     public synchronized void setDay(CalendarChannel channel, int day) {
-        ChannelRuntime rt = (ChannelRuntime)this.runtimes.get(channel);
+        ChannelRuntime rt = (ChannelRuntime) this.runtimes.get(channel);
         if (rt != null) {
             rt.setDay(day);
         }
 
     }
 
-    /** 设置主世界频道的年份。 */
+    /**
+     * 设置主世界频道的年份。
+     */
     public synchronized void setYear(int year) {
         this.setYear(CalendarChannel.OVERWORLD, year);
     }
 
-    /** 设置指定频道的年份。 */
+    /**
+     * 设置指定频道的年份。
+     */
     public synchronized void setYear(CalendarChannel channel, int year) {
-        ChannelRuntime rt = (ChannelRuntime)this.runtimes.get(channel);
+        ChannelRuntime rt = (ChannelRuntime) this.runtimes.get(channel);
         if (rt != null) {
             rt.setYear(year);
         }
 
     }
 
-    /** 判断当前是否有任意玩家在线。 */
+    /**
+     * 判断当前是否有任意玩家在线。
+     */
     private boolean hasAnyOnlinePlayer() {
         return !Bukkit.getOnlinePlayers().isEmpty();
     }
 
-    /** 判断给定的世界时间（tick）是否处于夜晚区间。 */
+    /**
+     * 判断给定的世界时间（tick）是否处于夜晚区间。
+     */
     private boolean isNightTime(long worldTime) {
         long normalizedTime = worldTime % 24000L;
         if (normalizedTime < 0L) {
@@ -567,7 +657,7 @@ public final class SeasonService implements Listener {
             try {
                 Object reason = event.getClass().getMethod("getSkipReason").invoke(event);
                 if (reason instanceof Enum) {
-                    return ((Enum)reason).name();
+                    return ((Enum) reason).name();
                 } else {
                     return reason != null ? String.valueOf(reason) : "";
                 }
@@ -608,19 +698,19 @@ public final class SeasonService implements Listener {
                             root = root.substring(root.indexOf(58) + 1);
                         }
 
-                        if (root.equals("day")) {
+                        if ("day".equals(root)) {
                             return new ManualTimeCommand(0L, 1);
-                        } else if (root.equals("night")) {
+                        } else if ("night".equals(root)) {
                             long current = this.normalizeTime(currentWorldTime);
                             return new ManualTimeCommand(14000L, 14000L < current ? 1 : 0);
-                        } else if (root.equals("time") && split.length >= 3) {
+                        } else if ("time".equals(root) && split.length >= 3) {
                             String action = split[1].toLowerCase(Locale.ROOT);
                             String value = split[2].toLowerCase(Locale.ROOT);
                             if (value.contains(":")) {
                                 value = value.substring(value.indexOf(58) + 1);
                             }
 
-                            if (action.equals("add")) {
+                            if ("add".equals(action)) {
                                 Long ticks = this.parseTimeTicks(value);
                                 if (ticks == null) {
                                     return null;
@@ -635,10 +725,10 @@ public final class SeasonService implements Listener {
                                     }
 
                                     long crossings = ticks > 0L ? Math.floorDiv(total, 24000L) : 0L;
-                                    int days = (int)Math.min(2147483647L, Math.max(0L, crossings));
+                                    int days = (int) Math.min(2147483647L, Math.max(0L, crossings));
                                     return new ManualTimeCommand(Math.floorMod(total, 24000L), days);
                                 }
-                            } else if (!action.equals("set")) {
+                            } else if (!"set".equals(action)) {
                                 return null;
                             } else {
                                 long current = this.normalizeTime(currentWorldTime);
@@ -673,14 +763,18 @@ public final class SeasonService implements Listener {
         }
     }
 
-    /** 构造一条“设置到某时刻”的命令，并在跨越午夜时标记需推进的天数。 */
+    /**
+     * 构造一条“设置到某时刻”的命令，并在跨越午夜时标记需推进的天数。
+     */
     private ManualTimeCommand manualSetCommand(long currentWorldTime, long targetWorldTime) {
         long current = this.normalizeTime(currentWorldTime);
         long target = this.normalizeTime(targetWorldTime);
         return new ManualTimeCommand(target, target < current ? 1 : 0);
     }
 
-    /** 把时间（tick）归一化到 [0, 24000) 区间。 */
+    /**
+     * 把时间（tick）归一化到 [0, 24000) 区间。
+     */
     private long normalizeTime(long time) {
         long normalized = time % 24000L;
         return normalized < 0L ? normalized + 24000L : normalized;
@@ -695,11 +789,11 @@ public final class SeasonService implements Listener {
     private Long parseTimeTicks(String rawValue) {
         if (rawValue != null && !rawValue.isBlank()) {
             String value = rawValue.trim().toLowerCase(Locale.ROOT);
-            double multiplier = (double)1.0F;
+            double multiplier = (double) 1.0F;
             char suffix = value.charAt(value.length() - 1);
             if (suffix == 'd' || suffix == 's' || suffix == 't') {
                 value = value.substring(0, value.length() - 1);
-                multiplier = suffix == 'd' ? (double)24000.0F : (suffix == 's' ? (double)20.0F : (double)1.0F);
+                multiplier = suffix == 'd' ? (double) 24000.0F : (suffix == 's' ? (double) 20.0F : (double) 1.0F);
             }
 
             try {
@@ -728,7 +822,7 @@ public final class SeasonService implements Listener {
                     if (cmd.appliedEvent != null && !cmd.appliedEvent.isCancelled() && this.plugin.isEnabled()) {
                         CalendarChannel channel = this.resolveChannel(world);
                         if (channel != null) {
-                            ChannelRuntime rt = (ChannelRuntime)this.runtimes.get(channel);
+                            ChannelRuntime rt = (ChannelRuntime) this.runtimes.get(channel);
                             if (rt != null && rt.enabled) {
                                 if (!rt.requirePlayersOnServer || this.hasAnyOnlinePlayer()) {
                                     if (world.getEnvironment() == Environment.NORMAL) {
@@ -743,9 +837,11 @@ public final class SeasonService implements Listener {
         }
     }
 
-    /** 返回控制台命令默认作用的世界：优先取主世界频道的锚世界，否则回退到名为 world 的世界。 */
+    /**
+     * 返回控制台命令默认作用的世界：优先取主世界频道的锚世界，否则回退到名为 world 的世界。
+     */
     private World getConsoleDefaultWorld() {
-        ChannelRuntime rt = (ChannelRuntime)this.runtimes.get(CalendarChannel.OVERWORLD);
+        ChannelRuntime rt = (ChannelRuntime) this.runtimes.get(CalendarChannel.OVERWORLD);
         if (rt != null) {
             World anchor = rt.getAnchorWorld();
             if (anchor != null) {
@@ -756,10 +852,12 @@ public final class SeasonService implements Listener {
         return Bukkit.getWorld("world");
     }
 
-    /** 监听玩家执行命令：若命令是时间操作，则解析并排队应用。 */
+    /**
+     * 监听玩家执行命令：若命令是时间操作，则解析并排队应用。
+     */
     @EventHandler(
-        ignoreCancelled = true,
-        priority = EventPriority.MONITOR
+            ignoreCancelled = true,
+            priority = EventPriority.MONITOR
     )
     public void onPlayerCommand(PlayerCommandPreprocessEvent event) {
         World world = event.getPlayer().getWorld();
@@ -769,9 +867,11 @@ public final class SeasonService implements Listener {
         }
     }
 
-    /** 监听控制台命令：若命令是时间操作，则解析并在默认世界排队应用。 */
+    /**
+     * 监听控制台命令：若命令是时间操作，则解析并在默认世界排队应用。
+     */
     @EventHandler(
-        priority = EventPriority.MONITOR
+            priority = EventPriority.MONITOR
     )
     public void onServerCommand(ServerCommandEvent event) {
         World world = this.getConsoleDefaultWorld();
@@ -783,9 +883,11 @@ public final class SeasonService implements Listener {
         }
     }
 
-    /** 监听玩家上床：记录入睡时的时间快照，供离床时判断是否推进。 */
+    /**
+     * 监听玩家上床：记录入睡时的时间快照，供离床时判断是否推进。
+     */
     @EventHandler(
-        ignoreCancelled = true
+            ignoreCancelled = true
     )
     public void onPlayerBedEnter(PlayerBedEnterEvent event) {
         if (event.getBedEnterResult() == BedEnterResult.OK) {
@@ -802,14 +904,14 @@ public final class SeasonService implements Listener {
      * 交由 {@link #scheduleConfirmedTimeSkip} 处理；命令造成的跳变则换算为需推进的天数后同样排队应用。</p>
      */
     @EventHandler(
-        ignoreCancelled = true,
-        priority = EventPriority.MONITOR
+            ignoreCancelled = true,
+            priority = EventPriority.MONITOR
     )
     public void onTimeSkip(TimeSkipEvent event) {
         World world = event.getWorld();
         CalendarChannel channel = this.resolveChannel(world);
         if (channel != null) {
-            ChannelRuntime runtime = (ChannelRuntime)this.runtimes.get(channel);
+            ChannelRuntime runtime = (ChannelRuntime) this.runtimes.get(channel);
             if (runtime != null && runtime.enabled) {
                 if (!runtime.internalTimeWrite) {
                     if (!runtime.requirePlayersOnServer || this.hasAnyOnlinePlayer()) {
@@ -834,7 +936,7 @@ public final class SeasonService implements Listener {
                                 }
                             } else {
                                 if ("COMMAND".equals(reason) || "CUSTOM".equals(reason)) {
-                                    ManualTimeCommand pending = (ManualTimeCommand)this.pendingManualTimeCommands.get(world.getUID());
+                                    ManualTimeCommand pending = (ManualTimeCommand) this.pendingManualTimeCommands.get(world.getUID());
                                     if (pending != null) {
                                         pending.appliedEvent = event;
                                         return;
@@ -850,7 +952,7 @@ public final class SeasonService implements Listener {
                                     }
 
                                     long crossings = skip > 0L ? Math.floorDiv(total, 24000L) : (newTime < this.normalizeTime(currentTime) ? 1L : 0L);
-                                    int days = (int)Math.min(2147483647L, Math.max(0L, crossings));
+                                    int days = (int) Math.min(2147483647L, Math.max(0L, crossings));
                                     this.scheduleConfirmedTimeSkip(world, new ManualTimeCommand(newTime, days), event);
                                 }
                             }
@@ -861,7 +963,9 @@ public final class SeasonService implements Listener {
         }
     }
 
-    /** 把跳过事件绑定到时间命令上并排队，以便执行前确认事件未被取消。 */
+    /**
+     * 把跳过事件绑定到时间命令上并排队，以便执行前确认事件未被取消。
+     */
     private void scheduleConfirmedTimeSkip(World world, ManualTimeCommand command, TimeSkipEvent event) {
         command.appliedEvent = event;
         this.scheduleManualTimeCommand(world, command);
@@ -874,15 +978,15 @@ public final class SeasonService implements Listener {
      * 睡够时长，且满足自定义时钟 / 非跟随世界时间 / 世界时间已到清晨等条件时才推进。</p>
      */
     @EventHandler(
-        ignoreCancelled = true
+            ignoreCancelled = true
     )
     public void onPlayerBedLeave(PlayerBedLeaveEvent event) {
         Player player = event.getPlayer();
         World world = player.getWorld();
-        SleepSnapshot snapshot = (SleepSnapshot)this.sleepSnapshots.remove(player.getUniqueId());
+        SleepSnapshot snapshot = (SleepSnapshot) this.sleepSnapshots.remove(player.getUniqueId());
         CalendarChannel channel = this.resolveChannel(world);
         if (channel != null) {
-            ChannelRuntime runtime = (ChannelRuntime)this.runtimes.get(channel);
+            ChannelRuntime runtime = (ChannelRuntime) this.runtimes.get(channel);
             if (runtime != null && runtime.enabled) {
                 if (runtime.advanceOnSleep) {
                     if (!runtime.requirePlayersOnServer || this.hasAnyOnlinePlayer()) {
@@ -916,13 +1020,15 @@ public final class SeasonService implements Listener {
         }
     }
 
-    /** 在月份列表中查找指定月份标识的下标（忽略大小写）；找不到返回 -1。 */
+    /**
+     * 在月份列表中查找指定月份标识的下标（忽略大小写）；找不到返回 -1。
+     */
     private int findMonthIndex(List<CalendarMonthDefinition> months, String monthId) {
         if (monthId == null) {
             return -1;
         } else {
-            for(int index = 0; index < months.size(); ++index) {
-                if (((CalendarMonthDefinition)months.get(index)).getId().equalsIgnoreCase(monthId)) {
+            for (int index = 0; index < months.size(); ++index) {
+                if (((CalendarMonthDefinition) months.get(index)).getId().equalsIgnoreCase(monthId)) {
                     return index;
                 }
             }
@@ -931,9 +1037,11 @@ public final class SeasonService implements Listener {
         }
     }
 
-    /** 立即将所有频道的日历状态写入磁盘。 */
+    /**
+     * 立即将所有频道的日历状态写入磁盘。
+     */
     public synchronized void persistNow() {
-        for(ChannelRuntime rt : this.runtimes.values()) {
+        for (ChannelRuntime rt : this.runtimes.values()) {
             if (rt != null) {
                 rt.persistNow();
             }
@@ -941,16 +1049,20 @@ public final class SeasonService implements Listener {
 
     }
 
-    /** 立即将指定频道的日历状态写入磁盘。 */
+    /**
+     * 立即将指定频道的日历状态写入磁盘。
+     */
     public synchronized void persistNow(CalendarChannel channel) {
-        ChannelRuntime rt = (ChannelRuntime)this.runtimes.get(channel);
+        ChannelRuntime rt = (ChannelRuntime) this.runtimes.get(channel);
         if (rt != null) {
             rt.persistNow();
         }
 
     }
 
-    /** 玩家入睡时的时间快照，用于离床时判断是否满足推进条件。 */
+    /**
+     * 玩家入睡时的时间快照，用于离床时判断是否满足推进条件。
+     */
     private static final class SleepSnapshot {
         private final UUID worldId;
         private final long enteredAtMs;
@@ -964,7 +1076,9 @@ public final class SeasonService implements Listener {
         }
     }
 
-    /** 一次手动时间修改命令：目标世界时间（当天 tick）、需推进的天数，以及可选的关联跳过事件。 */
+    /**
+     * 一次手动时间修改命令：目标世界时间（当天 tick）、需推进的天数，以及可选的关联跳过事件。
+     */
     private static final class ManualTimeCommand {
         private final long targetWorldTime;
         private final int daysToAdvance;
@@ -1000,7 +1114,7 @@ public final class SeasonService implements Listener {
         private final int maxCatchupDays;
         private final List<CalendarMonthDefinition> months;
         private final File stateFile;
-        private CalendarState state;
+        private final CalendarState state;
         private BukkitTask worldClockTask;
         private BukkitTask customClockTask;
         private long clockStartMs = Long.MIN_VALUE;
@@ -1019,7 +1133,9 @@ public final class SeasonService implements Listener {
         private long lastManualCommandTarget = Long.MIN_VALUE;
         private int lastManualCommandDaysAdvanced = 0;
 
-        /** 构造频道运行时并校正初始状态。 */
+        /**
+         * 构造频道运行时并校正初始状态。
+         */
         private ChannelRuntime(CalendarChannel channel, boolean enabled, CalendarMode mode, Set<String> worldNames, int daysPerSeason, EnumMap<Season, Integer> daysPerSeasonBySeason, boolean advanceOnSleep, int seasonDaylightMinutes, int seasonNightMinutes, boolean followWorldTime, boolean requirePlayersOnServer, String timeAnchorWorldName, int maxCatchupDays, List<CalendarMonthDefinition> months, File stateFile, CalendarState state) {
             super();
             this.channel = channel;
@@ -1041,7 +1157,9 @@ public final class SeasonService implements Listener {
             this.clampState();
         }
 
-        /** 根据配置的时钟类型启动相应调度任务（有自定义时钟时优先，否则按需启动世界时钟）。 */
+        /**
+         * 根据配置的时钟类型启动相应调度任务（有自定义时钟时优先，否则按需启动世界时钟）。
+         */
         private void registerTasks() {
             this.unregisterTasks();
             if (this.enabled) {
@@ -1064,7 +1182,9 @@ public final class SeasonService implements Listener {
             }
         }
 
-        /** 取消所有调度任务，释放昼夜循环接管，并重置时钟与缓存状态。 */
+        /**
+         * 取消所有调度任务，释放昼夜循环接管，并重置时钟与缓存状态。
+         */
         private void unregisterTasks() {
             if (this.worldClockTask != null) {
                 this.worldClockTask.cancel();
@@ -1087,7 +1207,9 @@ public final class SeasonService implements Listener {
             this.worldCacheDirty = true;
         }
 
-        /** 返回当前生效的白天现实分钟数（月份模式取当月定义，否则取季节配置）。 */
+        /**
+         * 返回当前生效的白天现实分钟数（月份模式取当月定义，否则取季节配置）。
+         */
         private int getEffectiveDaylightMinutes() {
             if (this.mode == CalendarMode.MONTHS) {
                 CalendarMonthDefinition monthDef = this.getCurrentMonth();
@@ -1097,7 +1219,9 @@ public final class SeasonService implements Listener {
             }
         }
 
-        /** 返回当前生效的夜晚现实分钟数（月份模式取当月定义，否则取季节配置）。 */
+        /**
+         * 返回当前生效的夜晚现实分钟数（月份模式取当月定义，否则取季节配置）。
+         */
         private int getEffectiveNightMinutes() {
             if (this.mode == CalendarMode.MONTHS) {
                 CalendarMonthDefinition monthDef = this.getCurrentMonth();
@@ -1107,7 +1231,9 @@ public final class SeasonService implements Listener {
             }
         }
 
-        /** 判断是否需要使用自定义时钟（昼夜时长均大于 0，且与默认 10/10 的跟随世界时间配置不同）。 */
+        /**
+         * 判断是否需要使用自定义时钟（昼夜时长均大于 0，且与默认 10/10 的跟随世界时间配置不同）。
+         */
         private boolean hasCustomClock() {
             int daylight = this.getEffectiveDaylightMinutes();
             int night = this.getEffectiveNightMinutes();
@@ -1118,13 +1244,17 @@ public final class SeasonService implements Listener {
             }
         }
 
-        /** 返回指定季节配置的每季天数；未单独配置时回退到默认值。 */
+        /**
+         * 返回指定季节配置的每季天数；未单独配置时回退到默认值。
+         */
         private int getDaysPerSeasonFor(Season season) {
-            Integer configuredDays = (Integer)this.daysPerSeasonBySeason.get(season);
+            Integer configuredDays = (Integer) this.daysPerSeasonBySeason.get(season);
             return configuredDays != null ? configuredDays : this.daysPerSeason;
         }
 
-        /** 返回当前周期的天数（月份模式下为当月天数，否则为当前季节的天数）。 */
+        /**
+         * 返回当前周期的天数（月份模式下为当月天数，否则为当前季节的天数）。
+         */
         private int getCurrentPeriodLength() {
             if (this.mode == CalendarMode.MONTHS) {
                 CalendarMonthDefinition monthDef = this.getCurrentMonth();
@@ -1134,7 +1264,9 @@ public final class SeasonService implements Listener {
             }
         }
 
-        /** 返回当前月份定义；未启用月份模式或没有月份时返回 null。 */
+        /**
+         * 返回当前月份定义；未启用月份模式或没有月份时返回 null。
+         */
         private CalendarMonthDefinition getCurrentMonth() {
             if (this.mode == CalendarMode.MONTHS && !this.months.isEmpty()) {
                 int monthIndex = this.state.monthIndex;
@@ -1146,18 +1278,22 @@ public final class SeasonService implements Listener {
                     monthIndex = 0;
                 }
 
-                return (CalendarMonthDefinition)this.months.get(monthIndex);
+                return (CalendarMonthDefinition) this.months.get(monthIndex);
             } else {
                 return null;
             }
         }
 
-        /** 返回当前时钟阶段键（月份模式为 MONTH_&lt;id&gt;，否则为 SEASON_&lt;季节&gt;），用于检测阶段切换。 */
+        /**
+         * 返回当前时钟阶段键（月份模式为 MONTH_&lt;id&gt;，否则为 SEASON_&lt;季节&gt;），用于检测阶段切换。
+         */
         private String getCurrentClockPhaseKey() {
             return this.mode == CalendarMode.MONTHS && this.getCurrentMonth() != null ? "MONTH_" + this.getCurrentMonth().getId() : "SEASON_" + this.state.season.name();
         }
 
-        /** 把世界时间归一化到 [0, 24000) 区间。 */
+        /**
+         * 把世界时间归一化到 [0, 24000) 区间。
+         */
         private long normalizeWorldTime(long time) {
             long normalizedTime = time % 24000L;
             if (normalizedTime < 0L) {
@@ -1167,37 +1303,45 @@ public final class SeasonService implements Listener {
             return normalizedTime;
         }
 
-        /** 将世界时间（tick）按昼夜比例换算为从当天开始经过的现实毫秒数。 */
+        /**
+         * 将世界时间（tick）按昼夜比例换算为从当天开始经过的现实毫秒数。
+         */
         private long worldTimeToElapsedMs(long worldTime, int daylightMinutes, int nightMinutes) {
             long normalizedTime = this.normalizeWorldTime(worldTime);
-            long dayMs = (long)daylightMinutes * 60000L;
-            long nightMs = (long)nightMinutes * 60000L;
+            long dayMs = (long) daylightMinutes * 60000L;
+            long nightMs = (long) nightMinutes * 60000L;
             if (normalizedTime < 12000L) {
-                return Math.round((double)normalizedTime / (double)12000.0F * (double)dayMs);
+                return Math.round((double) normalizedTime / (double) 12000.0F * (double) dayMs);
             } else {
                 long nightTicks = normalizedTime - 12000L;
-                return dayMs + Math.round((double)nightTicks / (double)12000.0F * (double)nightMs);
+                return dayMs + Math.round((double) nightTicks / (double) 12000.0F * (double) nightMs);
             }
         }
 
-        /** 将从当天开始的现实毫秒数按昼夜比例换算回世界时间（tick）。 */
+        /**
+         * 将从当天开始的现实毫秒数按昼夜比例换算回世界时间（tick）。
+         */
         private long elapsedMsToWorldTime(long elapsedMs, int daylightMinutes, int nightMinutes) {
-            long dayMs = (long)daylightMinutes * 60000L;
-            long nightMs = (long)nightMinutes * 60000L;
+            long dayMs = (long) daylightMinutes * 60000L;
+            long nightMs = (long) nightMinutes * 60000L;
             if (elapsedMs < dayMs) {
-                return Math.max(0L, Math.min(11999L, Math.round((double)elapsedMs / (double)dayMs * (double)12000.0F)));
+                return Math.max(0L, Math.min(11999L, Math.round((double) elapsedMs / (double) dayMs * (double) 12000.0F)));
             } else {
                 long nightElapsed = elapsedMs - dayMs;
-                return 12000L + Math.max(0L, Math.min(11999L, Math.round((double)nightElapsed / (double)nightMs * (double)12000.0F)));
+                return 12000L + Math.max(0L, Math.min(11999L, Math.round((double) nightElapsed / (double) nightMs * (double) 12000.0F)));
             }
         }
 
-        /** 标记世界缓存为脏，下次使用时重建。 */
+        /**
+         * 标记世界缓存为脏，下次使用时重建。
+         */
         private void markWorldCacheDirty() {
             this.worldCacheDirty = true;
         }
 
-        /** 从各类缓存中移除某个世界（卸载时调用）。 */
+        /**
+         * 从各类缓存中移除某个世界（卸载时调用）。
+         */
         private void evictCachedWorld(World world) {
             if (world != null) {
                 UUID worldId = world.getUID();
@@ -1211,7 +1355,9 @@ public final class SeasonService implements Listener {
             }
         }
 
-        /** 若世界缓存为脏则重建。 */
+        /**
+         * 若世界缓存为脏则重建。
+         */
         private void ensureWorldCache() {
             if (this.worldCacheDirty) {
                 this.refreshWorldCache();
@@ -1219,12 +1365,14 @@ public final class SeasonService implements Listener {
 
         }
 
-        /** 重建缓存：收集本频道的世界、可手动控制时间的世界，并确定锚世界。 */
+        /**
+         * 重建缓存：收集本频道的世界、可手动控制时间的世界，并确定锚世界。
+         */
         private void refreshWorldCache() {
             List<World> channelWorlds = new ArrayList();
             List<World> manualTimeWorlds = new ArrayList();
 
-            for(World world : Bukkit.getWorlds()) {
+            for (World world : Bukkit.getWorlds()) {
                 if (SeasonService.this.resolveChannel(world) == this.channel) {
                     channelWorlds.add(world);
                     if (WorldCompat.supportsManualTime(world)) {
@@ -1235,7 +1383,7 @@ public final class SeasonService implements Listener {
 
             World anchor = Bukkit.getWorld(this.timeAnchorWorldName);
             if (anchor == null && !channelWorlds.isEmpty()) {
-                anchor = (World)channelWorlds.get(0);
+                anchor = (World) channelWorlds.get(0);
             }
 
             if (anchor == null) {
@@ -1251,15 +1399,17 @@ public final class SeasonService implements Listener {
 
         }
 
-        /** 接管频道世界的昼夜循环：记录并关闭自动昼夜循环，改由自定义时钟控制时间。 */
+        /**
+         * 接管频道世界的昼夜循环：记录并关闭自动昼夜循环，改由自定义时钟控制时间。
+         */
         private void acquireDaylightCycleControl(List<World> worlds) {
             GameRule<Boolean> rule = WorldCompat.daylightCycleRule();
             if (rule != null) {
-                for(World world : worlds) {
+                for (World world : worlds) {
                     UUID worldId = world.getUID();
                     if (!this.previousDaylightCycleValues.containsKey(worldId)) {
                         try {
-                            Boolean previous = (Boolean)world.getGameRuleValue(rule);
+                            Boolean previous = (Boolean) world.getGameRuleValue(rule);
                             if (WorldCompat.disableDaylightCycle(world, SeasonService.this.plugin)) {
                                 this.previousDaylightCycleValues.put(worldId, previous == null || previous);
                             }
@@ -1274,18 +1424,20 @@ public final class SeasonService implements Listener {
             }
         }
 
-        /** 释放对昼夜循环的接管，恢复此前记录的原值。 */
+        /**
+         * 释放对昼夜循环的接管，恢复此前记录的原值。
+         */
         private void releaseDaylightCycleControl() {
             if (!this.previousDaylightCycleValues.isEmpty()) {
                 GameRule<Boolean> rule = WorldCompat.daylightCycleRule();
                 if (rule == null) {
                     this.previousDaylightCycleValues.clear();
                 } else {
-                    for(Map.Entry<UUID, Boolean> entry : this.previousDaylightCycleValues.entrySet()) {
-                        World world = Bukkit.getWorld((UUID)entry.getKey());
+                    for (Map.Entry<UUID, Boolean> entry : this.previousDaylightCycleValues.entrySet()) {
+                        World world = Bukkit.getWorld((UUID) entry.getKey());
                         if (world != null) {
                             try {
-                                world.setGameRule(rule, (Boolean)entry.getValue());
+                                world.setGameRule(rule, (Boolean) entry.getValue());
                             } catch (Throwable failure) {
                                 Logger logger = SeasonService.this.plugin.getLogger();
                                 String worldName = world.getName();
@@ -1299,7 +1451,9 @@ public final class SeasonService implements Listener {
             }
         }
 
-        /** 将归一化后的世界时间应用到该频道的所有可手动控制世界。 */
+        /**
+         * 将归一化后的世界时间应用到该频道的所有可手动控制世界。
+         */
         private void applyWorldTimeToChannelWorlds(long worldTime) {
             this.applyWorldTimeToChannelWorlds(worldTime, false);
         }
@@ -1314,14 +1468,14 @@ public final class SeasonService implements Listener {
             long normalizedTime = this.normalizeWorldTime(worldTime);
             this.ensureWorldCache();
 
-            for(World world : this.cachedManualTimeWorlds) {
+            for (World world : this.cachedManualTimeWorlds) {
                 UUID worldId = world.getUID();
                 boolean controlledByCustomClock = this.previousDaylightCycleValues.containsKey(worldId);
                 if (controlledByCustomClock || WorldCompat.isTimeAdvancementEnabled(world)) {
                     long currentFullTime = world.getFullTime();
                     long currentRelativeTime = Math.floorMod(currentFullTime, 24000L);
                     long currentWorldDay = Math.floorDiv(currentFullTime, 24000L);
-                    long targetWorldDay = (Long)this.customClockWorldDays.computeIfAbsent(worldId, (ignored) -> currentWorldDay);
+                    long targetWorldDay = (Long) this.customClockWorldDays.computeIfAbsent(worldId, (ignored) -> currentWorldDay);
                     if (advanceDay) {
                         ++targetWorldDay;
                         this.customClockWorldDays.put(worldId, targetWorldDay);
@@ -1340,7 +1494,9 @@ public final class SeasonService implements Listener {
 
         }
 
-        /** 将自定义时钟对齐到锚世界的当前时间。 */
+        /**
+         * 将自定义时钟对齐到锚世界的当前时间。
+         */
         private void realignCustomClockToCurrentWorldTime() {
             if (!this.hasCustomClock()) {
                 this.clockStartMs = Long.MIN_VALUE;
@@ -1359,7 +1515,9 @@ public final class SeasonService implements Listener {
             }
         }
 
-        /** 把自定义时钟重置到黎明（新一天开始）。 */
+        /**
+         * 把自定义时钟重置到黎明（新一天开始）。
+         */
         private void resetCustomClockToDawn() {
             if (!this.hasCustomClock()) {
                 this.clockStartMs = Long.MIN_VALUE;
@@ -1371,18 +1529,22 @@ public final class SeasonService implements Listener {
             }
         }
 
-        /** 直接把归一化后的世界时间写入该频道的所有可手动控制世界（不推进世界日）。 */
+        /**
+         * 直接把归一化后的世界时间写入该频道的所有可手动控制世界（不推进世界日）。
+         */
         private void setWorldTimeToChannelWorlds(long worldTime) {
             long normalizedTime = this.normalizeWorldTime(worldTime);
             this.ensureWorldCache();
 
-            for(World world : this.cachedManualTimeWorlds) {
+            for (World world : this.cachedManualTimeWorlds) {
                 this.writeWorldTime(world, normalizedTime, false);
             }
 
         }
 
-        /** 写入世界时间；fullTime 为 true 时写完整时间（含天数），否则只写当天相对时间。 */
+        /**
+         * 写入世界时间；fullTime 为 true 时写完整时间（含天数），否则只写当天相对时间。
+         */
         private void writeWorldTime(World world, long value, boolean fullTime) {
             this.internalTimeWrite = true;
 
@@ -1398,7 +1560,9 @@ public final class SeasonService implements Listener {
 
         }
 
-        /** 将自定义时钟对齐到指定的手动世界时间。 */
+        /**
+         * 将自定义时钟对齐到指定的手动世界时间。
+         */
         private void realignCustomClockToManualWorldTime(long requestedWorldTime) {
             if (!this.hasCustomClock()) {
                 this.clockStartMs = Long.MIN_VALUE;
@@ -1415,7 +1579,9 @@ public final class SeasonService implements Listener {
             }
         }
 
-        /** 应用一条手动时间命令；带 250ms 去重，按需要推进的天数逐日处理。 */
+        /**
+         * 应用一条手动时间命令；带 250ms 去重，按需要推进的天数逐日处理。
+         */
         private synchronized void applyManualCommand(long requestedWorldTime, int daysToAdvance) {
             long target = this.normalizeWorldTime(requestedWorldTime);
             long now = System.currentTimeMillis();
@@ -1427,7 +1593,7 @@ public final class SeasonService implements Listener {
                 if (days <= 0) {
                     this.handleManualTimeSet(target);
                 } else {
-                    for(int dayOffset = 0; dayOffset < days; ++dayOffset) {
+                    for (int dayOffset = 0; dayOffset < days; ++dayOffset) {
                         this.handleManualSetToDay(target);
                     }
 
@@ -1435,7 +1601,9 @@ public final class SeasonService implements Listener {
             }
         }
 
-        /** 处理“手动设置到某天”的情况：推进一天并同步时钟/世界时间。 */
+        /**
+         * 处理“手动设置到某天”的情况：推进一天并同步时钟/世界时间。
+         */
         private synchronized void handleManualSetToDay(long requestedWorldTime) {
             long target = this.normalizeWorldTime(requestedWorldTime);
             long now = System.currentTimeMillis();
@@ -1465,7 +1633,9 @@ public final class SeasonService implements Listener {
             Bukkit.getPluginManager().callEvent(new SeasonUpdateEvent(SeasonService.this, this.channel, this.state.copy(), true));
         }
 
-        /** 处理“手动设置时刻”的情况：对齐自定义时钟或直接写入世界时间。 */
+        /**
+         * 处理“手动设置时刻”的情况：对齐自定义时钟或直接写入世界时间。
+         */
         private synchronized void handleManualTimeSet(long requestedWorldTime) {
             long target = this.normalizeWorldTime(requestedWorldTime);
             if (this.hasCustomClock()) {
@@ -1477,7 +1647,9 @@ public final class SeasonService implements Listener {
 
         }
 
-        /** 自定义时钟的周期回调：按现实流逝时间推进日历，并把目标时间同步到频道世界。 */
+        /**
+         * 自定义时钟的周期回调：按现实流逝时间推进日历，并把目标时间同步到频道世界。
+         */
         private void tickCustomClock() {
             int daylight = this.getEffectiveDaylightMinutes();
             int night = this.getEffectiveNightMinutes();
@@ -1514,10 +1686,10 @@ public final class SeasonService implements Listener {
                                     this.clockPhaseKey = phaseKey;
                                 }
 
-                                long totalMs = ((long)daylight + (long)night) * 60000L;
+                                long totalMs = ((long) daylight + (long) night) * 60000L;
 
                                 long elapsedMs;
-                                for(elapsedMs = now - this.clockStartMs; elapsedMs >= totalMs; this.clockStartMs = now - elapsedMs) {
+                                for (elapsedMs = now - this.clockStartMs; elapsedMs >= totalMs; this.clockStartMs = now - elapsedMs) {
                                     elapsedMs -= totalMs;
                                     this.nextDay(true);
                                     daylight = this.getEffectiveDaylightMinutes();
@@ -1526,7 +1698,7 @@ public final class SeasonService implements Listener {
                                         return;
                                     }
 
-                                    totalMs = ((long)daylight + (long)night) * 60000L;
+                                    totalMs = ((long) daylight + (long) night) * 60000L;
                                     this.clockPhaseKey = this.getCurrentClockPhaseKey();
                                 }
 
@@ -1539,14 +1711,18 @@ public final class SeasonService implements Listener {
             }
         }
 
-        /** 返回明天状态的副本（不修改实际状态）。 */
+        /**
+         * 返回明天状态的副本（不修改实际状态）。
+         */
         private CalendarState peekTomorrow() {
             CalendarState copy = this.state.copy();
             this.advance(copy);
             return copy;
         }
 
-        /** 世界时钟的周期回调：跟随锚世界时间的前进，按跨过的天数推进日历。 */
+        /**
+         * 世界时钟的周期回调：跟随锚世界时间的前进，按跨过的天数推进日历。
+         */
         private void tickWorldClock() {
             World anchor = this.getAnchorWorld();
             if (anchor != null) {
@@ -1561,10 +1737,10 @@ public final class SeasonService implements Listener {
                         if (daysElapsed != 0L) {
                             if (this.requirePlayersOnServer && !SeasonService.this.hasAnyOnlinePlayer()) {
                                 this.lastWorldDayIdx = worldDayIndex;
-                            } else if ((this.maxCatchupDays != 0 || daysElapsed <= 1L) && (this.maxCatchupDays <= 0 || daysElapsed <= (long)this.maxCatchupDays)) {
+                            } else if ((this.maxCatchupDays != 0 || daysElapsed <= 1L) && (this.maxCatchupDays <= 0 || daysElapsed <= (long) this.maxCatchupDays)) {
                                 this.lastWorldDayIdx = worldDayIndex;
 
-                                for(int dayOffset = 0; (long)dayOffset < daysElapsed; ++dayOffset) {
+                                for (int dayOffset = 0; (long) dayOffset < daysElapsed; ++dayOffset) {
                                     this.nextDay(true);
                                 }
 
@@ -1577,18 +1753,22 @@ public final class SeasonService implements Listener {
             }
         }
 
-        /** 返回锚世界（用于读取/驱动世界时间的参照世界）。 */
+        /**
+         * 返回锚世界（用于读取/驱动世界时间的参照世界）。
+         */
         private World getAnchorWorld() {
             this.ensureWorldCache();
             return this.cachedAnchorWorld;
         }
 
-        /** 判断是否存在尚未确认生效的时间同步命令（避免时钟与其冲突）。 */
+        /**
+         * 判断是否存在尚未确认生效的时间同步命令（避免时钟与其冲突）。
+         */
         private boolean hasPendingTimeSync() {
             this.ensureWorldCache();
 
-            for(World world : this.cachedManualTimeWorlds) {
-                ManualTimeCommand pending = (ManualTimeCommand)SeasonService.this.pendingManualTimeCommands.get(world.getUID());
+            for (World world : this.cachedManualTimeWorlds) {
+                ManualTimeCommand pending = (ManualTimeCommand) SeasonService.this.pendingManualTimeCommands.get(world.getUID());
                 if (pending != null && pending.appliedEvent != null && !pending.appliedEvent.isCancelled()) {
                     return true;
                 }
@@ -1597,7 +1777,9 @@ public final class SeasonService implements Listener {
             return false;
         }
 
-        /** 将频道日期推进一天；非绕过去抖时会做 500ms 去重，并触发更新事件。 */
+        /**
+         * 将频道日期推进一天；非绕过去抖时会做 500ms 去重，并触发更新事件。
+         */
         private synchronized void nextDay(boolean bypassDebounce) {
             long now = System.currentTimeMillis();
             if (!bypassDebounce) {
@@ -1614,11 +1796,13 @@ public final class SeasonService implements Listener {
             Bukkit.getPluginManager().callEvent(new SeasonUpdateEvent(SeasonService.this, this.channel, this.state.copy(), true));
         }
 
-        /** 设置季节；月份模式下会定位到该季节对应的第一个月份并对齐状态。 */
+        /**
+         * 设置季节；月份模式下会定位到该季节对应的第一个月份并对齐状态。
+         */
         private synchronized void setSeason(Season season) {
             if (this.mode == CalendarMode.MONTHS) {
-                for(int index = 0; index < this.months.size(); ++index) {
-                    CalendarMonthDefinition monthDef = (CalendarMonthDefinition)this.months.get(index);
+                for (int index = 0; index < this.months.size(); ++index) {
+                    CalendarMonthDefinition monthDef = (CalendarMonthDefinition) this.months.get(index);
                     if (monthDef.getSeason() == season) {
                         this.state.season = monthDef.getSeason();
                         this.state.monthId = monthDef.getId();
@@ -1648,7 +1832,9 @@ public final class SeasonService implements Listener {
             Bukkit.getPluginManager().callEvent(new SeasonUpdateEvent(SeasonService.this, this.channel, this.state.copy(), false));
         }
 
-        /** 设置日期并限制在当前周期范围内。 */
+        /**
+         * 设置日期并限制在当前周期范围内。
+         */
         private synchronized void setDay(int day) {
             int maxDay = this.getCurrentPeriodLength();
             if (day < 1) {
@@ -1665,7 +1851,9 @@ public final class SeasonService implements Listener {
             Bukkit.getPluginManager().callEvent(new SeasonUpdateEvent(SeasonService.this, this.channel, this.state.copy(), false));
         }
 
-        /** 设置年份（最小为 1）。 */
+        /**
+         * 设置年份（最小为 1）。
+         */
         private synchronized void setYear(int year) {
             if (year < 1) {
                 year = 1;
@@ -1677,7 +1865,9 @@ public final class SeasonService implements Listener {
             Bukkit.getPluginManager().callEvent(new SeasonUpdateEvent(SeasonService.this, this.channel, this.state.copy(), false));
         }
 
-        /** 校正状态字段：保证年份/日期合法，并同步月份模式下的月份相关字段。 */
+        /**
+         * 校正状态字段：保证年份/日期合法，并同步月份模式下的月份相关字段。
+         */
         private void clampState() {
             if (this.state.year < 1) {
                 this.state.year = 1;
@@ -1697,7 +1887,7 @@ public final class SeasonService implements Listener {
                     monthIndex = 0;
                 }
 
-                CalendarMonthDefinition monthDef = (CalendarMonthDefinition)this.months.get(monthIndex);
+                CalendarMonthDefinition monthDef = (CalendarMonthDefinition) this.months.get(monthIndex);
                 this.state.monthsEnabled = true;
                 this.state.monthId = monthDef.getId();
                 this.state.monthDisplayName = monthDef.getDisplayName();
@@ -1721,7 +1911,9 @@ public final class SeasonService implements Listener {
 
         }
 
-        /** 将目标状态推进一天（跨月/跨季时自动进位，可能跨年）。 */
+        /**
+         * 将目标状态推进一天（跨月/跨季时自动进位，可能跨年）。
+         */
         private void advance(CalendarState target) {
             if (this.mode == CalendarMode.MONTHS && !this.months.isEmpty()) {
                 int monthIndex = target.monthIndex;
@@ -1733,7 +1925,7 @@ public final class SeasonService implements Listener {
                     monthIndex = 0;
                 }
 
-                CalendarMonthDefinition current = (CalendarMonthDefinition)this.months.get(monthIndex);
+                CalendarMonthDefinition current = (CalendarMonthDefinition) this.months.get(monthIndex);
                 target.monthsEnabled = true;
                 target.monthId = current.getId();
                 target.monthDisplayName = current.getDisplayName();
@@ -1748,7 +1940,7 @@ public final class SeasonService implements Listener {
                         ++target.year;
                     }
 
-                    CalendarMonthDefinition next = (CalendarMonthDefinition)this.months.get(monthIndex);
+                    CalendarMonthDefinition next = (CalendarMonthDefinition) this.months.get(monthIndex);
                     target.day = 1;
                     target.season = next.getSeason();
                     target.monthId = next.getId();
@@ -1776,7 +1968,9 @@ public final class SeasonService implements Listener {
             }
         }
 
-        /** 将当前日历状态写入该频道的状态文件（必要时创建父目录）。 */
+        /**
+         * 将当前日历状态写入该频道的状态文件（必要时创建父目录）。
+         */
         private void persistNow() {
             try {
                 if (!this.stateFile.getParentFile().exists()) {
@@ -1801,7 +1995,9 @@ public final class SeasonService implements Listener {
 
         }
 
-        /** 返回给定季节的下一个季节（冬季之后回到春季）。 */
+        /**
+         * 返回给定季节的下一个季节（冬季之后回到春季）。
+         */
         private Season nextSeason(Season season) {
             Season next;
             switch (season) {
@@ -1809,7 +2005,7 @@ public final class SeasonService implements Listener {
                 case SUMMER -> next = Season.AUTUMN;
                 case AUTUMN -> next = Season.WINTER;
                 case WINTER -> next = Season.SPRING;
-                default -> throw new MatchException((String)null, (Throwable)null);
+                default -> throw new MatchException((String) null, (Throwable) null);
             }
 
             return next;

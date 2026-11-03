@@ -952,17 +952,6 @@ crop:
     any_season: "&7Cresce em qualquer estação"
     greenhouse_light: "&8Estufa subterrânea: luz {light}+"
 
-farming:
-  compost:
-    raw_name: "&aComposto cru"
-    raw_lore_1: "&7Mistura úmida de terra e restos orgânicos."
-    raw_lore_2: "&7Deixe perto da água por 2 dias."
-    ready_name: "&2Terra fértil rica"
-    ready_lore_1: "&7As plantações aqui crescem &ax2 &7mais rápido."
-    ready_lore_2: "&7Pisar nela não quebra o solo arado."
-    ready_message: "&aSeu composto se transformou em uma terra fértil rica."
-
-
 villager:
   lazy_tag: "&7[&6Preguiçoso&7]"
 

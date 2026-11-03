@@ -35,7 +35,7 @@ events:
     damage_per_tick: 0.5             # Daño por tick / Damage per tick
     min_armor_pieces: 2              # Piezas armadura / Armor pieces
     heat_radius_blocks: 5            # Radio calor / Heat radius
-    heat_block_types:                # Bloques de calor / Heat blocks
+    heat_block_types: # Bloques de calor / Heat blocks
       - CAMPFIRE
       - SOUL_CAMPFIRE
       - TORCH
@@ -98,8 +98,8 @@ events:
     min_spawn_distance: 20.0         # Spawn mín / Min spawn dist
     max_spawn_distance: 24.0         # Spawn máx / Max spawn dist
     drift_speed: 0.18                # Velocidad / Drift speed
-    allowed_worlds: []               # Mundos permitidos / Allowed worlds
-    disabled_worlds:                 # Mundos desactivados / Disabled worlds
+    allowed_worlds: [ ]               # Mundos permitidos / Allowed worlds
+    disabled_worlds: # Mundos desactivados / Disabled worlds
       - lobby
       - aeternum_heat
 
@@ -126,7 +126,7 @@ events:
     weight: 1.0                      # Peso / Weight
     min_gap_days: 340               # Separación mín / Min gap
     max_gap_days: 380               # Separación máx / Max gap
-    seasons: [SPRING]                # Estaciones / Seasons
+    seasons: [ SPRING ]                # Estaciones / Seasons
     fireworks_chance: 0.60           # Prob. fuegos / Fireworks chance
     fireworks_bursts: 3              # Explosiones / Bursts
     gift_rockets_min: 12             # Cohetes mín / Min rockets

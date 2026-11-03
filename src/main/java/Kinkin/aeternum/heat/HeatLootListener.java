@@ -1,13 +1,6 @@
-package Kinkin.aeternum.heat;
+package kinkin.aeternum.heat;
 
-import Kinkin.aeternum.AeternumSeasonsPlugin;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Random;
-import java.util.Set;
+import kinkin.aeternum.AeternumSeasonsPlugin;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -23,6 +16,8 @@ import org.bukkit.event.world.LootGenerateEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.EnchantmentStorageMeta;
 import org.bukkit.inventory.meta.ItemMeta;
+
+import java.util.*;
 
 /**
  * 炎热世界战利品监听器。
@@ -49,10 +44,12 @@ public final class HeatLootListener implements Listener {
         HandlerList.unregisterAll(this);
     }
 
-    /** 监听战利品生成，将炎热世界容器的战利品替换为自定义战利品。 */
+    /**
+     * 监听战利品生成，将炎热世界容器的战利品替换为自定义战利品。
+     */
     @EventHandler(
-        ignoreCancelled = true,
-        priority = EventPriority.HIGHEST
+            ignoreCancelled = true,
+            priority = EventPriority.HIGHEST
     )
     public void onLoot(LootGenerateEvent event) {
         if (this.plugin.getConfig().getBoolean("heat_loot.enabled", true)) {
@@ -68,7 +65,7 @@ public final class HeatLootListener implements Listener {
                             int maxItems = this.plugin.getConfig().getInt("heat_loot.items_per_chest.max", 6);
                             int items = this.randBetween(minItems, maxItems);
 
-                            for(int i = 0; i < items; ++i) {
+                            for (int i = 0; i < items; ++i) {
                                 loot.add(this.generateHeatLoot());
                             }
 
@@ -79,11 +76,13 @@ public final class HeatLootListener implements Listener {
         }
     }
 
-    /** 判断世界名是否属于配置的炎热世界集合（未配置时回退默认世界名）。 */
+    /**
+     * 判断世界名是否属于配置的炎热世界集合（未配置时回退默认世界名）。
+     */
     private boolean isHeatWorld(String worldName) {
         List<String> worlds = this.plugin.getConfig().getStringList("heat_loot.worlds");
         if (worlds != null && !worlds.isEmpty()) {
-            for(String worldEntry : worlds) {
+            for (String worldEntry : worlds) {
                 if (worldEntry != null && !worldEntry.isBlank() && worldName.equalsIgnoreCase(worldEntry.trim())) {
                     return true;
                 }
@@ -91,16 +90,18 @@ public final class HeatLootListener implements Listener {
 
             return false;
         } else {
-            return worldName.equalsIgnoreCase("aeternum_heat");
+            return "aeternum_heat".equalsIgnoreCase(worldName);
         }
     }
 
-    /** 从配置的装备池中随机生成一件（或附魔书）战利品。 */
+    /**
+     * 从配置的装备池中随机生成一件（或附魔书）战利品。
+     */
     private ItemStack generateHeatLoot() {
         List<String> poolCfg = this.plugin.getConfig().getStringList("heat_loot.gear_pool");
         List<Material> pool = new ArrayList();
         if (poolCfg != null && !poolCfg.isEmpty()) {
-            for(String entry : poolCfg) {
+            for (String entry : poolCfg) {
                 if (entry != null) {
                     try {
                         pool.add(Material.valueOf(entry.trim().toUpperCase(Locale.ROOT)));
@@ -114,7 +115,7 @@ public final class HeatLootListener implements Listener {
             pool = Arrays.asList(Material.DIAMOND_SWORD, Material.DIAMOND_PICKAXE, Material.DIAMOND_AXE, Material.DIAMOND_CHESTPLATE, Material.DIAMOND_LEGGINGS, Material.DIAMOND_HELMET, Material.DIAMOND_BOOTS, Material.NETHERITE_SCRAP, Material.NETHERITE_INGOT, Material.ENCHANTED_GOLDEN_APPLE, Material.BOOK);
         }
 
-        Material material = (Material)pool.get(this.random.nextInt(pool.size()));
+        Material material = (Material) pool.get(this.random.nextInt(pool.size()));
         ItemStack item;
         if (material == Material.BOOK) {
             item = this.createCrazyBook();
@@ -130,7 +131,9 @@ public final class HeatLootListener implements Listener {
         return item;
     }
 
-    /** 依装备类型为其添加若干高等级附魔（受配置数量与等级上限约束）。 */
+    /**
+     * 依装备类型为其添加若干高等级附魔（受配置数量与等级上限约束）。
+     */
     private void addHighLevelEnchants(ItemStack item) {
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
@@ -179,8 +182,8 @@ public final class HeatLootListener implements Listener {
                 int added = 0;
                 int attempts = 0;
 
-                while(added < target && attempts++ < 30) {
-                    Enchantment ench = (Enchantment)pool.get(this.random.nextInt(pool.size()));
+                while (added < target && attempts++ < 30) {
+                    Enchantment ench = (Enchantment) pool.get(this.random.nextInt(pool.size()));
                     if (!used.contains(ench)) {
                         int desired = this.randBetween(minLevel, maxLevel);
                         int level = this.capEnchantLevel(ench, desired);
@@ -199,7 +202,9 @@ public final class HeatLootListener implements Listener {
         }
     }
 
-    /** 生成一本附带多条高等级附魔的“疯狂附魔书”。 */
+    /**
+     * 生成一本附带多条高等级附魔的“疯狂附魔书”。
+     */
     private ItemStack createCrazyBook() {
         ItemStack book = new ItemStack(Material.ENCHANTED_BOOK);
         ItemMeta rawMeta = book.getItemMeta();
@@ -216,8 +221,8 @@ public final class HeatLootListener implements Listener {
             int added = 0;
             int attempts = 0;
 
-            while(added < target && attempts++ < 40) {
-                Enchantment ench = (Enchantment)possible.get(this.random.nextInt(possible.size()));
+            while (added < target && attempts++ < 40) {
+                Enchantment ench = (Enchantment) possible.get(this.random.nextInt(possible.size()));
                 if (!used.contains(ench)) {
                     int desired = this.randBetween(minLevel, maxLevel);
                     int level = this.capEnchantLevel(ench, desired);
@@ -236,7 +241,9 @@ public final class HeatLootListener implements Listener {
         }
     }
 
-    /** 按全局附魔上限（含按附魔键覆盖）裁剪期望等级。 */
+    /**
+     * 按全局附魔上限（含按附魔键覆盖）裁剪期望等级。
+     */
     private int capEnchantLevel(Enchantment ench, int desired) {
         if (!this.plugin.getConfig().getBoolean("enchants.caps.enabled", true)) {
             return desired;
@@ -255,7 +262,9 @@ public final class HeatLootListener implements Listener {
         }
     }
 
-    /** 读取某附魔的覆盖上限配置（支持完整键、小写简单键与大写简单键）。 */
+    /**
+     * 读取某附魔的覆盖上限配置（支持完整键、小写简单键与大写简单键）。
+     */
     private Integer readOverrideCap(Enchantment ench) {
         ConfigurationSection sec = this.plugin.getConfig().getConfigurationSection("enchants.caps.overrides");
         if (sec == null) {
@@ -276,7 +285,9 @@ public final class HeatLootListener implements Listener {
         }
     }
 
-    /** 返回 [min, max] 区间内的随机整数（会自动纠正颠倒的边界）。 */
+    /**
+     * 返回 [min, max] 区间内的随机整数（会自动纠正颠倒的边界）。
+     */
     private int randBetween(int min, int max) {
         if (max < min) {
             int temp = min;

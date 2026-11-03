@@ -80,7 +80,7 @@ cmd:
         variable: "variable"
         off: "apagado"
       set:
-        fixed:    "&aHUD estático activado."
+        fixed: "&aHUD estático activado."
         variable: "&aHUD variable activado."
         "off": "&aHUD desactivado."
 

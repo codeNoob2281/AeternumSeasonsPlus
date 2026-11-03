@@ -1,30 +1,10 @@
-package Kinkin.aeternum.food;
+package kinkin.aeternum.food;
 
-import Kinkin.aeternum.AeternumSeasonsPlugin;
-import Kinkin.aeternum.calendar.Season;
-import Kinkin.aeternum.farming.SeasonalCropGrowthListener;
-import Kinkin.aeternum.lang.LanguageManager;
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ThreadLocalRandom;
-import java.util.stream.Collectors;
-import org.bukkit.Bukkit;
-import org.bukkit.GameMode;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.NamespacedKey;
-import org.bukkit.World;
+import kinkin.aeternum.AeternumSeasonsPlugin;
+import kinkin.aeternum.calendar.Season;
+import kinkin.aeternum.farming.SeasonalCropGrowthListener;
+import kinkin.aeternum.lang.LanguageManager;
+import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.Ageable;
@@ -33,15 +13,8 @@ import org.bukkit.block.data.Levelled;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.enchantments.Enchantment;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.EntityType;
-import org.bukkit.entity.HumanEntity;
-import org.bukkit.entity.Interaction;
-import org.bukkit.entity.Item;
-import org.bukkit.entity.ItemDisplay;
-import org.bukkit.entity.LivingEntity;
-import org.bukkit.entity.Player;
 import org.bukkit.entity.Display.Billboard;
+import org.bukkit.entity.*;
 import org.bukkit.entity.ItemDisplay.ItemDisplayTransform;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -55,21 +28,9 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.inventory.CraftItemEvent;
 import org.bukkit.event.inventory.PrepareItemCraftEvent;
-import org.bukkit.event.player.PlayerChangedWorldEvent;
-import org.bukkit.event.player.PlayerInteractEntityEvent;
-import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.event.player.PlayerItemConsumeEvent;
-import org.bukkit.event.player.PlayerJoinEvent;
-import org.bukkit.event.player.PlayerMoveEvent;
-import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.*;
 import org.bukkit.event.world.LootGenerateEvent;
-import org.bukkit.inventory.CraftingInventory;
-import org.bukkit.inventory.EquipmentSlot;
-import org.bukkit.inventory.ItemFlag;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.RecipeChoice;
-import org.bukkit.inventory.ShapedRecipe;
-import org.bukkit.inventory.ShapelessRecipe;
+import org.bukkit.inventory.*;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.components.FoodComponent;
 import org.bukkit.loot.LootTable;
@@ -78,6 +39,12 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitTask;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
 
 /**
  * 季节食物系统（SeasonFoods）。
@@ -138,11 +105,11 @@ public final class SeasonFoods implements Listener {
     private volatile boolean cropsDirty = false;
     private double zombieDropChance = 0.1;
     private final Map<String, EnumSet<Season>> growthSeasons;
-    private static final double CROP_VISUAL_RANGE_SQUARED = (double)16384.0F;
+    private static final double CROP_VISUAL_RANGE_SQUARED = (double) 16384.0F;
     private static final String[] RICE_VISUAL_MODELS = new String[]{"rice_seedling", "rice_stalk", "rice_young_top", "rice_ripe_top"};
 
     private void removeRecipes() {
-        for(String key : RECIPE_KEYS) {
+        for (String key : RECIPE_KEYS) {
             Bukkit.removeRecipe(new NamespacedKey(this.plugin, key));
         }
 
@@ -159,7 +126,9 @@ public final class SeasonFoods implements Listener {
         this.cropsFile = new File(plugin.getDataFolder(), "seasonfoods_crops.yml");
     }
 
-    /** 加载掉落配置、构建食材原型、注册配方与作物数据，并注册事件监听、启动外观刷新任务。 */
+    /**
+     * 加载掉落配置、构建食材原型、注册配方与作物数据，并注册事件监听、启动外观刷新任务。
+     */
     public void register() {
         this.loadLootConfig();
         this.buildIngredientPrototypes();
@@ -169,13 +138,15 @@ public final class SeasonFoods implements Listener {
         Bukkit.getPluginManager().registerEvents(this.cropDestructionListener, this.plugin);
         this.startVisualRefresh();
 
-        for(Player player : Bukkit.getOnlinePlayers()) {
+        for (Player player : Bukkit.getOnlinePlayers()) {
             this.removeFoodGlint(player);
         }
 
     }
 
-    /** 读取并校验僵尸掉落食材概率配置，非法值回退到默认 0.1。 */
+    /**
+     * 读取并校验僵尸掉落食材概率配置，非法值回退到默认 0.1。
+     */
     private void loadLootConfig() {
         if (this.plugin.cfg != null && this.plugin.cfg.crops != null) {
             double configuredChance = this.plugin.cfg.crops.getDouble("season_foods.loot.zombies.drop_chance", 0.1);
@@ -183,7 +154,7 @@ public final class SeasonFoods implements Listener {
                 this.plugin.getLogger().warning("[SeasonFoods] season_foods.loot.zombies.drop_chance must be a finite number. Using 0.1.");
                 this.zombieDropChance = 0.1;
             } else {
-                this.zombieDropChance = Math.max((double)0.0F, Math.min((double)1.0F, configuredChance));
+                this.zombieDropChance = Math.max((double) 0.0F, Math.min((double) 1.0F, configuredChance));
                 if (this.zombieDropChance != configuredChance) {
                     this.plugin.getLogger().warning("[SeasonFoods] season_foods.loot.zombies.drop_chance must be between 0.0 and 1.0. Using " + this.zombieDropChance + ".");
                 }
@@ -194,14 +165,16 @@ public final class SeasonFoods implements Listener {
         }
     }
 
-    /** 取消任务、还原玩家看到的真实作物方块、清理外观实体、注销监听与配方，并落盘作物数据。 */
+    /**
+     * 取消任务、还原玩家看到的真实作物方块、清理外观实体、注销监听与配方，并落盘作物数据。
+     */
     public void unregister() {
         if (this.visualRefreshTask != null) {
             this.visualRefreshTask.cancel();
             this.visualRefreshTask = null;
         }
 
-        for(Player player : Bukkit.getOnlinePlayers()) {
+        for (Player player : Bukkit.getOnlinePlayers()) {
             this.restoreRealCropBlocks(player);
         }
 
@@ -224,7 +197,9 @@ public final class SeasonFoods implements Listener {
         this.riceProto = this.buildIngredient("rice", Material.BEETROOT_SEEDS, 2303);
     }
 
-    /** 以基础材料为模板构建一种自定义食材（番茄/洋葱/水稻）的原型物品，并写入名称、lore、模型与食物 ID。 */
+    /**
+     * 以基础材料为模板构建一种自定义食材（番茄/洋葱/水稻）的原型物品，并写入名称、lore、模型与食物 ID。
+     */
     private ItemStack buildIngredient(String id, Material base, int cmd) {
         ItemStack item = new ItemStack(base);
         ItemMeta meta = item.getItemMeta();
@@ -236,7 +211,7 @@ public final class SeasonFoods implements Listener {
             List<String> lore = new ArrayList();
             lore.add(this.lang.trServer(baseKey + ".lore_1"));
             lore.add(this.lang.trServer(baseKey + ".lore_2"));
-            this.appendGrowthLore((Player)null, lore, id);
+            this.appendGrowthLore((Player) null, lore, id);
             meta.setLore(lore);
             meta.setCustomModelData(cmd);
             meta.addItemFlags(new ItemFlag[]{ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ENCHANTS});
@@ -269,7 +244,7 @@ public final class SeasonFoods implements Listener {
             FoodComponent.class.getMethod("setEatSeconds", Float.TYPE).invoke(food, 1.6F);
         } catch (NoSuchMethodException noSuchMethod) {
         } catch (LinkageError | ReflectiveOperationException ex) {
-            this.plugin.getLogger().warning("[SeasonFoods] Could not configure legacy tomato consumption: " + ((Throwable)ex).getMessage());
+            this.plugin.getLogger().warning("[SeasonFoods] Could not configure legacy tomato consumption: " + ((Throwable) ex).getMessage());
         }
 
     }
@@ -280,12 +255,12 @@ public final class SeasonFoods implements Listener {
             Class<?> animationType = Class.forName("org.bukkit.inventory.meta.components.consumable.ConsumableComponent$Animation");
             Object consumable = ItemMeta.class.getMethod("getConsumable").invoke(meta);
             componentType.getMethod("setConsumeSeconds", Float.TYPE).invoke(consumable, 1.6F);
-            Object eatAnimation = animationType.getField("EAT").get((Object)null);
+            Object eatAnimation = animationType.getField("EAT").get((Object) null);
             componentType.getMethod("setAnimation", animationType).invoke(consumable, eatAnimation);
             ItemMeta.class.getMethod("setConsumable", componentType).invoke(meta, consumable);
         } catch (NoSuchMethodException | ClassNotFoundException missingApi) {
         } catch (LinkageError | ReflectiveOperationException ex) {
-            this.plugin.getLogger().warning("[SeasonFoods] Could not configure Spigot tomato consumption: " + ((Throwable)ex).getMessage());
+            this.plugin.getLogger().warning("[SeasonFoods] Could not configure Spigot tomato consumption: " + ((Throwable) ex).getMessage());
         }
 
     }
@@ -298,15 +273,15 @@ public final class SeasonFoods implements Listener {
             Class<?> consumableType = Class.forName("io.papermc.paper.datacomponent.item.Consumable");
             Class<?> consumableBuilderType = Class.forName("io.papermc.paper.datacomponent.item.Consumable$Builder");
             Class<?> animationType = Class.forName("io.papermc.paper.datacomponent.item.consumable.ItemUseAnimation");
-            Object componentKey = dataComponentTypes.getField("CONSUMABLE").get((Object)null);
-            Object builder = consumableType.getMethod("consumable").invoke((Object)null);
+            Object componentKey = dataComponentTypes.getField("CONSUMABLE").get((Object) null);
+            Object builder = consumableType.getMethod("consumable").invoke((Object) null);
             consumableBuilderType.getMethod("consumeSeconds", Float.TYPE).invoke(builder, 1.6F);
-            Object eatAnimation = animationType.getField("EAT").get((Object)null);
+            Object eatAnimation = animationType.getField("EAT").get((Object) null);
             consumableBuilderType.getMethod("animation", animationType).invoke(builder, eatAnimation);
             ItemStack.class.getMethod("setData", valuedType, builderType).invoke(item, componentKey, builder);
         } catch (NoSuchMethodException | ClassNotFoundException missingApi) {
         } catch (LinkageError | ReflectiveOperationException ex) {
-            this.plugin.getLogger().warning("[SeasonFoods] Could not configure Paper tomato consumption: " + ((Throwable)ex).getMessage());
+            this.plugin.getLogger().warning("[SeasonFoods] Could not configure Paper tomato consumption: " + ((Throwable) ex).getMessage());
         }
 
     }
@@ -315,17 +290,19 @@ public final class SeasonFoods implements Listener {
         if (cropId == null) {
             return null;
         } else {
-            EnumSet<Season> seasons = (EnumSet)this.growthSeasons.get(cropId);
+            EnumSet<Season> seasons = (EnumSet) this.growthSeasons.get(cropId);
             return seasons == null ? null : EnumSet.copyOf(seasons);
         }
     }
 
-    /** 向物品 lore 追加“生长季节”一行；传入玩家时使用玩家语言，否则使用服务端默认语言。 */
+    /**
+     * 向物品 lore 追加“生长季节”一行；传入玩家时使用玩家语言，否则使用服务端默认语言。
+     */
     private void appendGrowthLore(Player player, List<String> lore, String cropId) {
-        EnumSet<Season> seasons = (EnumSet)this.growthSeasons.get(cropId);
+        EnumSet<Season> seasons = (EnumSet) this.growthSeasons.get(cropId);
         if (seasons != null && !seasons.isEmpty()) {
             if (lore != null) {
-                String seasonsText = (String)seasons.stream().map((season) -> player != null ? this.lang.tr(player, "season." + season.name()) : this.lang.trServer("season." + season.name())).collect(Collectors.joining(", "));
+                String seasonsText = (String) seasons.stream().map((season) -> player != null ? this.lang.tr(player, "season." + season.name()) : this.lang.trServer("season." + season.name())).collect(Collectors.joining(", "));
                 String template = player != null ? this.lang.tr(player, "items.food.grows_in") : this.lang.trServer("items.food.grows_in");
                 String line = template.replace("{seasons}", seasonsText);
                 if (!lore.contains(line)) {
@@ -335,7 +312,9 @@ public final class SeasonFoods implements Listener {
         }
     }
 
-    /** 注册全部自定义菜肴的工作台配方（无序/有序）。 */
+    /**
+     * 注册全部自定义菜肴的工作台配方（无序/有序）。
+     */
     private void registerRecipes() {
         ItemStack tomatoSalad = this.buildDishBase("tomato_salad", Material.MUSHROOM_STEW, 2304);
         NamespacedKey saladKey = new NamespacedKey(this.plugin, "tomato_salad");
@@ -397,7 +376,9 @@ public final class SeasonFoods implements Listener {
         Bukkit.addRecipe(chocoRecipe);
     }
 
-    /** 构建菜肴原型物品：写入本地化名称、lore、自定义模型数据与食物 ID。 */
+    /**
+     * 构建菜肴原型物品：写入本地化名称、lore、自定义模型数据与食物 ID。
+     */
     private ItemStack buildDishBase(String id, Material base, int cmd) {
         ItemStack item = new ItemStack(base);
         ItemMeta meta = item.getItemMeta();
@@ -423,14 +404,16 @@ public final class SeasonFoods implements Listener {
                 return null;
             } else {
                 PersistentDataContainer pdc = meta.getPersistentDataContainer();
-                return (String)pdc.get(this.FOOD_ID_KEY, PersistentDataType.STRING);
+                return (String) pdc.get(this.FOOD_ID_KEY, PersistentDataType.STRING);
             }
         } else {
             return null;
         }
     }
 
-    /** 对菜肴物品应用针对指定玩家的本地化名称与 lore（会清除诱饵附魔）。 */
+    /**
+     * 对菜肴物品应用针对指定玩家的本地化名称与 lore（会清除诱饵附魔）。
+     */
     private void applyDishLocalization(Player player, ItemStack item, String foodId) {
         if (foodId != null && item != null && DISH_IDS.contains(foodId)) {
             if (item.hasItemMeta()) {
@@ -446,13 +429,17 @@ public final class SeasonFoods implements Listener {
         }
     }
 
-    /** 将方块坐标编码为“世界名;x;y;z”的字符串键，用于作物记录与外观索引。 */
+    /**
+     * 将方块坐标编码为“世界名;x;y;z”的字符串键，用于作物记录与外观索引。
+     */
     private String locKey(Block block) {
         String worldName = block.getWorld().getName();
         return worldName + ";" + block.getX() + ";" + block.getY() + ";" + block.getZ();
     }
 
-    /** 从 seasonfoods_crops.yml 载入人工作物记录与水稻基座列表。 */
+    /**
+     * 从 seasonfoods_crops.yml 载入人工作物记录与水稻基座列表。
+     */
     private void loadCrops() {
         try {
             this.customCrops.clear();
@@ -464,7 +451,7 @@ public final class SeasonFoods implements Listener {
             YamlConfiguration config = YamlConfiguration.loadConfiguration(this.cropsFile);
             ConfigurationSection cropsSection = config.getConfigurationSection("custom_crops");
             if (cropsSection != null) {
-                for(String key : cropsSection.getKeys(false)) {
+                for (String key : cropsSection.getKeys(false)) {
                     String id = cropsSection.getString(key);
                     if (id != null) {
                         this.customCrops.put(key, id);
@@ -482,7 +469,9 @@ public final class SeasonFoods implements Listener {
 
     }
 
-    /** 标记作物数据已变更，并延迟合并保存（100 tick 内的多次变更只会触发一次落盘）。 */
+    /**
+     * 标记作物数据已变更，并延迟合并保存（100 tick 内的多次变更只会触发一次落盘）。
+     */
     private void markCropsDirty() {
         this.cropsDirty = true;
         if (this.saveTask == null) {
@@ -493,15 +482,17 @@ public final class SeasonFoods implements Listener {
         }
     }
 
-    /** 若存在未保存变更，则立即将人工作物记录与水稻基座写入 seasonfoods_crops.yml。 */
+    /**
+     * 若存在未保存变更，则立即将人工作物记录与水稻基座写入 seasonfoods_crops.yml。
+     */
     private void saveCropsNow() {
         if (this.cropsDirty) {
             try {
                 this.plugin.getDataFolder().mkdirs();
                 YamlConfiguration config = new YamlConfiguration();
 
-                for(Map.Entry<String, String> entry : this.customCrops.entrySet()) {
-                    config.set("custom_crops." + (String)entry.getKey(), entry.getValue());
+                for (Map.Entry<String, String> entry : this.customCrops.entrySet()) {
+                    config.set("custom_crops." + (String) entry.getKey(), entry.getValue());
                 }
 
                 config.set("rice_bases", new ArrayList(this.riceBases));
@@ -515,7 +506,9 @@ public final class SeasonFoods implements Listener {
         }
     }
 
-    /** 监听合成结果：若产物是自定义菜肴，则对产物物品应用对应玩家的本地化文本。 */
+    /**
+     * 监听合成结果：若产物是自定义菜肴，则对产物物品应用对应玩家的本地化文本。
+     */
     @EventHandler
     public void onCraft(CraftItemEvent event) {
         HumanEntity clicker = event.getWhoClicked();
@@ -549,18 +542,18 @@ public final class SeasonFoods implements Listener {
                             int tomatoCount = 0;
                             int bowls = 0;
 
-                            for(ItemStack stack : matrix) {
+                            for (ItemStack stack : matrix) {
                                 if (stack != null && stack.getType() != Material.AIR) {
                                     if (stack.getType() == Material.BOWL) {
                                         ++bowls;
                                         if (bowls > 1) {
-                                            inv.setResult((ItemStack)null);
+                                            inv.setResult((ItemStack) null);
                                             return;
                                         }
                                     } else {
                                         String id = this.getFoodId(stack);
                                         if (!"tomato".equals(id)) {
-                                            inv.setResult((ItemStack)null);
+                                            inv.setResult((ItemStack) null);
                                             return;
                                         }
 
@@ -570,7 +563,7 @@ public final class SeasonFoods implements Listener {
                             }
 
                             if (bowls != 1 || tomatoCount < 2) {
-                                inv.setResult((ItemStack)null);
+                                inv.setResult((ItemStack) null);
                                 return;
                             }
 
@@ -582,7 +575,7 @@ public final class SeasonFoods implements Listener {
                             int tomato = 0;
                             int onion = 0;
 
-                            for(ItemStack stack : matrix) {
+                            for (ItemStack stack : matrix) {
                                 if (stack != null && stack.getType() != Material.AIR) {
                                     Material material = stack.getType();
                                     if (material == Material.BREAD) {
@@ -593,7 +586,7 @@ public final class SeasonFoods implements Listener {
                                             ++tomato;
                                         } else {
                                             if (!"onion".equals(id)) {
-                                                inv.setResult((ItemStack)null);
+                                                inv.setResult((ItemStack) null);
                                                 return;
                                             }
 
@@ -604,7 +597,7 @@ public final class SeasonFoods implements Listener {
                             }
 
                             if (bread != 1 || tomato < 1 || onion < 1) {
-                                inv.setResult((ItemStack)null);
+                                inv.setResult((ItemStack) null);
                                 return;
                             }
 
@@ -617,7 +610,7 @@ public final class SeasonFoods implements Listener {
                             int msOnion = 0;
                             int msMeat = 0;
 
-                            for(ItemStack stack : matrix) {
+                            for (ItemStack stack : matrix) {
                                 if (stack != null && stack.getType() != Material.AIR) {
                                     Material material = stack.getType();
                                     if (material == Material.BREAD) {
@@ -630,7 +623,7 @@ public final class SeasonFoods implements Listener {
                                             ++msTomato;
                                         } else {
                                             if (!"onion".equals(id)) {
-                                                inv.setResult((ItemStack)null);
+                                                inv.setResult((ItemStack) null);
                                                 return;
                                             }
 
@@ -641,7 +634,7 @@ public final class SeasonFoods implements Listener {
                             }
 
                             if (msBread != 1 || msTomato < 1 || msOnion < 1 || msMeat < 1) {
-                                inv.setResult((ItemStack)null);
+                                inv.setResult((ItemStack) null);
                                 return;
                             }
 
@@ -653,7 +646,7 @@ public final class SeasonFoods implements Listener {
                             int rice = 0;
                             int stewMeat = 0;
 
-                            for(ItemStack stack : matrix) {
+                            for (ItemStack stack : matrix) {
                                 if (stack != null && stack.getType() != Material.AIR) {
                                     Material material = stack.getType();
                                     if (material == Material.BOWL) {
@@ -663,7 +656,7 @@ public final class SeasonFoods implements Listener {
                                     } else {
                                         String id = this.getFoodId(stack);
                                         if (!"rice".equals(id)) {
-                                            inv.setResult((ItemStack)null);
+                                            inv.setResult((ItemStack) null);
                                             return;
                                         }
 
@@ -673,7 +666,7 @@ public final class SeasonFoods implements Listener {
                             }
 
                             if (bowl < 1 || rice < 1 || stewMeat < 1) {
-                                inv.setResult((ItemStack)null);
+                                inv.setResult((ItemStack) null);
                                 return;
                             }
 
@@ -690,7 +683,9 @@ public final class SeasonFoods implements Listener {
         }
     }
 
-    /** 判断材料是否为任一“熟肉”类型，用于肉三明治与牛肉饭炖的配方校验。 */
+    /**
+     * 判断材料是否为任一“熟肉”类型，用于肉三明治与牛肉饭炖的配方校验。
+     */
     private boolean isCookedMeat(Material material) {
         return material == Material.COOKED_BEEF || material == Material.COOKED_MUTTON || material == Material.COOKED_PORKCHOP || material == Material.COOKED_CHICKEN || material == Material.COOKED_RABBIT || material == Material.COOKED_SALMON || material == Material.COOKED_COD;
     }
@@ -700,7 +695,7 @@ public final class SeasonFoods implements Listener {
      * 并触发对应菜肴的特殊效果。
      */
     @EventHandler(
-        ignoreCancelled = true
+            ignoreCancelled = true
     )
     public void onConsumeFood(PlayerItemConsumeEvent event) {
         String foodId = this.getFoodId(event.getItem());
@@ -716,14 +711,16 @@ public final class SeasonFoods implements Listener {
             Bukkit.getScheduler().runTask(this.plugin, () -> {
                 if (player.isOnline()) {
                     player.setFoodLevel(targetFood);
-                    player.setSaturation(Math.min((float)targetFood, targetSaturation));
+                    player.setSaturation(Math.min((float) targetFood, targetSaturation));
                     this.applyConsumedFoodEffects(player, foodId);
                 }
             });
         }
     }
 
-    /** 返回指定菜肴恢复的饥饿值点数。 */
+    /**
+     * 返回指定菜肴恢复的饥饿值点数。
+     */
     private int foodPoints(String foodId) {
         byte points;
         switch (foodId) {
@@ -756,7 +753,9 @@ public final class SeasonFoods implements Listener {
         return points;
     }
 
-    /** 返回指定菜肴恢复的饱和度点数。 */
+    /**
+     * 返回指定菜肴恢复的饱和度点数。
+     */
     private float saturationPoints(String foodId) {
         float saturation;
         switch (foodId) {
@@ -789,7 +788,9 @@ public final class SeasonFoods implements Listener {
         return saturation;
     }
 
-    /** 根据菜肴 ID 分派到对应进食/饮用效果。 */
+    /**
+     * 根据菜肴 ID 分派到对应进食/饮用效果。
+     */
     private void applyConsumedFoodEffects(Player player, String foodId) {
         switch (foodId) {
             case "tomato_salad" -> this.eatTomatoSalad(player);
@@ -804,67 +805,87 @@ public final class SeasonFoods implements Listener {
 
     }
 
-    /** 从玩家主手消耗一个物品（数量为 1 时清空该槽位）。 */
+    /**
+     * 从玩家主手消耗一个物品（数量为 1 时清空该槽位）。
+     */
     private void consumeOneFromHand(Player player, ItemStack inHand) {
         int amount = inHand.getAmount();
         if (amount <= 1) {
-            player.getInventory().setItemInMainHand((ItemStack)null);
+            player.getInventory().setItemInMainHand((ItemStack) null);
         } else {
             inHand.setAmount(amount - 1);
         }
 
     }
 
-    /** 番茄沙拉：给予生命恢复。 */
+    /**
+     * 番茄沙拉：给予生命恢复。
+     */
     private void eatTomatoSalad(Player player) {
         player.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, 120, 0, false, true, true));
     }
 
-    /** 蔬菜面包：给予伤害吸收。 */
+    /**
+     * 蔬菜面包：给予伤害吸收。
+     */
     private void eatVegetableBread(Player player) {
         player.addPotionEffect(new PotionEffect(PotionEffectType.ABSORPTION, 300, 0, false, true, true));
     }
 
-    /** 肉三明治：给予抗性提升与力量。 */
+    /**
+     * 肉三明治：给予抗性提升与力量。
+     */
     private void eatMeatSandwich(Player player) {
         player.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 200, 0, false, true, true));
         player.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, 160, 0, false, true, true));
     }
 
-    /** 牛肉饭炖：给予生命恢复与饱和。 */
+    /**
+     * 牛肉饭炖：给予生命恢复与饱和。
+     */
     private void eatBeefRiceStew(Player player) {
         player.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, 200, 0, false, true, true));
         player.addPotionEffect(new PotionEffect(PotionEffectType.SATURATION, 60, 0, false, true, true));
     }
 
-    /** 咖啡：解除冰冻，给予速度与夜视。 */
+    /**
+     * 咖啡：解除冰冻，给予速度与夜视。
+     */
     private void drinkCoffee(Player player) {
         player.setFreezeTicks(0);
         player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 900, 0, false, true, true));
         player.addPotionEffect(new PotionEffect(PotionEffectType.NIGHT_VISION, 1200, 0, false, true, true));
     }
 
-    /** 花草茶：解除冰冻，给予生命恢复与生命提升。 */
+    /**
+     * 花草茶：解除冰冻，给予生命恢复与生命提升。
+     */
     private void drinkHerbalTea(Player player) {
         player.setFreezeTicks(0);
         player.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, 160, 0, false, true, true));
         player.addPotionEffect(new PotionEffect(PotionEffectType.HEALTH_BOOST, 600, 0, false, true, true));
     }
 
-    /** 能量饮料：给予二级速度与二级急迫。 */
+    /**
+     * 能量饮料：给予二级速度与二级急迫。
+     */
     private void drinkEnergy(Player player) {
         player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 500, 1, false, true, true));
         player.addPotionEffect(new PotionEffect(PotionEffectType.HASTE, 500, 1, false, true, true));
     }
 
-    /** 热巧克力：解除冰冻，给予抗性提升与伤害吸收。 */
+    /**
+     * 热巧克力：解除冰冻，给予抗性提升与伤害吸收。
+     */
     private void drinkHotChocolate(Player player) {
         player.setFreezeTicks(0);
         player.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 400, 0, false, true, true));
         player.addPotionEffect(new PotionEffect(PotionEffectType.ABSORPTION, 600, 1, false, true, true));
     }
 
-    /** 监听村庄食物战利品生成：向匹配的战利品表按概率追加番茄、洋葱、水稻食材。 */
+    /**
+     * 监听村庄食物战利品生成：向匹配的战利品表按概率追加番茄、洋葱、水稻食材。
+     */
     @EventHandler
     public void onLootGenerate(LootGenerateEvent event) {
         LootTable table = event.getLootTable();
@@ -878,7 +899,7 @@ public final class SeasonFoods implements Listener {
                     Entity entity = event.getEntity();
                     Player playerSource;
                     if (entity instanceof Player) {
-                        Player sourcePlayer = (Player)entity;
+                        Player sourcePlayer = (Player) entity;
                         playerSource = sourcePlayer;
                     } else {
                         playerSource = null;
@@ -908,7 +929,9 @@ public final class SeasonFoods implements Listener {
         }
     }
 
-    /** 监听僵尸/尸壳/溺尸死亡：按配置概率掉落一份随机自定义食材。 */
+    /**
+     * 监听僵尸/尸壳/溺尸死亡：按配置概率掉落一份随机自定义食材。
+     */
     @EventHandler
     public void onZombieDeath(EntityDeathEvent event) {
         LivingEntity entity = event.getEntity();
@@ -938,7 +961,9 @@ public final class SeasonFoods implements Listener {
         }
     }
 
-    /** 启动周期性外观刷新任务：每 40 tick 清理失效外观并刷新所有在线玩家附近的作物显示。 */
+    /**
+     * 启动周期性外观刷新任务：每 40 tick 清理失效外观并刷新所有在线玩家附近的作物显示。
+     */
     private void startVisualRefresh() {
         if (this.visualRefreshTask != null) {
             this.visualRefreshTask.cancel();
@@ -947,14 +972,16 @@ public final class SeasonFoods implements Listener {
         this.visualRefreshTask = Bukkit.getScheduler().runTaskTimer(this.plugin, () -> {
             this.pruneInvalidCropVisuals();
 
-            for(Player player : Bukkit.getOnlinePlayers()) {
+            for (Player player : Bukkit.getOnlinePlayers()) {
                 this.refreshCropVisuals(player);
             }
 
         }, 20L, 40L);
     }
 
-    /** 玩家加入：清除物品发光、重置基岩版缓存，并延迟刷新其附近的作物外观。 */
+    /**
+     * 玩家加入：清除物品发光、重置基岩版缓存，并延迟刷新其附近的作物外观。
+     */
     @EventHandler
     public void onCropVisualJoin(PlayerJoinEvent event) {
         this.removeFoodGlint(event.getPlayer());
@@ -962,19 +989,25 @@ public final class SeasonFoods implements Listener {
         Bukkit.getScheduler().runTaskLater(this.plugin, () -> this.refreshCropVisuals(event.getPlayer()), 10L);
     }
 
-    /** 玩家退出：清理其基岩版识别缓存。 */
+    /**
+     * 玩家退出：清理其基岩版识别缓存。
+     */
     @EventHandler
     public void onCropVisualQuit(PlayerQuitEvent event) {
         this.bedrockPlayerCache.remove(event.getPlayer().getUniqueId());
     }
 
-    /** 玩家切换世界：延迟刷新其附近的作物外观。 */
+    /**
+     * 玩家切换世界：延迟刷新其附近的作物外观。
+     */
     @EventHandler
     public void onCropVisualWorldChange(PlayerChangedWorldEvent event) {
         Bukkit.getScheduler().runTaskLater(this.plugin, () -> this.refreshCropVisuals(event.getPlayer()), 2L);
     }
 
-    /** 玩家跨区块移动时，刷新其附近的作物外观。 */
+    /**
+     * 玩家跨区块移动时，刷新其附近的作物外观。
+     */
     @EventHandler
     public void onCropVisualMove(PlayerMoveEvent event) {
         if (event.getTo() != null) {
@@ -984,11 +1017,13 @@ public final class SeasonFoods implements Listener {
         }
     }
 
-    /** 作物生长：若为受管的人工作物或海带（水稻），刷新其外观。 */
+    /**
+     * 作物生长：若为受管的人工作物或海带（水稻），刷新其外观。
+     */
     @EventHandler
     public void onCustomCropGrow(BlockGrowEvent event) {
         Block changed = event.getBlock();
-        String cropId = (String)this.customCrops.get(this.locKey(changed));
+        String cropId = (String) this.customCrops.get(this.locKey(changed));
         Material newType = event.getNewState().getType();
         if (cropId != null || newType == Material.KELP || newType == Material.KELP_PLANT) {
             Bukkit.getScheduler().runTask(this.plugin, () -> this.refreshVisualAt(changed));
@@ -996,7 +1031,9 @@ public final class SeasonFoods implements Listener {
 
     }
 
-    /** 骨粉催熟：收集受影响的人工作物/水稻方块，并为其安排外观刷新。 */
+    /**
+     * 骨粉催熟：收集受影响的人工作物/水稻方块，并为其安排外观刷新。
+     */
     @EventHandler
     public void onCustomCropFertilize(BlockFertilizeEvent event) {
         List<Block> affectedCustomCrops = new ArrayList();
@@ -1016,16 +1053,18 @@ public final class SeasonFoods implements Listener {
             }
         });
         if (!affectedCustomCrops.isEmpty()) {
-            for(Block block : affectedCustomCrops) {
+            for (Block block : affectedCustomCrops) {
                 this.scheduleVisualRefresh(block);
             }
 
         }
     }
 
-    /** 对作物右键使用骨粉时，安排其外观刷新（原版逻辑仍由服务器处理）。 */
+    /**
+     * 对作物右键使用骨粉时，安排其外观刷新（原版逻辑仍由服务器处理）。
+     */
     @EventHandler(
-        ignoreCancelled = true
+            ignoreCancelled = true
     )
     public void onBoneMealVisualRefresh(PlayerInteractEvent event) {
         if (event.getHand() == EquipmentSlot.HAND) {
@@ -1053,8 +1092,8 @@ public final class SeasonFoods implements Listener {
      * 并在非创造模式下消耗一个骨粉，随后刷新外观。
      */
     @EventHandler(
-        priority = EventPriority.HIGHEST,
-        ignoreCancelled = true
+            priority = EventPriority.HIGHEST,
+            ignoreCancelled = true
     )
     public void onCropVisualInteract(PlayerInteractEntityEvent event) {
         if (event.getHand() == EquipmentSlot.HAND) {
@@ -1085,10 +1124,12 @@ public final class SeasonFoods implements Listener {
         }
     }
 
-    /** 攻击作物外观实体：拦截攻击并改为破坏其对应的真实作物方块。 */
+    /**
+     * 攻击作物外观实体：拦截攻击并改为破坏其对应的真实作物方块。
+     */
     @EventHandler(
-        priority = EventPriority.HIGHEST,
-        ignoreCancelled = true
+            priority = EventPriority.HIGHEST,
+            ignoreCancelled = true
     )
     public void onCropVisualAttack(EntityDamageByEntityEvent event) {
         Entity damager = event.getDamager();
@@ -1105,18 +1146,22 @@ public final class SeasonFoods implements Listener {
         }
     }
 
-    /** 取得外观实体记录的作物坐标键（仅 Interaction 实体带有该标记）。 */
+    /**
+     * 取得外观实体记录的作物坐标键（仅 Interaction 实体带有该标记）。
+     */
     private String cropVisualLocation(Entity entity) {
-        return !(entity instanceof Interaction) ? null : (String)entity.getPersistentDataContainer().get(this.CROP_VISUAL_LOCATION_KEY, PersistentDataType.STRING);
+        return !(entity instanceof Interaction) ? null : (String) entity.getPersistentDataContainer().get(this.CROP_VISUAL_LOCATION_KEY, PersistentDataType.STRING);
     }
 
-    /** 根据坐标键解析出对应的真实作物方块，并校验其仍为受管作物（耕地作物或水稻）。 */
+    /**
+     * 根据坐标键解析出对应的真实作物方块，并校验其仍为受管作物（耕地作物或水稻）。
+     */
     private Block trackedCropBlock(String locationKey) {
         Block block = this.blockFromKey(locationKey);
         if (block == null) {
             return null;
         } else {
-            String landCrop = (String)this.customCrops.get(locationKey);
+            String landCrop = (String) this.customCrops.get(locationKey);
             if (landCrop != null && this.cropMaterialFor(landCrop) == block.getType()) {
                 return block;
             } else {
@@ -1126,20 +1171,24 @@ public final class SeasonFoods implements Listener {
         }
     }
 
-    /** 在若干延迟后多次刷新指定方块的外观，以覆盖服务器方块状态同步的时间差。 */
+    /**
+     * 在若干延迟后多次刷新指定方块的外观，以覆盖服务器方块状态同步的时间差。
+     */
     private void scheduleVisualRefresh(Block block) {
         Location location = block.getLocation();
         long[] delays = new long[]{1L, 3L, 8L, 20L};
 
-        for(long delay : delays) {
+        for (long delay : delays) {
             Bukkit.getScheduler().runTaskLater(this.plugin, () -> this.refreshVisualAt(location.getBlock()), delay);
         }
 
     }
 
-    /** 立即刷新单个方块的外观：区分耕地作物与水稻（含向下的基座回溯）。 */
+    /**
+     * 立即刷新单个方块的外观：区分耕地作物与水稻（含向下的基座回溯）。
+     */
     private void refreshVisualAt(Block changed) {
-        String cropId = (String)this.customCrops.get(this.locKey(changed));
+        String cropId = (String) this.customCrops.get(this.locKey(changed));
         if (cropId != null) {
             this.broadcastLandCropVisual(changed, cropId);
         } else {
@@ -1157,14 +1206,16 @@ public final class SeasonFoods implements Listener {
         }
     }
 
-    /** 向指定玩家刷新其附近所有受管作物的外观（发送或移除显示）。 */
+    /**
+     * 向指定玩家刷新其附近所有受管作物的外观（发送或移除显示）。
+     */
     private void refreshCropVisuals(Player player) {
-        for(Map.Entry<String, String> entry : this.customCrops.entrySet()) {
-            Block block = this.blockFromKey((String)entry.getKey());
+        for (Map.Entry<String, String> entry : this.customCrops.entrySet()) {
+            Block block = this.blockFromKey((String) entry.getKey());
             if (block != null && this.isNear(player, block)) {
-                Material expected = this.cropMaterialFor((String)entry.getValue());
+                Material expected = this.cropMaterialFor((String) entry.getValue());
                 if (expected == block.getType()) {
-                    this.sendLandCropVisual(player, block, (String)entry.getValue());
+                    this.sendLandCropVisual(player, block, (String) entry.getValue());
                 } else {
                     this.removeCropVisualAt(block);
                 }
@@ -1172,11 +1223,11 @@ public final class SeasonFoods implements Listener {
         }
 
         List<String> riceKeys;
-        synchronized(this.riceBases) {
+        synchronized (this.riceBases) {
             riceKeys = new ArrayList(this.riceBases);
         }
 
-        for(String key : riceKeys) {
+        for (String key : riceKeys) {
             Block base = this.blockFromKey(key);
             if (base != null && this.isNear(player, base)) {
                 if (this.isKelp(base)) {
@@ -1189,9 +1240,11 @@ public final class SeasonFoods implements Listener {
 
     }
 
-    /** 将玩家所在世界内的真实作物方块状态重新发送给客户端，用于卸载时还原显示。 */
+    /**
+     * 将玩家所在世界内的真实作物方块状态重新发送给客户端，用于卸载时还原显示。
+     */
     private void restoreRealCropBlocks(Player player) {
-        for(String key : this.customCrops.keySet()) {
+        for (String key : this.customCrops.keySet()) {
             Block block = this.blockFromKey(key);
             if (block != null && block.getWorld().equals(player.getWorld())) {
                 player.sendBlockChange(block.getLocation(), block.getBlockData());
@@ -1199,16 +1252,16 @@ public final class SeasonFoods implements Listener {
         }
 
         List<String> riceKeys;
-        synchronized(this.riceBases) {
+        synchronized (this.riceBases) {
             riceKeys = new ArrayList(this.riceBases);
         }
 
-        for(String key : riceKeys) {
+        for (String key : riceKeys) {
             Block base = this.blockFromKey(key);
             if (base != null && base.getWorld().equals(player.getWorld())) {
                 Block current = base;
 
-                for(int guard = 0; this.isKelp(current) && guard++ < 64; current = current.getRelative(BlockFace.UP)) {
+                for (int guard = 0; this.isKelp(current) && guard++ < 64; current = current.getRelative(BlockFace.UP)) {
                     player.sendBlockChange(current.getLocation(), current.getBlockData());
                 }
             }
@@ -1216,7 +1269,9 @@ public final class SeasonFoods implements Listener {
 
     }
 
-    /** 将“世界名;x;y;z”键解析回方块；区块未加载或格式非法时返回 null。 */
+    /**
+     * 将“世界名;x;y;z”键解析回方块；区块未加载或格式非法时返回 null。
+     */
     private Block blockFromKey(String key) {
         String[] parts = key.split(";", 4);
         if (parts.length != 4) {
@@ -1238,16 +1293,20 @@ public final class SeasonFoods implements Listener {
         }
     }
 
-    /** 判断方块是否位于玩家的外观可见半径内（同一世界且距离平方不超过阈值）。 */
+    /**
+     * 判断方块是否位于玩家的外观可见半径内（同一世界且距离平方不超过阈值）。
+     */
     private boolean isNear(Player player, Block block) {
         if (!player.getWorld().equals(block.getWorld())) {
             return false;
         } else {
-            return player.getLocation().distanceSquared(block.getLocation()) <= (double)16384.0F;
+            return player.getLocation().distanceSquared(block.getLocation()) <= (double) 16384.0F;
         }
     }
 
-    /** 将可年龄化方块（Ageable）的生长进度映射为 0~3 的外观阶段。 */
+    /**
+     * 将可年龄化方块（Ageable）的生长进度映射为 0~3 的外观阶段。
+     */
     private int cropStage(Block block) {
         BlockData blockData = block.getBlockData();
         if (blockData instanceof Ageable ageable) {
@@ -1263,14 +1322,16 @@ public final class SeasonFoods implements Listener {
         return crop + "_stage_" + Math.max(0, Math.min(3, stage));
     }
 
-    /** 由作物模型名反推外观模型索引（番茄 0-3，洋葱 4-7，水稻 8-11）。 */
+    /**
+     * 由作物模型名反推外观模型索引（番茄 0-3，洋葱 4-7，水稻 8-11）。
+     */
     private int cropDisplayModelIndex(String modelName) {
         if (modelName.startsWith("tomato_stage_")) {
             return Integer.parseInt(modelName.substring("tomato_stage_".length()));
         } else if (modelName.startsWith("onion_stage_")) {
             return 4 + Integer.parseInt(modelName.substring("onion_stage_".length()));
         } else {
-            for(int index = 0; index < RICE_VISUAL_MODELS.length; ++index) {
+            for (int index = 0; index < RICE_VISUAL_MODELS.length; ++index) {
                 if (RICE_VISUAL_MODELS[index].equals(modelName)) {
                     return 8 + index;
                 }
@@ -1280,7 +1341,9 @@ public final class SeasonFoods implements Listener {
         }
     }
 
-    /** 构建用于渲染作物外观的调试棒物品，写入自定义模型数据与 item_model。 */
+    /**
+     * 构建用于渲染作物外观的调试棒物品，写入自定义模型数据与 item_model。
+     */
     private ItemStack cropDisplayItem(String modelName) {
         int modelIndex = this.cropDisplayModelIndex(modelName);
         ItemStack item = new ItemStack(Material.DEBUG_STICK);
@@ -1296,7 +1359,7 @@ public final class SeasonFoods implements Listener {
                 ItemMeta.class.getMethod("setItemModel", NamespacedKey.class).invoke(meta, itemModel);
             } catch (NoSuchMethodException noSuchMethod) {
             } catch (LinkageError | ReflectiveOperationException ex) {
-                this.plugin.getLogger().warning("[SeasonFoods] Could not set crop item_model: " + ((Throwable)ex).getMessage());
+                this.plugin.getLogger().warning("[SeasonFoods] Could not set crop item_model: " + ((Throwable) ex).getMessage());
             }
 
             item.setItemMeta(meta);
@@ -1304,10 +1367,12 @@ public final class SeasonFoods implements Listener {
         }
     }
 
-    /** 确保指定方块存在正确的作物外观实体（ItemDisplay + Interaction）；模型变化时更新显示。 */
+    /**
+     * 确保指定方块存在正确的作物外观实体（ItemDisplay + Interaction）；模型变化时更新显示。
+     */
     private CropVisual ensureCropVisual(Block block, String modelName, String rootKey) {
         String locationKey = this.locKey(block);
-        CropVisual visual = (CropVisual)this.cropVisuals.get(locationKey);
+        CropVisual visual = (CropVisual) this.cropVisuals.get(locationKey);
         if (visual != null && (!visual.display().isValid() || !visual.interaction().isValid())) {
             this.removeCropVisual(locationKey, visual);
             visual = null;
@@ -1319,8 +1384,8 @@ public final class SeasonFoods implements Listener {
         }
 
         if (visual == null) {
-            Location displayLocation = block.getLocation().add((double)0.5F, (double)0.5F, (double)0.5F);
-            ItemDisplay display = (ItemDisplay)block.getWorld().spawnEntity(displayLocation, EntityType.ITEM_DISPLAY);
+            Location displayLocation = block.getLocation().add((double) 0.5F, (double) 0.5F, (double) 0.5F);
+            ItemDisplay display = (ItemDisplay) block.getWorld().spawnEntity(displayLocation, EntityType.ITEM_DISPLAY);
             display.setItemDisplayTransform(ItemDisplayTransform.NONE);
             display.setBillboard(Billboard.FIXED);
             display.setItemStack(this.cropDisplayItem(modelName));
@@ -1332,8 +1397,8 @@ public final class SeasonFoods implements Listener {
             display.setPersistent(false);
             display.setSilent(true);
             display.setVisibleByDefault(false);
-            Location interactionLocation = block.getLocation().add((double)0.5F, (double)0.0F, (double)0.5F);
-            Interaction interaction = (Interaction)block.getWorld().spawnEntity(interactionLocation, EntityType.INTERACTION);
+            Location interactionLocation = block.getLocation().add((double) 0.5F, (double) 0.0F, (double) 0.5F);
+            Interaction interaction = (Interaction) block.getWorld().spawnEntity(interactionLocation, EntityType.INTERACTION);
             interaction.setInteractionWidth(1.0F);
             interaction.setInteractionHeight(1.0F);
             interaction.setResponsive(true);
@@ -1345,7 +1410,7 @@ public final class SeasonFoods implements Listener {
             visual = new CropVisual(display, interaction, modelName, rootKey);
             this.cropVisuals.put(locationKey, visual);
 
-            for(Player online : Bukkit.getOnlinePlayers()) {
+            for (Player online : Bukkit.getOnlinePlayers()) {
                 this.applyVisualAudience(online, visual);
             }
         } else if (!visual.modelName().equals(modelName)) {
@@ -1357,7 +1422,9 @@ public final class SeasonFoods implements Listener {
         return visual;
     }
 
-    /** 按玩家类型设置外观实体可见性：基岩版玩家隐藏实体，Java 版玩家显示实体。 */
+    /**
+     * 按玩家类型设置外观实体可见性：基岩版玩家隐藏实体，Java 版玩家显示实体。
+     */
     private void applyVisualAudience(Player player, CropVisual visual) {
         if (this.isBedrockPlayer(player)) {
             player.hideEntity(this.plugin, visual.display());
@@ -1369,21 +1436,27 @@ public final class SeasonFoods implements Listener {
 
     }
 
-    /** 判断玩家是否为基岩版（结果按 UUID 缓存）。 */
+    /**
+     * 判断玩家是否为基岩版（结果按 UUID 缓存）。
+     */
     private boolean isBedrockPlayer(Player player) {
-        return (Boolean)this.bedrockPlayerCache.computeIfAbsent(player.getUniqueId(), this::detectBedrockPlayer);
+        return (Boolean) this.bedrockPlayerCache.computeIfAbsent(player.getUniqueId(), this::detectBedrockPlayer);
     }
 
-    /** 依次尝试 Geyser 与 Floodgate 的 API 识别基岩版玩家。 */
+    /**
+     * 依次尝试 Geyser 与 Floodgate 的 API 识别基岩版玩家。
+     */
     private boolean detectBedrockPlayer(UUID uuid) {
-        return this.invokeBedrockCheck("org.geysermc.geyser.api.GeyserApi", "api", "isBedrockPlayer", uuid) ? true : this.invokeBedrockCheck("org.geysermc.floodgate.api.FloodgateApi", "getInstance", "isFloodgatePlayer", uuid);
+        return this.invokeBedrockCheck("org.geysermc.geyser.api.GeyserApi", "api", "isBedrockPlayer", uuid) || this.invokeBedrockCheck("org.geysermc.floodgate.api.FloodgateApi", "getInstance", "isFloodgatePlayer", uuid);
     }
 
-    /** 通过反射调用指定类的单例访问方法与判断方法，检查给定 UUID 是否命中；任一环节失败均返回 false。 */
+    /**
+     * 通过反射调用指定类的单例访问方法与判断方法，检查给定 UUID 是否命中；任一环节失败均返回 false。
+     */
     private boolean invokeBedrockCheck(String className, String accessor, String checkMethod, UUID uuid) {
         try {
             Class<?> apiClass = Class.forName(className);
-            Object api = apiClass.getMethod(accessor).invoke((Object)null);
+            Object api = apiClass.getMethod(accessor).invoke((Object) null);
             if (api == null) {
                 return false;
             } else {
@@ -1404,7 +1477,9 @@ public final class SeasonFoods implements Listener {
         return Bukkit.createBlockData("minecraft:light[level=" + lightLevel + ",waterlogged=" + waterlogged + "]");
     }
 
-    /** 向指定玩家发送单株耕地作物的外观显示。 */
+    /**
+     * 向指定玩家发送单株耕地作物的外观显示。
+     */
     private void sendLandCropVisual(Player player, Block block, String cropId) {
         String modelName = this.landCropModelName(cropId, this.cropStage(block));
         CropVisual visual = this.ensureCropVisual(block, modelName, this.locKey(block));
@@ -1412,9 +1487,11 @@ public final class SeasonFoods implements Listener {
         player.sendBlockChange(block.getLocation(), this.isBedrockPlayer(player) ? this.bedrockCropVisualData(modelName) : Material.AIR.createBlockData());
     }
 
-    /** 向附近所有玩家广播单株耕地作物的外观。 */
+    /**
+     * 向附近所有玩家广播单株耕地作物的外观。
+     */
     private void broadcastLandCropVisual(Block block, String cropId) {
-        for(Player player : Bukkit.getOnlinePlayers()) {
+        for (Player player : Bukkit.getOnlinePlayers()) {
             if (this.isNear(player, block)) {
                 this.sendLandCropVisual(player, block, cropId);
             }
@@ -1422,14 +1499,16 @@ public final class SeasonFoods implements Listener {
 
     }
 
-    /** 向指定玩家发送整株水稻（多段海带柱）的外观显示，并清理多余分段。 */
+    /**
+     * 向指定玩家发送整株水稻（多段海带柱）的外观显示，并清理多余分段。
+     */
     private void sendRiceVisual(Player player, Block base) {
         List<Block> column = this.riceColumn(base);
         String rootKey = this.locKey(base);
         Set<String> expectedLocations = new HashSet();
         int height = column.size();
 
-        for(int index = 0; index < height; ++index) {
+        for (int index = 0; index < height; ++index) {
             int visualStage;
             if (height == 1) {
                 visualStage = 0;
@@ -1439,7 +1518,7 @@ public final class SeasonFoods implements Listener {
                 visualStage = 1;
             }
 
-            Block segment = (Block)column.get(index);
+            Block segment = (Block) column.get(index);
             String modelName = RICE_VISUAL_MODELS[visualStage];
             expectedLocations.add(this.locKey(segment));
             CropVisual visual = this.ensureCropVisual(segment, modelName, rootKey);
@@ -1450,9 +1529,11 @@ public final class SeasonFoods implements Listener {
         this.removeCropVisualRootExcept(rootKey, expectedLocations);
     }
 
-    /** 向附近所有玩家广播水稻整株外观。 */
+    /**
+     * 向附近所有玩家广播水稻整株外观。
+     */
     private void broadcastRiceVisual(Block base) {
-        for(Player player : Bukkit.getOnlinePlayers()) {
+        for (Player player : Bukkit.getOnlinePlayers()) {
             if (this.isNear(player, base)) {
                 this.sendRiceVisual(player, base);
             }
@@ -1460,29 +1541,35 @@ public final class SeasonFoods implements Listener {
 
     }
 
-    /** 自基座向上收集连续的海带方块，构成水稻整株的方块列表。 */
+    /**
+     * 自基座向上收集连续的海带方块，构成水稻整株的方块列表。
+     */
     private List<Block> riceColumn(Block base) {
         List<Block> result = new ArrayList();
         Block current = base;
 
-        for(int guard = 0; this.isKelp(current) && guard++ < 64; current = current.getRelative(BlockFace.UP)) {
+        for (int guard = 0; this.isKelp(current) && guard++ < 64; current = current.getRelative(BlockFace.UP)) {
             result.add(current);
         }
 
         return result;
     }
 
-    /** 判断方块是否为海带或海带植株（用于表示水稻）。 */
+    /**
+     * 判断方块是否为海带或海带植株（用于表示水稻）。
+     */
     private boolean isKelp(Block block) {
         return block.getType() == Material.KELP || block.getType() == Material.KELP_PLANT;
     }
 
-    /** 自给定方块向下回溯，找到整株海带（水稻）的基座方块。 */
+    /**
+     * 自给定方块向下回溯，找到整株海带（水稻）的基座方块。
+     */
     private Block findKelpBase(Block start) {
         if (start != null && this.isKelp(start)) {
             Block base = start;
 
-            for(int guard = 0; this.isKelp(base.getRelative(BlockFace.DOWN)) && guard++ < 64; base = base.getRelative(BlockFace.DOWN)) {
+            for (int guard = 0; this.isKelp(base.getRelative(BlockFace.DOWN)) && guard++ < 64; base = base.getRelative(BlockFace.DOWN)) {
             }
 
             return base;
@@ -1491,37 +1578,45 @@ public final class SeasonFoods implements Listener {
         }
     }
 
-    /** 移除单个方块对应的作物外观实体。 */
+    /**
+     * 移除单个方块对应的作物外观实体。
+     */
     private void removeCropVisualAt(Block block) {
         String locationKey = this.locKey(block);
-        CropVisual visual = (CropVisual)this.cropVisuals.get(locationKey);
+        CropVisual visual = (CropVisual) this.cropVisuals.get(locationKey);
         if (visual != null) {
             this.removeCropVisual(locationKey, visual);
         }
 
     }
 
-    /** 移除属于指定根节点的全部作物外观实体（用于水稻整株）。 */
+    /**
+     * 移除属于指定根节点的全部作物外观实体（用于水稻整株）。
+     */
     private void removeCropVisualRoot(String rootKey) {
-        for(Map.Entry<String, CropVisual> entry : new ArrayList<>(this.cropVisuals.entrySet())) {
-            if (((CropVisual)entry.getValue()).rootKey().equals(rootKey)) {
-                this.removeCropVisual((String)entry.getKey(), (CropVisual)entry.getValue());
+        for (Map.Entry<String, CropVisual> entry : new ArrayList<>(this.cropVisuals.entrySet())) {
+            if (((CropVisual) entry.getValue()).rootKey().equals(rootKey)) {
+                this.removeCropVisual((String) entry.getKey(), (CropVisual) entry.getValue());
             }
         }
 
     }
 
-    /** 移除指定根节点下、但不在期望位置集合中的作物外观实体。 */
+    /**
+     * 移除指定根节点下、但不在期望位置集合中的作物外观实体。
+     */
     private void removeCropVisualRootExcept(String rootKey, Set<String> expectedLocations) {
-        for(Map.Entry<String, CropVisual> entry : new ArrayList<>(this.cropVisuals.entrySet())) {
-            if (((CropVisual)entry.getValue()).rootKey().equals(rootKey) && !expectedLocations.contains(entry.getKey())) {
-                this.removeCropVisual((String)entry.getKey(), (CropVisual)entry.getValue());
+        for (Map.Entry<String, CropVisual> entry : new ArrayList<>(this.cropVisuals.entrySet())) {
+            if (((CropVisual) entry.getValue()).rootKey().equals(rootKey) && !expectedLocations.contains(entry.getKey())) {
+                this.removeCropVisual((String) entry.getKey(), (CropVisual) entry.getValue());
             }
         }
 
     }
 
-    /** 从索引移除并销毁单个作物外观实体（展示实体 + 交互实体）。 */
+    /**
+     * 从索引移除并销毁单个作物外观实体（展示实体 + 交互实体）。
+     */
     private void removeCropVisual(String locationKey, CropVisual visual) {
         this.cropVisuals.remove(locationKey, visual);
         if (visual.display().isValid()) {
@@ -1534,50 +1629,56 @@ public final class SeasonFoods implements Listener {
 
     }
 
-    /** 销毁当前所有作物外观实体。 */
+    /**
+     * 销毁当前所有作物外观实体。
+     */
     private void removeAllCropVisuals() {
-        for(Map.Entry<String, CropVisual> entry : new ArrayList<>(this.cropVisuals.entrySet())) {
-            this.removeCropVisual((String)entry.getKey(), (CropVisual)entry.getValue());
+        for (Map.Entry<String, CropVisual> entry : new ArrayList<>(this.cropVisuals.entrySet())) {
+            this.removeCropVisual((String) entry.getKey(), (CropVisual) entry.getValue());
         }
 
     }
 
-    /** 周期清理：移除实体失效或方块已不再符合受管作物条件的过期外观。 */
+    /**
+     * 周期清理：移除实体失效或方块已不再符合受管作物条件的过期外观。
+     */
     private void pruneInvalidCropVisuals() {
-        for(Map.Entry<String, CropVisual> entry : new ArrayList<>(this.cropVisuals.entrySet())) {
-            CropVisual visual = (CropVisual)entry.getValue();
+        for (Map.Entry<String, CropVisual> entry : new ArrayList<>(this.cropVisuals.entrySet())) {
+            CropVisual visual = (CropVisual) entry.getValue();
             if (visual.display().isValid() && visual.interaction().isValid()) {
                 Block root = this.blockFromKey(visual.rootKey());
                 if (root != null) {
-                    String landCrop = (String)this.customCrops.get(visual.rootKey());
+                    String landCrop = (String) this.customCrops.get(visual.rootKey());
                     if (landCrop != null) {
-                        if (!((String)entry.getKey()).equals(visual.rootKey()) || this.cropMaterialFor(landCrop) != root.getType()) {
-                            this.removeCropVisual((String)entry.getKey(), visual);
+                        if (!((String) entry.getKey()).equals(visual.rootKey()) || this.cropMaterialFor(landCrop) != root.getType()) {
+                            this.removeCropVisual((String) entry.getKey(), visual);
                         }
                     } else if (this.riceBases.contains(visual.rootKey()) && this.isKelp(root)) {
-                        Block segment = this.blockFromKey((String)entry.getKey());
+                        Block segment = this.blockFromKey((String) entry.getKey());
                         if (segment != null && !this.isKelp(segment)) {
-                            this.removeCropVisual((String)entry.getKey(), visual);
+                            this.removeCropVisual((String) entry.getKey(), visual);
                         }
                     } else {
-                        this.removeCropVisual((String)entry.getKey(), visual);
+                        this.removeCropVisual((String) entry.getKey(), visual);
                     }
                 }
             } else {
-                this.removeCropVisual((String)entry.getKey(), visual);
+                this.removeCropVisual((String) entry.getKey(), visual);
             }
         }
 
     }
 
-    /** 移除指定位置的作物外观，并在下一 tick 向附近玩家重新发送真实方块状态。 */
+    /**
+     * 移除指定位置的作物外观，并在下一 tick 向附近玩家重新发送真实方块状态。
+     */
     private void broadcastRealBlockLater(Location location) {
         Location copy = location.clone();
         this.removeCropVisualAt(copy.getBlock());
         Bukkit.getScheduler().runTask(this.plugin, () -> {
             Block block = copy.getBlock();
 
-            for(Player player : Bukkit.getOnlinePlayers()) {
+            for (Player player : Bukkit.getOnlinePlayers()) {
                 if (this.isNear(player, block)) {
                     player.sendBlockChange(block.getLocation(), block.getBlockData());
                 }
@@ -1586,7 +1687,9 @@ public final class SeasonFoods implements Listener {
         });
     }
 
-    /** 玩家手持水稻种子右键水源：在水源方块上生成海带（水稻）并登记基座。 */
+    /**
+     * 玩家手持水稻种子右键水源：在水源方块上生成海带（水稻）并登记基座。
+     */
     @EventHandler
     public void onRicePlant(PlayerInteractEvent event) {
         if (event.getHand() == EquipmentSlot.HAND) {
@@ -1601,7 +1704,7 @@ public final class SeasonFoods implements Listener {
                             if (waterBlock.getType() == Material.WATER) {
                                 BlockData blockData = waterBlock.getBlockData();
                                 if (blockData instanceof Levelled) {
-                                    Levelled levelData = (Levelled)blockData;
+                                    Levelled levelData = (Levelled) blockData;
                                     if (levelData.getLevel() == 0) {
                                         event.setCancelled(true);
                                         this.consumeOneFromHand(event.getPlayer(), item);
@@ -1626,7 +1729,9 @@ public final class SeasonFoods implements Listener {
         }
     }
 
-    /** 玩家手持番茄/洋葱种子右键：交由 tryPlantCustomCrop 尝试在耕地上种植。 */
+    /**
+     * 玩家手持番茄/洋葱种子右键：交由 tryPlantCustomCrop 尝试在耕地上种植。
+     */
     @EventHandler
     public void onCustomSeedPlant(PlayerInteractEvent event) {
         if (event.getHand() == EquipmentSlot.HAND) {
@@ -1650,8 +1755,8 @@ public final class SeasonFoods implements Listener {
      * 并掉落对应数量的水稻种子（并清理原版海带掉落物）。
      */
     @EventHandler(
-        priority = EventPriority.HIGHEST,
-        ignoreCancelled = true
+            priority = EventPriority.HIGHEST,
+            ignoreCancelled = true
     )
     public void onRiceBreak(BlockBreakEvent event) {
         Block broken = event.getBlock();
@@ -1673,11 +1778,11 @@ public final class SeasonFoods implements Listener {
             }
 
             World world = base.getWorld();
-            Location dropLoc = base.getLocation().add((double)0.5F, (double)0.5F, (double)0.5F);
+            Location dropLoc = base.getLocation().add((double) 0.5F, (double) 0.5F, (double) 0.5F);
             int segments = 0;
             List<Location> clearedLocations = new ArrayList();
 
-            for(Block current = base; current.getType() == Material.KELP || current.getType() == Material.KELP_PLANT; current = current.getRelative(BlockFace.UP)) {
+            for (Block current = base; current.getType() == Material.KELP || current.getType() == Material.KELP_PLANT; current = current.getRelative(BlockFace.UP)) {
                 ++segments;
                 clearedLocations.add(current.getLocation());
                 current.setType(Material.WATER, false);
@@ -1696,25 +1801,27 @@ public final class SeasonFoods implements Listener {
             this.applyFoodLocalization(breaker, seeds, "rice");
             world.dropItemNaturally(dropLoc, seeds);
 
-            for(Location location : clearedLocations) {
+            for (Location location : clearedLocations) {
                 this.broadcastRealBlockLater(location);
             }
 
         }
     }
 
-    /** 在掉落点附近延迟清理指定种类的原版掉落物（仅移除存活时间很短的物品，避免误删其他掉落）。 */
+    /**
+     * 在掉落点附近延迟清理指定种类的原版掉落物（仅移除存活时间很短的物品，避免误删其他掉落）。
+     */
     private void scheduleVanillaCropDropCleanup(Location cropDropLocation, Set<Material> vanillaDrops) {
         Location center = cropDropLocation.clone();
         long[] delays = new long[]{1L, 3L};
 
-        for(long delay : delays) {
+        for (long delay : delays) {
             Bukkit.getScheduler().runTaskLater(this.plugin, () -> {
                 World world = center.getWorld();
                 if (world != null) {
-                    for(Entity entity : world.getNearbyEntities(center, (double)1.25F, (double)1.25F, (double)1.25F)) {
+                    for (Entity entity : world.getNearbyEntities(center, (double) 1.25F, (double) 1.25F, (double) 1.25F)) {
                         if (entity instanceof Item) {
-                            Item dropped = (Item)entity;
+                            Item dropped = (Item) entity;
                             if (dropped.getTicksLived() <= 10) {
                                 ItemStack stack = dropped.getItemStack();
                                 if (vanillaDrops.contains(stack.getType()) && this.getFoodId(stack) == null) {
@@ -1730,7 +1837,9 @@ public final class SeasonFoods implements Listener {
 
     }
 
-    /** 对物品应用食物本地化（名称与 lore，含生长季节）；传入玩家用其语言，否则用服务端默认语言。 */
+    /**
+     * 对物品应用食物本地化（名称与 lore，含生长季节）；传入玩家用其语言，否则用服务端默认语言。
+     */
     private void applyFoodLocalization(Player player, ItemStack item, String foodId) {
         if (item != null && foodId != null) {
             ItemMeta meta = item.getItemMeta();
@@ -1754,19 +1863,25 @@ public final class SeasonFoods implements Listener {
         }
     }
 
-    /** 判断是否为自定义食材 ID（番茄/洋葱/水稻）。 */
+    /**
+     * 判断是否为自定义食材 ID（番茄/洋葱/水稻）。
+     */
     private boolean isIngredientId(String foodId) {
         return "tomato".equals(foodId) || "onion".equals(foodId) || "rice".equals(foodId);
     }
 
-    /** 判断是否为自定义食物 ID（食材或菜肴）。 */
+    /**
+     * 判断是否为自定义食物 ID（食材或菜肴）。
+     */
     private boolean isFoodId(String foodId) {
         return this.isIngredientId(foodId) || DISH_IDS.contains(foodId);
     }
 
-    /** 清除玩家背包内自定义食物上的诱饵附魔（发光）标记，并补全番茄的食用组件。 */
+    /**
+     * 清除玩家背包内自定义食物上的诱饵附魔（发光）标记，并补全番茄的食用组件。
+     */
     private void removeFoodGlint(Player player) {
-        for(ItemStack item : player.getInventory().getContents()) {
+        for (ItemStack item : player.getInventory().getContents()) {
             String foodId = this.getFoodId(item);
             if (this.isFoodId(foodId) && item != null) {
                 ItemMeta meta = item.getItemMeta();
@@ -1794,12 +1909,16 @@ public final class SeasonFoods implements Listener {
 
     }
 
-    /** 返回该方块记录的人工作物 ID（仅耕地作物），无记录时返回 null。 */
+    /**
+     * 返回该方块记录的人工作物 ID（仅耕地作物），无记录时返回 null。
+     */
     public String getArtificialCropId(Block block) {
-        return block == null ? null : (String)this.customCrops.get(this.locKey(block));
+        return block == null ? null : (String) this.customCrops.get(this.locKey(block));
     }
 
-    /** 取消某方块的人工作物登记；仅当当前记录与期望值一致时才移除，并通知刷新真实方块。 */
+    /**
+     * 取消某方块的人工作物登记；仅当当前记录与期望值一致时才移除，并通知刷新真实方块。
+     */
     boolean untrackArtificialLandCrop(Block block, String expectedCropId) {
         if (block != null && expectedCropId != null) {
             if (!this.customCrops.remove(this.locKey(block), expectedCropId)) {
@@ -1814,17 +1933,21 @@ public final class SeasonFoods implements Listener {
         }
     }
 
-    /** 返回该方块处人工作物的允许生长季节集合。 */
+    /**
+     * 返回该方块处人工作物的允许生长季节集合。
+     */
     public EnumSet<Season> getArtificialGrowthSeasons(Block block) {
         return this.growthSeasonsFor(this.artificialCropIdAt(block));
     }
 
-    /** 解析方块处的人工作物 ID：优先耕地作物记录，其次回溯水稻基座。 */
+    /**
+     * 解析方块处的人工作物 ID：优先耕地作物记录，其次回溯水稻基座。
+     */
     private String artificialCropIdAt(Block block) {
         if (block == null) {
             return null;
         } else {
-            String landCrop = (String)this.customCrops.get(this.locKey(block));
+            String landCrop = (String) this.customCrops.get(this.locKey(block));
             if (landCrop != null) {
                 return landCrop;
             } else {
@@ -1834,7 +1957,9 @@ public final class SeasonFoods implements Listener {
         }
     }
 
-    /** 返回人工作物的当前生长值（水稻按海带柱高度，耕地作物按年龄）；无法判断时返回 -1。 */
+    /**
+     * 返回人工作物的当前生长值（水稻按海带柱高度，耕地作物按年龄）；无法判断时返回 -1。
+     */
     private int artificialCropGrowthValue(Block block, String cropId) {
         if (block != null && cropId != null) {
             if ("rice".equals(cropId)) {
@@ -1843,7 +1968,7 @@ public final class SeasonFoods implements Listener {
             } else {
                 BlockData blockData = block.getBlockData();
                 if (blockData instanceof Ageable) {
-                    Ageable ageable = (Ageable)blockData;
+                    Ageable ageable = (Ageable) blockData;
                     return ageable.getAge();
                 } else {
                     return -1;
@@ -1854,17 +1979,23 @@ public final class SeasonFoods implements Listener {
         }
     }
 
-    /** 判断物品是否为指定人工作物的种子。 */
+    /**
+     * 判断物品是否为指定人工作物的种子。
+     */
     public boolean isArtificialSeed(ItemStack item, String cropId) {
         return item != null && cropId != null && cropId.equals(this.getFoodId(item));
     }
 
-    /** 判断物品是否为任一种人工作物种子（番茄/洋葱/水稻）。 */
+    /**
+     * 判断物品是否为任一种人工作物种子（番茄/洋葱/水稻）。
+     */
     public boolean isAnyArtificialSeed(ItemStack item) {
         return item != null && this.isIngredientId(this.getFoodId(item));
     }
 
-    /** 返回指定人工作物种子的基础材料。 */
+    /**
+     * 返回指定人工作物种子的基础材料。
+     */
     public Material getArtificialSeedMaterial(String cropId) {
         Material seedMaterial;
         switch (cropId) {
@@ -1876,7 +2007,9 @@ public final class SeasonFoods implements Listener {
         return seedMaterial;
     }
 
-    /** 构建指定人工作物的收获掉落物（数量至少为 1），并应用本地化。 */
+    /**
+     * 构建指定人工作物的收获掉落物（数量至少为 1），并应用本地化。
+     */
     public ItemStack createArtificialCropDrop(String cropId, Player player, int amount) {
         ItemStack chosenPrototype;
         switch (cropId) {
@@ -1896,7 +2029,9 @@ public final class SeasonFoods implements Listener {
         }
     }
 
-    /** 结束一次人工作物收获：按需补种（重置年龄）或还原真实方块，并标记数据待保存。 */
+    /**
+     * 结束一次人工作物收获：按需补种（重置年龄）或还原真实方块，并标记数据待保存。
+     */
     public void finishArtificialHarvest(Block block, String cropId, boolean replant) {
         if (block != null && cropId != null) {
             this.customCrops.remove(this.locKey(block));
@@ -1906,7 +2041,7 @@ public final class SeasonFoods implements Listener {
                     block.setType(cropMaterial, false);
                     BlockData blockData = block.getBlockData();
                     if (blockData instanceof Ageable) {
-                        Ageable ageable = (Ageable)blockData;
+                        Ageable ageable = (Ageable) blockData;
                         ageable.setAge(0);
                         block.setBlockData(ageable, false);
                     }
@@ -1923,7 +2058,9 @@ public final class SeasonFoods implements Listener {
         }
     }
 
-    /** 返回人工作物 ID 对应的真实作物方块材料。 */
+    /**
+     * 返回人工作物 ID 对应的真实作物方块材料。
+     */
     private Material cropMaterialFor(String id) {
         Material cropMaterial;
         switch (id) {
@@ -1935,7 +2072,9 @@ public final class SeasonFoods implements Listener {
         return cropMaterial;
     }
 
-    /** 尝试在耕地上方种植人工作物种子，成功后登记记录、广播外观并返回 true。 */
+    /**
+     * 尝试在耕地上方种植人工作物种子，成功后登记记录、广播外观并返回 true。
+     */
     private boolean tryPlantCustomCrop(PlayerInteractEvent event, String cropId) {
         Block clicked = event.getClickedBlock();
         if (clicked == null) {
@@ -1968,7 +2107,7 @@ public final class SeasonFoods implements Listener {
      * 作物外观记录：绑定某作物方块对应的展示实体（{@link ItemDisplay}）、交互实体（{@link Interaction}）、
      * 当前使用的模型名，以及所属根节点键（用于水稻多段柱状结构的归属判断）。
      */
-    private static record CropVisual(ItemDisplay display, Interaction interaction, String modelName, String rootKey) {
+    private record CropVisual(ItemDisplay display, Interaction interaction, String modelName, String rootKey) {
         private CropVisual {
         }
     }

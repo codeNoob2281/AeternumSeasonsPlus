@@ -1,14 +1,7 @@
-package Kinkin.aeternum.farming;
+package kinkin.aeternum.farming;
 
-import Kinkin.aeternum.AeternumSeasonsPlugin;
-import Kinkin.aeternum.util.PlatformScheduler;
-import java.lang.reflect.Method;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Queue;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import kinkin.aeternum.AeternumSeasonsPlugin;
+import kinkin.aeternum.util.PlatformScheduler;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
@@ -24,6 +17,14 @@ import org.bukkit.event.world.EntitiesUnloadEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
+
+import java.lang.reflect.Method;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Queue;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * 村民作物兼容处理。
@@ -58,8 +59,8 @@ final class VillagerCropCompatibility implements Listener, Runnable {
         this.active = true;
         Bukkit.getPluginManager().registerEvents(this, this.plugin);
 
-        for(World world : Bukkit.getWorlds()) {
-            for(Entity entity : world.getEntitiesByClasses(new Class[]{Villager.class, Item.class})) {
+        for (World world : Bukkit.getWorlds()) {
+            for (Entity entity : world.getEntitiesByClasses(new Class[]{Villager.class, Item.class})) {
                 this.discover(entity);
             }
         }
@@ -81,23 +82,27 @@ final class VillagerCropCompatibility implements Listener, Runnable {
         this.items.clear();
     }
 
-    /** 根据实体类型登记村民或待处理物品。 */
+    /**
+     * 根据实体类型登记村民或待处理物品。
+     */
     private void discover(Entity entity) {
         if (this.active) {
             if (entity instanceof Villager) {
-                Villager villager = (Villager)entity;
+                Villager villager = (Villager) entity;
                 if (this.tracked.putIfAbsent(villager.getUniqueId(), villager) == null) {
                     this.villagers.add(villager);
                 }
             } else if (entity instanceof Item) {
-                Item item = (Item)entity;
+                Item item = (Item) entity;
                 this.queueItem(item);
             }
 
         }
     }
 
-    /** 将掉落物加入待规范化队列（去重）。 */
+    /**
+     * 将掉落物加入待规范化队列（去重）。
+     */
     void queueItem(Item item) {
         if (this.active && this.queuedItems.putIfAbsent(item.getUniqueId(), item) == null) {
             this.items.add(item);
@@ -105,25 +110,31 @@ final class VillagerCropCompatibility implements Listener, Runnable {
 
     }
 
-    /** 监听生物生成，登记新出现的村民或物品实体。 */
+    /**
+     * 监听生物生成，登记新出现的村民或物品实体。
+     */
     @EventHandler(
-        ignoreCancelled = true,
-        priority = EventPriority.MONITOR
+            ignoreCancelled = true,
+            priority = EventPriority.MONITOR
     )
     public void onSpawn(CreatureSpawnEvent event) {
         this.discover(event.getEntity());
     }
 
-    /** 区块实体加载时登记其中的村民与物品。 */
+    /**
+     * 区块实体加载时登记其中的村民与物品。
+     */
     @EventHandler
     public void onLoad(EntitiesLoadEvent event) {
         event.getEntities().forEach(this::discover);
     }
 
-    /** 区块实体卸载时从跟踪集合中移除对应村民与物品。 */
+    /**
+     * 区块实体卸载时从跟踪集合中移除对应村民与物品。
+     */
     @EventHandler
     public void onUnload(EntitiesUnloadEvent event) {
-        for(Entity entity : event.getEntities()) {
+        for (Entity entity : event.getEntities()) {
             if (entity instanceof Villager villager) {
                 this.tracked.remove(entity.getUniqueId(), villager);
             }
@@ -135,13 +146,16 @@ final class VillagerCropCompatibility implements Listener, Runnable {
 
     }
 
-    /** 定时任务入口：分批处理村民库存与掉落物的规范化。 */
+    /**
+     * 定时任务入口：分批处理村民库存与掉落物的规范化。
+     */
+    @Override
     public void run() {
         if (this.active && this.plugin.isEnabled()) {
             int visits = Math.min(16, this.villagers.size());
 
-            for(int i = 0; i < visits; ++i) {
-                Villager villager = (Villager)this.villagers.poll();
+            for (int i = 0; i < visits; ++i) {
+                Villager villager = (Villager) this.villagers.poll();
                 if (villager == null) {
                     break;
                 }
@@ -170,8 +184,8 @@ final class VillagerCropCompatibility implements Listener, Runnable {
                 }
             }
 
-            for(int i = 0; i < 16; ++i) {
-                Item item = (Item)this.items.poll();
+            for (int i = 0; i < 16; ++i) {
+                Item item = (Item) this.items.poll();
                 if (item == null) {
                     break;
                 }
@@ -201,7 +215,9 @@ final class VillagerCropCompatibility implements Listener, Runnable {
         }
     }
 
-    /** 探测 Paper 的实体调度器方法；不存在时返回 null。 */
+    /**
+     * 探测 Paper 的实体调度器方法；不存在时返回 null。
+     */
     private static Method schedulerMethod() {
         try {
             return Entity.class.getMethod("getScheduler");
@@ -213,8 +229,8 @@ final class VillagerCropCompatibility implements Listener, Runnable {
     /**
      * 在实体所属线程上执行动作；无法调度或实体已失效时执行 retired 回退。
      *
-     * @param entity 目标实体
-     * @param action 需要在实体线程执行的动作
+     * @param entity  目标实体
+     * @param action  需要在实体线程执行的动作
      * @param retired 放弃处理时的回退动作
      */
     private void onOwner(Entity entity, Runnable action, Runnable retired) {

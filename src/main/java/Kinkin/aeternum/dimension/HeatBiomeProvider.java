@@ -1,11 +1,12 @@
-package Kinkin.aeternum.dimension;
+package kinkin.aeternum.dimension;
 
-import java.util.Arrays;
-import java.util.List;
 import org.bukkit.block.Biome;
 import org.bukkit.generator.BiomeProvider;
 import org.bukkit.generator.WorldInfo;
 import org.jetbrains.annotations.NotNull;
+
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * 炽热维度生物群系提供器。
@@ -15,7 +16,9 @@ import org.jetbrains.annotations.NotNull;
  */
 public final class HeatBiomeProvider extends BiomeProvider {
     private final long seed;
-    /** 可选的炽热群系列表。 */
+    /**
+     * 可选的炽热群系列表。
+     */
     private final List<Biome> heatBiomes;
 
     public HeatBiomeProvider(long seed) {
@@ -24,14 +27,20 @@ public final class HeatBiomeProvider extends BiomeProvider {
         this.seed = seed;
     }
 
-    /** 根据坐标与种子做散列，确定性地选取一个炽热群系。 */
+    /**
+     * 根据坐标与种子做散列，确定性地选取一个炽热群系。
+     */
+    @Override
     public @NotNull Biome getBiome(@NotNull WorldInfo worldInfo, int x, int y, int z) {
-        long hash = (long)x * 341873128712L + (long)z * 132897987541L + this.seed;
+        long hash = (long) x * 341873128712L + (long) z * 132897987541L + this.seed;
         int index = Math.floorMod(hash, this.heatBiomes.size());
-        return (Biome)this.heatBiomes.get(index);
+        return (Biome) this.heatBiomes.get(index);
     }
 
-    /** 返回本维度可用的全部群系。 */
+    /**
+     * 返回本维度可用的全部群系。
+     */
+    @Override
     public @NotNull List<Biome> getBiomes(@NotNull WorldInfo worldInfo) {
         return this.heatBiomes;
     }

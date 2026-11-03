@@ -1,51 +1,25 @@
-package Kinkin.aeternum.world;
+package kinkin.aeternum.world;
 
-import Kinkin.aeternum.AeternumSeasonsPlugin;
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.EOFException;
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.channels.FileChannel;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.AtomicMoveNotSupportedException;
-import java.nio.file.DirectoryNotEmptyException;
-import java.nio.file.Files;
-import java.nio.file.LinkOption;
-import java.nio.file.OpenOption;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
-import java.nio.file.StandardOpenOption;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Consumer;
-import java.util.logging.Logger;
-import java.util.stream.Stream;
-import java.util.zip.CRC32;
+import kinkin.aeternum.AeternumSeasonsPlugin;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.command.CommandSender;
 import org.bukkit.scheduler.BukkitRunnable;
+
+import java.io.*;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.*;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
+import java.util.logging.Logger;
+import java.util.stream.Stream;
+import java.util.zip.CRC32;
 
 /**
  * 生物群系备份存储（BiomeBackupStore）。
@@ -100,7 +74,9 @@ public final class BiomeBackupStore {
 
     }
 
-    /** 首次触及某区块时，把其原始生物群系网格异步入库（每个区块只会保存一次）。 */
+    /**
+     * 首次触及某区块时，把其原始生物群系网格异步入库（每个区块只会保存一次）。
+     */
     public void saveFirstTouch(Chunk chunk, Biome[] originalGrid, int stepXZ, int stepY) {
         if (!this.restoreInProgress.get()) {
             World world = chunk.getWorld();
@@ -110,7 +86,7 @@ public final class BiomeBackupStore {
             long coordinate = coordinateKey(cx, cz);
             WorldContainer state = this.container(worldId);
             if (!state.known.contains(coordinate) && state.pending.add(coordinate)) {
-                Biome[] copy = (Biome[])Arrays.copyOf(originalGrid, originalGrid.length);
+                Biome[] copy = (Biome[]) Arrays.copyOf(originalGrid, originalGrid.length);
                 int minY = world.getMinHeight();
                 int maxY = world.getMaxHeight();
                 Bukkit.getScheduler().runTaskAsynchronously(this.plugin, () -> {
@@ -133,7 +109,9 @@ public final class BiomeBackupStore {
         }
     }
 
-    /** 异步读取指定区块的原始群系网格，读取完成后回到主线程通过 {@code callback} 回调。 */
+    /**
+     * 异步读取指定区块的原始群系网格，读取完成后回到主线程通过 {@code callback} 回调。
+     */
     public void loadOriginalGridAsync(World world, int cx, int cz, int expectedStepXZ, int expectedStepY, Consumer<Biome[]> callback) {
         UUID worldId = world.getUID();
         int minY = world.getMinHeight();
@@ -160,7 +138,7 @@ public final class BiomeBackupStore {
     private Biome[] loadOriginalGrid(UUID worldId, int cx, int cz, int expectedStepXZ, int expectedStepY, int expectedMinY, int expectedMaxY) throws IOException {
         byte[] payload = null;
         WorldContainer state = this.container(worldId);
-        synchronized(state.lock) {
+        synchronized (state.lock) {
             this.ensureContainerLoaded(state);
             if (state.records.containsKey(coordinateKey(cx, cz))) {
                 payload = this.readPackedPayload(state, cx, cz);
@@ -168,8 +146,8 @@ public final class BiomeBackupStore {
         }
 
         if (payload == null) {
-            synchronized(this.legacyOperationLock) {
-                synchronized(state.lock) {
+            synchronized (this.legacyOperationLock) {
+                synchronized (state.lock) {
                     this.ensureContainerLoaded(state);
                     if (state.records.containsKey(coordinateKey(cx, cz))) {
                         payload = this.readPackedPayload(state, cx, cz);
@@ -192,7 +170,7 @@ public final class BiomeBackupStore {
             if (data.stepXZ == expectedStepXZ && data.stepY == expectedStepY && data.minY == expectedMinY && data.maxY == expectedMaxY) {
                 Biome[] grid = new Biome[data.indices.length];
 
-                for(int i = 0; i < data.indices.length; ++i) {
+                for (int i = 0; i < data.indices.length; ++i) {
                     int paletteIndex = data.indices[i];
                     if (paletteIndex < 0 || paletteIndex >= data.palette.length) {
                         throw new IOException("Invalid palette index in biome backup");
@@ -203,7 +181,7 @@ public final class BiomeBackupStore {
 
                 return grid;
             } else {
-                this.plugin.getLogger().warning("[BiomeBackup] Incompatible backup for " + String.valueOf(worldId) + " " + cx + "," + cz + "; ignoring it to avoid applying a bad grid.");
+                this.plugin.getLogger().warning("[BiomeBackup] Incompatible backup for " + worldId + " " + cx + "," + cz + "; ignoring it to avoid applying a bad grid.");
                 return null;
             }
         }
@@ -211,7 +189,7 @@ public final class BiomeBackupStore {
 
     private void savePacked(WorldContainer state, int cx, int cz, Biome[] grid, int stepXZ, int stepY, int minY, int maxY) throws IOException {
         long coordinate = coordinateKey(cx, cz);
-        synchronized(state.lock) {
+        synchronized (state.lock) {
             this.ensureContainerLoaded(state);
             if (state.records.containsKey(coordinate)) {
                 state.known.add(coordinate);
@@ -239,7 +217,7 @@ public final class BiomeBackupStore {
     private void saveLegacy(WorldContainer state, int cx, int cz, Biome[] grid, int stepXZ, int stepY, int minY, int maxY) throws IOException {
         long coordinate = coordinateKey(cx, cz);
         Path file = this.legacyChunkFile(state.worldId, cx, cz);
-        synchronized(state.lock) {
+        synchronized (state.lock) {
             this.ensureContainerLoaded(state);
             if (!state.records.containsKey(coordinate) && !Files.isRegularFile(file, new LinkOption[0])) {
                 Files.createDirectories(file.getParent());
@@ -252,15 +230,17 @@ public final class BiomeBackupStore {
         }
     }
 
-    /** 把群系网格编码为带回调色板的二进制载荷（含魔数、步长、范围、调色板与索引）。 */
+    /**
+     * 把群系网格编码为带回调色板的二进制载荷（含魔数、步长、范围、调色板与索引）。
+     */
     private byte[] encodeBackup(Biome[] grid, int stepXZ, int stepY, int minY, int maxY) throws IOException {
         Map<String, Integer> paletteMap = new LinkedHashMap();
         List<String> palette = new ArrayList();
         int[] indices = new int[grid.length];
 
-        for(int i = 0; i < grid.length; ++i) {
+        for (int i = 0; i < grid.length; ++i) {
             String name = grid[i].name();
-            Integer index = (Integer)paletteMap.get(name);
+            Integer index = (Integer) paletteMap.get(name);
             if (index == null) {
                 index = palette.size();
                 palette.add(name);
@@ -283,7 +263,7 @@ public final class BiomeBackupStore {
             out.writeInt(maxY);
             out.writeInt(palette.size());
 
-            for(String biome : palette) {
+            for (String biome : palette) {
                 byte[] name = biome.getBytes(StandardCharsets.UTF_8);
                 if (name.length > 65535) {
                     throw new IOException("Nombre de bioma demasiado largo");
@@ -296,11 +276,11 @@ public final class BiomeBackupStore {
             out.writeInt(indices.length);
             out.writeBoolean(useByte);
             if (useByte) {
-                for(int value : indices) {
+                for (int value : indices) {
                     out.writeByte(value);
                 }
             } else {
-                for(int value : indices) {
+                for (int value : indices) {
                     out.writeShort(value);
                 }
             }
@@ -318,12 +298,16 @@ public final class BiomeBackupStore {
         return bytes.toByteArray();
     }
 
-    /** 获取（或惰性创建）某世界对应的容器状态。 */
+    /**
+     * 获取（或惰性创建）某世界对应的容器状态。
+     */
     private WorldContainer container(UUID worldId) {
-        return (WorldContainer)this.containers.computeIfAbsent(worldId, (id) -> new WorldContainer(id, this.root.resolve(String.valueOf(id) + ".asb")));
+        return (WorldContainer) this.containers.computeIfAbsent(worldId, (id) -> new WorldContainer(id, this.root.resolve(id + ".asb")));
     }
 
-    /** 惰性加载容器文件：校验头部与各记录，跳过损坏记录，并在末尾截断不完整的写入。 */
+    /**
+     * 惰性加载容器文件：校验头部与各记录，跳过损坏记录，并在末尾截断不完整的写入。
+     */
     private void ensureContainerLoaded(WorldContainer state) throws IOException {
         if (!state.loaded) {
             state.records.clear();
@@ -336,7 +320,7 @@ public final class BiomeBackupStore {
                 try {
                     long size = channel.size();
                     if (size < 21L) {
-                        throw new IOException("Contenedor incompleto: " + String.valueOf(state.path));
+                        throw new IOException("Contenedor incompleto: " + state.path);
                     }
 
                     ByteBuffer header = ByteBuffer.allocate(21);
@@ -361,7 +345,7 @@ public final class BiomeBackupStore {
                     }
 
                     long next;
-                    for(long position = 21L; position < size; position = next) {
+                    for (long position = 21L; position < size; position = next) {
                         if (size - position < 20L) {
                             this.truncateIncompleteTail(channel, state.path, position);
                             break;
@@ -384,7 +368,7 @@ public final class BiomeBackupStore {
                         }
 
                         long payloadOffset = position + 20L;
-                        next = payloadOffset + (long)length;
+                        next = payloadOffset + (long) length;
                         if (next > size) {
                             this.truncateIncompleteTail(channel, state.path, position);
                             break;
@@ -422,7 +406,9 @@ public final class BiomeBackupStore {
         }
     }
 
-    /** 向容器文件追加一条区块备份记录（若已存在则跳过），并更新内存索引。 */
+    /**
+     * 向容器文件追加一条区块备份记录（若已存在则跳过），并更新内存索引。
+     */
     private void appendRecord(WorldContainer state, int cx, int cz, byte[] payload) throws IOException {
         if (payload.length > 0 && payload.length <= 16777216) {
             this.ensureContainerLoaded(state);
@@ -485,22 +471,26 @@ public final class BiomeBackupStore {
         }
     }
 
-    /** 写入容器头部（魔数、版本、世界 UUID）。 */
+    /**
+     * 写入容器头部（魔数、版本、世界 UUID）。
+     */
     private void writeContainerHeader(FileChannel channel, UUID worldId) throws IOException {
         ByteBuffer header = ByteBuffer.allocate(21);
         header.putInt(-1364128752);
-        header.put((byte)1);
+        header.put((byte) 1);
         header.putLong(worldId.getMostSignificantBits());
         header.putLong(worldId.getLeastSignificantBits());
         header.flip();
         writeFully(channel, header, 0L);
     }
 
-    /** 从容器文件读取指定区块的载荷并校验 CRC。 */
+    /**
+     * 从容器文件读取指定区块的载荷并校验 CRC。
+     */
     private byte[] readPackedPayload(WorldContainer state, int cx, int cz) throws IOException {
-        synchronized(state.lock) {
+        synchronized (state.lock) {
             this.ensureContainerLoaded(state);
-            RecordMeta meta = (RecordMeta)state.records.get(coordinateKey(cx, cz));
+            RecordMeta meta = (RecordMeta) state.records.get(coordinateKey(cx, cz));
             if (meta == null) {
                 throw new IOException("Registro ya no existe");
             } else {
@@ -535,15 +525,19 @@ public final class BiomeBackupStore {
         }
     }
 
-    /** 丢弃容器末尾不完整的写入（截断到指定位置）并告警。 */
+    /**
+     * 丢弃容器末尾不完整的写入（截断到指定位置）并告警。
+     */
     private void truncateIncompleteTail(FileChannel channel, Path path, long position) throws IOException {
         channel.truncate(position);
-        this.plugin.getLogger().warning("[BiomeBackup] Se descartó una escritura incompleta al final de " + String.valueOf(path.getFileName()));
+        this.plugin.getLogger().warning("[BiomeBackup] Se descartó una escritura incompleta al final de " + path.getFileName());
     }
 
-    /** 把旧的按区块 {@code .bin} 文件迁移进打包容器，成功后删除旧文件与空目录。 */
+    /**
+     * 把旧的按区块 {@code .bin} 文件迁移进打包容器，成功后删除旧文件与空目录。
+     */
     private void migrateLegacyBackups() {
-        synchronized(this.legacyOperationLock) {
+        synchronized (this.legacyOperationLock) {
             if (!this.restoreInProgress.get()) {
                 List<Path> legacyFiles = this.findLegacyFiles();
                 if (!legacyFiles.isEmpty()) {
@@ -551,7 +545,7 @@ public final class BiomeBackupStore {
                     int alreadyPacked = 0;
                     int failed = 0;
 
-                    for(Path file : legacyFiles) {
+                    for (Path file : legacyFiles) {
                         LegacyRef ref = this.parseLegacyFile(file);
                         if (ref == null) {
                             ++failed;
@@ -561,7 +555,7 @@ public final class BiomeBackupStore {
                             try {
                                 byte[] payload = Files.readAllBytes(file);
                                 this.decodeBackup(payload);
-                                synchronized(state.lock) {
+                                synchronized (state.lock) {
                                     this.ensureContainerLoaded(state);
                                     long key = coordinateKey(ref.cx, ref.cz);
                                     if (!state.records.containsKey(key)) {
@@ -589,7 +583,9 @@ public final class BiomeBackupStore {
         }
     }
 
-    /** 启动一次“还原全部备份”的异步流程：先收集条目，再用带预算的 {@link RestoreTask} 分片应用。 */
+    /**
+     * 启动一次“还原全部备份”的异步流程：先收集条目，再用带预算的 {@link RestoreTask} 分片应用。
+     */
     public void startRestoreAll(CommandSender sender, int budgetChunksPerTick) {
         if (!this.restoreInProgress.compareAndSet(false, true)) {
             sender.sendMessage("§e[BiomeBackup] Ya hay una restauración en curso.");
@@ -597,7 +593,7 @@ public final class BiomeBackupStore {
             Bukkit.getScheduler().runTaskAsynchronously(this.plugin, () -> {
                 try {
                     List<RestoreEntry> entries;
-                    synchronized(this.legacyOperationLock) {
+                    synchronized (this.legacyOperationLock) {
                         entries = this.collectRestoreEntries();
                     }
 
@@ -621,20 +617,22 @@ public final class BiomeBackupStore {
         }
     }
 
-    /** 汇总所有容器与旧文件中的待还原条目，按区块去重（旧文件作为别名挂到已有条目上）。 */
+    /**
+     * 汇总所有容器与旧文件中的待还原条目，按区块去重（旧文件作为别名挂到已有条目上）。
+     */
     private List<RestoreEntry> collectRestoreEntries() {
         LinkedHashMap<ChunkRef, RestoreEntry> unique = new LinkedHashMap();
 
-        for(UUID worldId : this.findPackedWorlds()) {
+        for (UUID worldId : this.findPackedWorlds()) {
             WorldContainer state = this.container(worldId);
 
             try {
-                synchronized(state.lock) {
+                synchronized (state.lock) {
                     this.ensureContainerLoaded(state);
                     List<RecordMeta> records = new ArrayList(state.records.values());
                     records.sort(Comparator.comparingLong((recordMeta) -> recordMeta.recordStart));
 
-                    for(RecordMeta meta : records) {
+                    for (RecordMeta meta : records) {
                         ChunkRef ref = new ChunkRef(worldId, meta.cx, meta.cz);
                         unique.putIfAbsent(ref, BiomeBackupStore.RestoreEntry.packed(ref));
                     }
@@ -646,11 +644,11 @@ public final class BiomeBackupStore {
             }
         }
 
-        for(Path file : this.findLegacyFiles()) {
+        for (Path file : this.findLegacyFiles()) {
             LegacyRef legacy = this.parseLegacyFile(file);
             if (legacy != null) {
                 ChunkRef ref = new ChunkRef(legacy.worldId, legacy.cx, legacy.cz);
-                RestoreEntry existing = (RestoreEntry)unique.get(ref);
+                RestoreEntry existing = (RestoreEntry) unique.get(ref);
                 if (existing == null) {
                     unique.put(ref, BiomeBackupStore.RestoreEntry.legacy(ref, file));
                 } else {
@@ -662,12 +660,14 @@ public final class BiomeBackupStore {
         return new ArrayList(unique.values());
     }
 
-    /** 还原完成后的异步收尾：删除已还原的旧文件、压缩容器，然后回主线程报告结果。 */
+    /**
+     * 还原完成后的异步收尾：删除已还原的旧文件、压缩容器，然后回主线程报告结果。
+     */
     private void finishRestoreAsync(CommandSender sender, int restored, int failed, Map<UUID, Set<Long>> restoredPacked, List<Path> restoredLegacy) {
         Bukkit.getScheduler().runTaskAsynchronously(this.plugin, () -> {
             int cleanupFailures = 0;
 
-            for(Path file : restoredLegacy) {
+            for (Path file : restoredLegacy) {
                 try {
                     Files.deleteIfExists(file);
                     this.deleteDirectoryIfEmpty(file.getParent());
@@ -679,9 +679,9 @@ public final class BiomeBackupStore {
                 }
             }
 
-            for(Map.Entry<UUID, Set<Long>> entry : restoredPacked.entrySet()) {
+            for (Map.Entry<UUID, Set<Long>> entry : restoredPacked.entrySet()) {
                 try {
-                    this.compactContainer(this.container((UUID)entry.getKey()), (Set)entry.getValue());
+                    this.compactContainer(this.container((UUID) entry.getKey()), (Set) entry.getValue());
                 } catch (Throwable failure) {
                     ++cleanupFailures;
                     Logger compactLogger = this.plugin.getLogger();
@@ -698,15 +698,17 @@ public final class BiomeBackupStore {
         });
     }
 
-    /** 压缩容器：删除已还原记录，把剩余记录重写到临时文件后原子替换。 */
+    /**
+     * 压缩容器：删除已还原记录，把剩余记录重写到临时文件后原子替换。
+     */
     private void compactContainer(WorldContainer state, Set<Long> removed) throws IOException {
-        synchronized(state.lock) {
+        synchronized (state.lock) {
             this.ensureContainerLoaded(state);
             List<RecordMeta> kept = new ArrayList();
 
-            for(Map.Entry<Long, RecordMeta> entry : state.records.entrySet()) {
+            for (Map.Entry<Long, RecordMeta> entry : state.records.entrySet()) {
                 if (!removed.contains(entry.getKey())) {
-                    kept.add((RecordMeta)entry.getValue());
+                    kept.add((RecordMeta) entry.getValue());
                 }
             }
 
@@ -718,7 +720,7 @@ public final class BiomeBackupStore {
                     state.known.removeAll(removed);
                     state.loaded = true;
                 } else {
-                    Path temp = state.path.resolveSibling(String.valueOf(state.path.getFileName()) + ".tmp");
+                    Path temp = state.path.resolveSibling(state.path.getFileName() + ".tmp");
                     FileChannel source = FileChannel.open(state.path, StandardOpenOption.READ);
 
                     try {
@@ -727,7 +729,7 @@ public final class BiomeBackupStore {
                         try {
                             this.writeContainerHeader(target, state.worldId);
 
-                            for(RecordMeta meta : kept) {
+                            for (RecordMeta meta : kept) {
                                 byte[] payload = readBytes(source, meta.payloadOffset, meta.length);
                                 this.writeRecordAtEnd(target, meta.cx, meta.cz, payload);
                             }
@@ -777,7 +779,9 @@ public final class BiomeBackupStore {
         }
     }
 
-    /** 在文件末尾追加一条记录（头部 + 载荷）。 */
+    /**
+     * 在文件末尾追加一条记录（头部 + 载荷）。
+     */
     private void writeRecordAtEnd(FileChannel channel, int cx, int cz, byte[] payload) throws IOException {
         long start = channel.size();
         int crc = checksum(payload);
@@ -787,7 +791,9 @@ public final class BiomeBackupStore {
         writeFully(channel, ByteBuffer.wrap(payload), start + 20L);
     }
 
-    /** 把二进制载荷解析回 {@link BackupData}（含魔数/版本/范围/调色板/索引校验）。 */
+    /**
+     * 把二进制载荷解析回 {@link BackupData}（含魔数/版本/范围/调色板/索引校验）。
+     */
     private BackupData decodeBackup(byte[] payload) throws IOException {
         DataInputStream in = new DataInputStream(new BufferedInputStream(new ByteArrayInputStream(payload)));
 
@@ -818,7 +824,7 @@ public final class BiomeBackupStore {
 
             String[] palette = new String[paletteSize];
 
-            for(int i = 0; i < paletteSize; ++i) {
+            for (int i = 0; i < paletteSize; ++i) {
                 int length = in.readUnsignedShort();
                 byte[] name = new byte[length];
                 in.readFully(name);
@@ -833,11 +839,11 @@ public final class BiomeBackupStore {
             boolean useByte = in.readBoolean();
             int[] indices = new int[count];
             if (useByte) {
-                for(int i = 0; i < count; ++i) {
+                for (int i = 0; i < count; ++i) {
                     indices[i] = in.readUnsignedByte();
                 }
             } else {
-                for(int i = 0; i < count; ++i) {
+                for (int i = 0; i < count; ++i) {
                     indices[i] = in.readUnsignedShort();
                 }
             }
@@ -857,7 +863,9 @@ public final class BiomeBackupStore {
         return backupData;
     }
 
-    /** 把备份网格按步长应用到世界的实际区块，并刷新该区块。 */
+    /**
+     * 把备份网格按步长应用到世界的实际区块，并刷新该区块。
+     */
     private void applyBackup(World world, int cx, int cz, BackupData data) {
         world.getChunkAt(cx, cz);
         int baseX = cx << 4;
@@ -866,9 +874,9 @@ public final class BiomeBackupStore {
         int currentMax = world.getMaxHeight();
         int index = 0;
 
-        for(int x = 0; x < 16; x += data.stepXZ) {
-            for(int z = 0; z < 16; z += data.stepXZ) {
-                for(int y = data.minY; y < data.maxY && index < data.indices.length; y += data.stepY) {
+        for (int x = 0; x < 16; x += data.stepXZ) {
+            for (int z = 0; z < 16; z += data.stepXZ) {
+                for (int y = data.minY; y < data.maxY && index < data.indices.length; y += data.stepY) {
                     int paletteIndex = data.indices[index++];
                     if (paletteIndex >= 0 && paletteIndex < data.palette.length && y >= currentMin && y < currentMax) {
                         world.setBiome(baseX + x, y, baseZ + z, this.safeBiome(data.palette[paletteIndex]));
@@ -880,7 +888,9 @@ public final class BiomeBackupStore {
         world.refreshChunk(cx, cz);
     }
 
-    /** 把群系名安全转换为 {@link Biome}，无法识别时告警并回退为平原。 */
+    /**
+     * 把群系名安全转换为 {@link Biome}，无法识别时告警并回退为平原。
+     */
     private Biome safeBiome(String name) {
         try {
             return Biome.valueOf(name.toUpperCase(Locale.ROOT));
@@ -890,7 +900,9 @@ public final class BiomeBackupStore {
         }
     }
 
-    /** 枚举磁盘上所有 {@code .asb} 容器对应的世界 UUID（含内存中已创建的容器）。 */
+    /**
+     * 枚举磁盘上所有 {@code .asb} 容器对应的世界 UUID（含内存中已创建的容器）。
+     */
     private Set<UUID> findPackedWorlds() {
         Set<UUID> worlds = new LinkedHashSet(this.containers.keySet());
         if (!Files.isDirectory(this.root, new LinkOption[0])) {
@@ -933,7 +945,9 @@ public final class BiomeBackupStore {
         }
     }
 
-    /** 递归枚举磁盘上所有旧式 {@code .bin} 备份文件。 */
+    /**
+     * 递归枚举磁盘上所有旧式 {@code .bin} 备份文件。
+     */
     private List<Path> findLegacyFiles() {
         List<Path> files = new ArrayList();
         if (!Files.isDirectory(this.root, new LinkOption[0])) {
@@ -967,7 +981,9 @@ public final class BiomeBackupStore {
         }
     }
 
-    /** 解析旧式备份文件路径，得到（世界 UUID, 区块 X, 区块 Z）；格式不符返回 null。 */
+    /**
+     * 解析旧式备份文件路径，得到（世界 UUID, 区块 X, 区块 Z）；格式不符返回 null。
+     */
     private LegacyRef parseLegacyFile(Path file) {
         try {
             Path parent = file.getParent();
@@ -987,7 +1003,7 @@ public final class BiomeBackupStore {
                 }
             }
         } catch (IllegalArgumentException invalidName) {
-            this.plugin.getLogger().warning("[BiomeBackup] Nombre legacy inválido: " + String.valueOf(file));
+            this.plugin.getLogger().warning("[BiomeBackup] Nombre legacy inválido: " + file);
             return null;
         }
     }
@@ -996,7 +1012,9 @@ public final class BiomeBackupStore {
         return this.root.resolve(worldId.toString()).resolve(cx + "_" + cz + ".bin");
     }
 
-    /** 若目录为空则删除之（根目录不删；非空则忽略）。 */
+    /**
+     * 若目录为空则删除之（根目录不删；非空则忽略）。
+     */
     private void deleteDirectoryIfEmpty(Path directory) {
         if (directory != null && !directory.equals(this.root)) {
             try {
@@ -1009,19 +1027,25 @@ public final class BiomeBackupStore {
         }
     }
 
-    /** 把区块坐标 (cx,cz) 打包成一个 64 位键。 */
+    /**
+     * 把区块坐标 (cx,cz) 打包成一个 64 位键。
+     */
     private static long coordinateKey(int cx, int cz) {
-        return ((long)cx & 4294967295L) << 32 | (long)cz & 4294967295L;
+        return ((long) cx & 4294967295L) << 32 | (long) cz & 4294967295L;
     }
 
-    /** 计算载荷的 CRC32 校验值。 */
+    /**
+     * 计算载荷的 CRC32 校验值。
+     */
     private static int checksum(byte[] payload) {
         CRC32 crc = new CRC32();
         crc.update(payload);
-        return (int)crc.getValue();
+        return (int) crc.getValue();
     }
 
-    /** 从通道指定位置读取 {@code length} 字节，读不满则抛异常。 */
+    /**
+     * 从通道指定位置读取 {@code length} 字节，读不满则抛异常。
+     */
     private static byte[] readBytes(FileChannel channel, long position, int length) throws IOException {
         ByteBuffer buffer = ByteBuffer.allocate(length);
         if (!readFully(channel, buffer, position)) {
@@ -1031,28 +1055,32 @@ public final class BiomeBackupStore {
         }
     }
 
-    /** 从通道指定位置把缓冲填满；遇到流末尾返回 false。 */
+    /**
+     * 从通道指定位置把缓冲填满；遇到流末尾返回 false。
+     */
     private static boolean readFully(FileChannel channel, ByteBuffer buffer, long position) throws IOException {
         long offset = position;
 
-        while(buffer.hasRemaining()) {
+        while (buffer.hasRemaining()) {
             int read = channel.read(buffer, offset);
             if (read < 0) {
                 return false;
             }
 
             if (read != 0) {
-                offset += (long)read;
+                offset += (long) read;
             }
         }
 
         return true;
     }
 
-    /** 把缓冲全部写入通道；写入不足则抛异常。 */
+    /**
+     * 把缓冲全部写入通道；写入不足则抛异常。
+     */
     private static void writeFully(FileChannel channel, ByteBuffer buffer, long position) throws IOException {
         int written;
-        for(long offset = position; buffer.hasRemaining(); offset += (long)written) {
+        for (long offset = position; buffer.hasRemaining(); offset += (long) written) {
             written = channel.write(buffer, offset);
             if (written <= 0) {
                 throw new EOFException("No se pudo completar la escritura");
@@ -1061,7 +1089,9 @@ public final class BiomeBackupStore {
 
     }
 
-    /** 分片还原任务：每 tick 处理有限数量的条目，全部完成后转入收尾流程。 */
+    /**
+     * 分片还原任务：每 tick 处理有限数量的条目，全部完成后转入收尾流程。
+     */
     private final class RestoreTask extends BukkitRunnable {
         private final Iterator<RestoreEntry> iterator;
         private final CommandSender sender;
@@ -1078,13 +1108,14 @@ public final class BiomeBackupStore {
             this.budget = budget;
         }
 
+        @Override
         public void run() {
-            for(int processed = 0; processed < this.budget && this.iterator.hasNext(); ++processed) {
-                RestoreEntry entry = (RestoreEntry)this.iterator.next();
+            for (int processed = 0; processed < this.budget && this.iterator.hasNext(); ++processed) {
+                RestoreEntry entry = (RestoreEntry) this.iterator.next();
                 if (this.restoreOne(entry)) {
                     ++this.restored;
                     if (entry.packed) {
-                        ((Set)this.restoredPacked.computeIfAbsent(entry.ref.worldId, (ignoredKey) -> new HashSet())).add(BiomeBackupStore.coordinateKey(entry.ref.cx, entry.ref.cz));
+                        ((Set) this.restoredPacked.computeIfAbsent(entry.ref.worldId, (ignoredKey) -> new HashSet())).add(BiomeBackupStore.coordinateKey(entry.ref.cx, entry.ref.cz));
                     } else if (entry.legacyFile != null) {
                         this.restoredLegacy.add(entry.legacyFile);
                     }
@@ -1107,7 +1138,7 @@ public final class BiomeBackupStore {
             try {
                 World world = Bukkit.getWorld(entry.ref.worldId);
                 if (world == null) {
-                    BiomeBackupStore.this.plugin.getLogger().warning("[BiomeBackup] Mundo no cargado: " + String.valueOf(entry.ref.worldId));
+                    BiomeBackupStore.this.plugin.getLogger().warning("[BiomeBackup] Mundo no cargado: " + entry.ref.worldId);
                     return false;
                 } else {
                     byte[] payload;
@@ -1130,7 +1161,9 @@ public final class BiomeBackupStore {
         }
     }
 
-    /** 单个世界容器在内存中的状态：文件路径、记录索引、已/待处理坐标与加载标记。 */
+    /**
+     * 单个世界容器在内存中的状态：文件路径、记录索引、已/待处理坐标与加载标记。
+     */
     private static final class WorldContainer {
         final UUID worldId;
         final Path path;
@@ -1147,25 +1180,33 @@ public final class BiomeBackupStore {
         }
     }
 
-    /** 容器内单条记录的元数据：区块坐标、记录起点、载荷偏移、长度与 CRC。 */
-    private static record RecordMeta(int cx, int cz, long recordStart, long payloadOffset, int length, int checksum) {
+    /**
+     * 容器内单条记录的元数据：区块坐标、记录起点、载荷偏移、长度与 CRC。
+     */
+    private record RecordMeta(int cx, int cz, long recordStart, long payloadOffset, int length, int checksum) {
         private RecordMeta {
         }
     }
 
-    /** 区块引用：世界 UUID 与区块坐标。 */
-    private static record ChunkRef(UUID worldId, int cx, int cz) {
+    /**
+     * 区块引用：世界 UUID 与区块坐标。
+     */
+    private record ChunkRef(UUID worldId, int cx, int cz) {
         private ChunkRef {
         }
     }
 
-    /** 旧式备份文件解析结果：世界 UUID 与区块坐标。 */
-    private static record LegacyRef(UUID worldId, int cx, int cz) {
+    /**
+     * 旧式备份文件解析结果：世界 UUID 与区块坐标。
+     */
+    private record LegacyRef(UUID worldId, int cx, int cz) {
         private LegacyRef {
         }
     }
 
-    /** 待还原条目：区块引用、是否来自打包容器、旧文件及其别名列表。 */
+    /**
+     * 待还原条目：区块引用、是否来自打包容器、旧文件及其别名列表。
+     */
     private static final class RestoreEntry {
         final ChunkRef ref;
         final boolean packed;
@@ -1180,7 +1221,7 @@ public final class BiomeBackupStore {
         }
 
         static RestoreEntry packed(ChunkRef ref) {
-            return new RestoreEntry(ref, true, (Path)null);
+            return new RestoreEntry(ref, true, (Path) null);
         }
 
         static RestoreEntry legacy(ChunkRef ref, Path file) {
@@ -1188,8 +1229,10 @@ public final class BiomeBackupStore {
         }
     }
 
-    /** 解码后的备份数据：步长、纵坐标范围、调色板与索引数组。 */
-    private static record BackupData(int stepXZ, int stepY, int minY, int maxY, String[] palette, int[] indices) {
+    /**
+     * 解码后的备份数据：步长、纵坐标范围、调色板与索引数组。
+     */
+    private record BackupData(int stepXZ, int stepY, int minY, int maxY, String[] palette, int[] indices) {
         private BackupData {
         }
     }

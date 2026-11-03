@@ -1,20 +1,11 @@
-package Kinkin.aeternum.hud;
+package kinkin.aeternum.hud;
 
-import Kinkin.aeternum.AeternumSeasonsPlugin;
-import Kinkin.aeternum.calendar.CalendarChannel;
-import Kinkin.aeternum.calendar.CalendarState;
-import Kinkin.aeternum.calendar.Season;
-import Kinkin.aeternum.calendar.SeasonService;
-import Kinkin.aeternum.util.PlayerArrivalSync;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.UUID;
+import kinkin.aeternum.AeternumSeasonsPlugin;
+import kinkin.aeternum.calendar.CalendarChannel;
+import kinkin.aeternum.calendar.CalendarState;
+import kinkin.aeternum.calendar.Season;
+import kinkin.aeternum.calendar.SeasonService;
+import kinkin.aeternum.util.PlayerArrivalSync;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.Bukkit;
@@ -35,6 +26,8 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.scheduler.BukkitTask;
 
+import java.util.*;
+
 /**
  * HUD 显示服务。
  *
@@ -48,13 +41,21 @@ import org.bukkit.scheduler.BukkitTask;
 public final class HudService implements Listener, Runnable {
     private final AeternumSeasonsPlugin plugin;
     private final SeasonService seasons;
-    /** 每个玩家对应的 BossBar 实例。 */
+    /**
+     * 每个玩家对应的 BossBar 实例。
+     */
     private final Map<UUID, BossBar> bars = new HashMap();
-    /** 玩家显式设置的显示模式。 */
+    /**
+     * 玩家显式设置的显示模式。
+     */
     private final Map<UUID, HudMode> modes = new HashMap();
-    /** 使用 VARIABLE 模式的玩家。 */
+    /**
+     * 使用 VARIABLE 模式的玩家。
+     */
     private final Set<UUID> variablePlayers = new HashSet();
-    /** 使用 OFF 模式的玩家。 */
+    /**
+     * 使用 OFF 模式的玩家。
+     */
     private final Set<UUID> offPlayers = new HashSet();
     private BukkitTask task;
     private PlayerArrivalSync arrivalSync;
@@ -64,9 +65,13 @@ public final class HudService implements Listener, Runnable {
     private final boolean colorBySeason;
     private final long updateTicks;
     private final HudMode defaultMode;
-    /** 每个玩家上次 ActionBar 文本，用于避免重复刷新。 */
+    /**
+     * 每个玩家上次 ActionBar 文本，用于避免重复刷新。
+     */
     private final Map<UUID, String> lastActionbarText = new HashMap();
-    /** 每个玩家当前 ActionBar 是否处于显示状态。 */
+    /**
+     * 每个玩家当前 ActionBar 是否处于显示状态。
+     */
     private final Set<UUID> actionbarShown = new HashSet();
 
     public HudService(AeternumSeasonsPlugin plugin, SeasonService seasons) {
@@ -89,14 +94,14 @@ public final class HudService implements Listener, Runnable {
 
         this.defaultMode = defaultMode;
 
-        for(String rawId : plugin.cfg.hud.getStringList("bossbar.variable_players")) {
+        for (String rawId : plugin.cfg.hud.getStringList("bossbar.variable_players")) {
             try {
                 this.variablePlayers.add(UUID.fromString(rawId));
             } catch (IllegalArgumentException invalidVariableId) {
             }
         }
 
-        for(String rawId : plugin.cfg.hud.getStringList("bossbar.off_players")) {
+        for (String rawId : plugin.cfg.hud.getStringList("bossbar.off_players")) {
             try {
                 this.offPlayers.add(UUID.fromString(rawId));
             } catch (IllegalArgumentException invalidOffId) {
@@ -105,14 +110,18 @@ public final class HudService implements Listener, Runnable {
 
     }
 
-    /** 根据玩家 UUID 生成稳定的 BossBar 命名空间键（避免同名冲突）。 */
+    /**
+     * 根据玩家 UUID 生成稳定的 BossBar 命名空间键（避免同名冲突）。
+     */
     private NamespacedKey barKey(UUID id) {
         String compactId = id.toString().replace("-", "");
         String key = "hud_" + compactId.toLowerCase(Locale.ROOT);
         return new NamespacedKey(this.plugin, key);
     }
 
-    /** 清理并移除某玩家的 BossBar（从所有接收者移除并注销）。 */
+    /**
+     * 清理并移除某玩家的 BossBar（从所有接收者移除并注销）。
+     */
     private void cleanupBossBar(UUID id) {
         NamespacedKey key = this.barKey(id);
         BossBar old = Bukkit.getBossBar(key);
@@ -125,15 +134,19 @@ public final class HudService implements Listener, Runnable {
         this.bars.remove(id);
     }
 
-    /** 清理所有在线玩家的 BossBar（用于重载/卸载前重置）。 */
+    /**
+     * 清理所有在线玩家的 BossBar（用于重载/卸载前重置）。
+     */
     private void cleanupBossBarsForOnlinePlayers() {
-        for(Player player : Bukkit.getOnlinePlayers()) {
+        for (Player player : Bukkit.getOnlinePlayers()) {
             this.cleanupBossBar(player.getUniqueId());
         }
 
     }
 
-    /** 注册监听器与刷新任务，并重建在线玩家的 BossBar。 */
+    /**
+     * 注册监听器与刷新任务，并重建在线玩家的 BossBar。
+     */
     public void register() {
         if (this.bossbarEnabled || this.actionbarEnabled) {
             Bukkit.getPluginManager().registerEvents(this, this.plugin);
@@ -144,7 +157,7 @@ public final class HudService implements Listener, Runnable {
             this.arrivalSync = new PlayerArrivalSync(this.plugin, this::resyncPlayer);
             this.cleanupBossBarsForOnlinePlayers();
             if (this.bossbarEnabled) {
-                for(Player player : Bukkit.getOnlinePlayers()) {
+                for (Player player : Bukkit.getOnlinePlayers()) {
                     this.ensureBar(player);
                 }
             }
@@ -157,7 +170,9 @@ public final class HudService implements Listener, Runnable {
         }
     }
 
-    /** 注销监听器、停止刷新任务并清理全部 BossBar 与缓存。 */
+    /**
+     * 注销监听器、停止刷新任务并清理全部 BossBar 与缓存。
+     */
     public void unregister() {
         if (this.arrivalSync != null) {
             this.arrivalSync.close();
@@ -179,7 +194,9 @@ public final class HudService implements Listener, Runnable {
         this.actionbarShown.clear();
     }
 
-    /** 玩家加入时为其准备 BossBar（先清理可能残留的旧实例）。 */
+    /**
+     * 玩家加入时为其准备 BossBar（先清理可能残留的旧实例）。
+     */
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
         if (this.bossbarEnabled) {
@@ -189,18 +206,24 @@ public final class HudService implements Listener, Runnable {
 
     }
 
-    /** 玩家重生事件（BossBar 由到达同步器统一重新绑定，这里无需处理）。 */
+    /**
+     * 玩家重生事件（BossBar 由到达同步器统一重新绑定，这里无需处理）。
+     */
     @EventHandler
     public void onRespawn(PlayerRespawnEvent event) {
     }
 
-    /** 玩家切换世界后重新同步 HUD。 */
+    /**
+     * 玩家切换世界后重新同步 HUD。
+     */
     @EventHandler
     public void onWorldChange(PlayerChangedWorldEvent event) {
         this.resyncPlayer(event.getPlayer());
     }
 
-    /** 玩家到达新位置后重置其 ActionBar 缓存并刷新 HUD。 */
+    /**
+     * 玩家到达新位置后重置其 ActionBar 缓存并刷新 HUD。
+     */
     private void resyncPlayer(Player player) {
         if (this.bossbarEnabled) {
             this.cleanupBossBar(player.getUniqueId());
@@ -211,7 +234,9 @@ public final class HudService implements Listener, Runnable {
         this.refreshPlayer(player);
     }
 
-    /** 玩家下线时清理 BossBar、ActionBar 状态与模式缓存。 */
+    /**
+     * 玩家下线时清理 BossBar、ActionBar 状态与模式缓存。
+     */
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
         UUID id = event.getPlayer().getUniqueId();
@@ -225,10 +250,12 @@ public final class HudService implements Listener, Runnable {
         this.modes.remove(id);
     }
 
-    /** 确保玩家拥有可用的 BossBar（复用同名已存在的实例，否则新建并添加玩家）。 */
+    /**
+     * 确保玩家拥有可用的 BossBar（复用同名已存在的实例，否则新建并添加玩家）。
+     */
     private void ensureBar(Player p) {
         UUID id = p.getUniqueId();
-        BossBar bar = (BossBar)this.bars.get(id);
+        BossBar bar = (BossBar) this.bars.get(id);
         if (bar == null) {
             NamespacedKey key = this.barKey(id);
             BossBar existing = Bukkit.getBossBar(key);
@@ -249,7 +276,9 @@ public final class HudService implements Listener, Runnable {
 
     }
 
-    /** 设置玩家的 HUD 显示模式并持久化到 hud.yml。 */
+    /**
+     * 设置玩家的 HUD 显示模式并持久化到 hud.yml。
+     */
     public void setPlayerMode(Player p, HudMode mode) {
         UUID id = p.getUniqueId();
         this.modes.put(id, mode);
@@ -280,10 +309,12 @@ public final class HudService implements Listener, Runnable {
         this.savePlayers("bossbar.off_players", this.offPlayers);
     }
 
-    /** 获取玩家当前显示模式（内存优先，其次持久化集合，最后回退默认模式）。 */
+    /**
+     * 获取玩家当前显示模式（内存优先，其次持久化集合，最后回退默认模式）。
+     */
     public HudMode getPlayerMode(Player p) {
         UUID id = p.getUniqueId();
-        HudMode cachedMode = (HudMode)this.modes.get(id);
+        HudMode cachedMode = (HudMode) this.modes.get(id);
         if (cachedMode != null) {
             return cachedMode;
         } else if (this.offPlayers.contains(id)) {
@@ -297,11 +328,13 @@ public final class HudService implements Listener, Runnable {
         }
     }
 
-    /** 把玩家 UUID 集合保存到 hud.yml 的指定路径。 */
+    /**
+     * 把玩家 UUID 集合保存到 hud.yml 的指定路径。
+     */
     private void savePlayers(String path, Set<UUID> set) {
         List<String> out = new ArrayList();
 
-        for(UUID uuid : set) {
+        for (UUID uuid : set) {
             out.add(uuid.toString());
         }
 
@@ -309,15 +342,20 @@ public final class HudService implements Listener, Runnable {
         this.plugin.saveConfig();
     }
 
-    /** 周期性刷新任务入口：遍历所有在线玩家刷新 HUD。 */
+    /**
+     * 周期性刷新任务入口：遍历所有在线玩家刷新 HUD。
+     */
+    @Override
     public void run() {
-        for(Player player : Bukkit.getOnlinePlayers()) {
+        for (Player player : Bukkit.getOnlinePlayers()) {
             this.refreshPlayer(player);
         }
 
     }
 
-    /** 根据玩家所在世界的日历状态刷新其 BossBar/ActionBar 文本、进度与可见性。 */
+    /**
+     * 根据玩家所在世界的日历状态刷新其 BossBar/ActionBar 文本、进度与可见性。
+     */
     public void refreshPlayer(Player p) {
         World playerWorld = p.getWorld();
         UUID playerId = p.getUniqueId();
@@ -329,7 +367,7 @@ public final class HudService implements Listener, Runnable {
             BossBar bar = null;
             if (this.bossbarEnabled) {
                 this.ensureBar(p);
-                bar = (BossBar)this.bars.get(playerId);
+                bar = (BossBar) this.bars.get(playerId);
                 if (bar == null) {
                     return;
                 }
@@ -359,11 +397,11 @@ public final class HudService implements Listener, Runnable {
                 }
 
                 String title;
-                if (playerWorld != null && playerWorld.getName().equalsIgnoreCase("aeternum_heat")) {
+                if (playerWorld != null && "aeternum_heat".equalsIgnoreCase(playerWorld.getName())) {
                     String realmName = this.plugin.lang.tr(p, "realm.heat_overworld");
                     String heatTitle = this.plugin.lang.trf(p, "hud.title_dim", Map.of("day", state.day, "year", state.year, "season", seasonName, "realm", realmName));
                     title = heatTitle + monthText;
-                } else if (playerWorld != null && playerWorld.getName().equalsIgnoreCase("aeternum_frost")) {
+                } else if (playerWorld != null && "aeternum_frost".equalsIgnoreCase(playerWorld.getName())) {
                     String realmName = this.plugin.lang.tr(p, "realm.frost_overworld");
                     String frostTitle = this.plugin.lang.trf(p, "hud.title_dim", Map.of("day", state.day, "year", state.year, "season", seasonName, "realm", realmName));
                     title = frostTitle + monthText;
@@ -373,7 +411,7 @@ public final class HudService implements Listener, Runnable {
                 }
 
                 String coloredTitle = this.color(title);
-                double progress = Math.max((double)0.0F, Math.min((double)1.0F, (double)state.day / (double)periodDays));
+                double progress = Math.max((double) 0.0F, Math.min((double) 1.0F, (double) state.day / (double) periodDays));
                 Season visualSeason = state.season;
                 if (this.actionbarEnabled) {
                     if (mode == HudService.HudMode.FIXED) {
@@ -383,7 +421,7 @@ public final class HudService implements Listener, Runnable {
                     } else {
                         boolean showNow = this.isHudTime(worldTime);
                         if (showNow) {
-                            String last = (String)this.lastActionbarText.get(playerId);
+                            String last = (String) this.lastActionbarText.get(playerId);
                             boolean wasShown = this.actionbarShown.contains(playerId);
                             if (!wasShown || !Objects.equals(last, coloredTitle)) {
                                 p.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent.fromLegacyText(coloredTitle));
@@ -410,7 +448,7 @@ public final class HudService implements Listener, Runnable {
                             case SUMMER -> barColor = BarColor.YELLOW;
                             case AUTUMN -> barColor = BarColor.RED;
                             case WINTER -> barColor = BarColor.BLUE;
-                            default -> throw new MatchException((String)null, (Throwable)null);
+                            default -> throw new MatchException((String) null, (Throwable) null);
                         }
 
                         bar.setColor(barColor);
@@ -436,7 +474,9 @@ public final class HudService implements Listener, Runnable {
         }
     }
 
-    /** 判断当前世界时间是否处于 HUD 需要显示的时段（清晨、正午、黄昏三个片段）。 */
+    /**
+     * 判断当前世界时间是否处于 HUD 需要显示的时段（清晨、正午、黄昏三个片段）。
+     */
     private boolean isHudTime(long time) {
         long dayTime = time % 24000L;
         if (dayTime >= 0L && dayTime < 2000L) {
@@ -448,18 +488,22 @@ public final class HudService implements Listener, Runnable {
         }
     }
 
-    /** 把 {@code &} 颜色代码转换为实际颜色。 */
+    /**
+     * 把 {@code &} 颜色代码转换为实际颜色。
+     */
     private String color(String s) {
         return s == null ? "" : ChatColor.translateAlternateColorCodes('&', s);
     }
 
-    /** HUD 显示模式：常驻、按时段显示、关闭。 */
-    public static enum HudMode {
+    /**
+     * HUD 显示模式：常驻、按时段显示、关闭。
+     */
+    public enum HudMode {
         FIXED,
         VARIABLE,
         OFF;
 
-        private HudMode() {
+        HudMode() {
         }
 
         // $FF: synthetic method

@@ -1,4 +1,4 @@
-package Kinkin.aeternum.calendar;
+package kinkin.aeternum.calendar;
 
 import java.util.Locale;
 
@@ -12,7 +12,7 @@ public enum CalendarMode {
     SEASONS,
     MONTHS;
 
-    private CalendarMode() {
+    CalendarMode() {
     }
 
     /**

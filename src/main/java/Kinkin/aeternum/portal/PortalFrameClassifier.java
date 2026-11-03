@@ -1,4 +1,4 @@
-package Kinkin.aeternum.portal;
+package kinkin.aeternum.portal;
 
 import org.bukkit.Axis;
 import org.bukkit.Location;
@@ -22,7 +22,9 @@ final class PortalFrameClassifier {
         super();
     }
 
-    /** 分类给定传送门方块的框架类型；无法识别时返回 {@link Type#UNKNOWN}。 */
+    /**
+     * 分类给定传送门方块的框架类型；无法识别时返回 {@link Type#UNKNOWN}。
+     */
     static Type classify(@Nullable Block portalBlock) {
         Bounds bounds = bounds(portalBlock);
         if (bounds == null) {
@@ -35,7 +37,7 @@ final class PortalFrameClassifier {
             if (bounds.axis == Axis.X) {
                 int z = bounds.minZ;
 
-                for(int y = bounds.minY; y <= bounds.maxY; ++y) {
+                for (int y = bounds.minY; y <= bounds.maxY; ++y) {
                     Material left = world.getBlockAt(bounds.minX - 1, y, z).getType();
                     Material right = world.getBlockAt(bounds.maxX + 1, y, z).getType();
                     obsidian += count(left, Material.OBSIDIAN) + count(right, Material.OBSIDIAN);
@@ -43,7 +45,7 @@ final class PortalFrameClassifier {
                     wart += count(left, Material.NETHER_WART_BLOCK) + count(right, Material.NETHER_WART_BLOCK);
                 }
 
-                for(int x = bounds.minX; x <= bounds.maxX; ++x) {
+                for (int x = bounds.minX; x <= bounds.maxX; ++x) {
                     Material bottom = world.getBlockAt(x, bounds.minY - 1, z).getType();
                     Material top = world.getBlockAt(x, bounds.maxY + 1, z).getType();
                     obsidian += count(bottom, Material.OBSIDIAN) + count(top, Material.OBSIDIAN);
@@ -53,7 +55,7 @@ final class PortalFrameClassifier {
             } else {
                 int x = bounds.minX;
 
-                for(int y = bounds.minY; y <= bounds.maxY; ++y) {
+                for (int y = bounds.minY; y <= bounds.maxY; ++y) {
                     Material north = world.getBlockAt(x, y, bounds.minZ - 1).getType();
                     Material south = world.getBlockAt(x, y, bounds.maxZ + 1).getType();
                     obsidian += count(north, Material.OBSIDIAN) + count(south, Material.OBSIDIAN);
@@ -61,7 +63,7 @@ final class PortalFrameClassifier {
                     wart += count(north, Material.NETHER_WART_BLOCK) + count(south, Material.NETHER_WART_BLOCK);
                 }
 
-                for(int z = bounds.minZ; z <= bounds.maxZ; ++z) {
+                for (int z = bounds.minZ; z <= bounds.maxZ; ++z) {
                     Material bottom = world.getBlockAt(x, bounds.minY - 1, z).getType();
                     Material top = world.getBlockAt(x, bounds.maxY + 1, z).getType();
                     obsidian += count(bottom, Material.OBSIDIAN) + count(top, Material.OBSIDIAN);
@@ -82,7 +84,9 @@ final class PortalFrameClassifier {
         }
     }
 
-    /** 在给定位置周围指定半径内查找距离最近的传送门方块。 */
+    /**
+     * 在给定位置周围指定半径内查找距离最近的传送门方块。
+     */
     static @Nullable Block findPortalBlock(Location location, int radius) {
         World world = location.getWorld();
         if (world == null) {
@@ -94,12 +98,12 @@ final class PortalFrameClassifier {
             Block best = null;
             double bestDistance = Double.MAX_VALUE;
 
-            for(int x = bx - radius; x <= bx + radius; ++x) {
-                for(int y = Math.max(world.getMinHeight(), by - radius); y <= Math.min(world.getMaxHeight() - 1, by + radius); ++y) {
-                    for(int z = bz - radius; z <= bz + radius; ++z) {
+            for (int x = bx - radius; x <= bx + radius; ++x) {
+                for (int y = Math.max(world.getMinHeight(), by - radius); y <= Math.min(world.getMaxHeight() - 1, by + radius); ++y) {
+                    for (int z = bz - radius; z <= bz + radius; ++z) {
                         Block block = world.getBlockAt(x, y, z);
                         if (block.getType() == Material.NETHER_PORTAL) {
-                            double distance = block.getLocation().add((double)0.5F, (double)0.5F, (double)0.5F).distanceSquared(location);
+                            double distance = block.getLocation().add((double) 0.5F, (double) 0.5F, (double) 0.5F).distanceSquared(location);
                             if (distance < bestDistance) {
                                 best = block;
                                 bestDistance = distance;
@@ -113,24 +117,28 @@ final class PortalFrameClassifier {
         }
     }
 
-    /** 依据传送门包围盒计算其中心落点（门内中心略高于底部）。 */
+    /**
+     * 依据传送门包围盒计算其中心落点（门内中心略高于底部）。
+     */
     static @Nullable Location teleportLocation(@Nullable Block portalBlock) {
         Bounds bounds = bounds(portalBlock);
         if (bounds == null) {
             return null;
         } else {
-            double x = bounds.axis == Axis.X ? (double)(bounds.minX + bounds.maxX + 1) / (double)2.0F : (double)bounds.minX + (double)0.5F;
-            double z = bounds.axis == Axis.Z ? (double)(bounds.minZ + bounds.maxZ + 1) / (double)2.0F : (double)bounds.minZ + (double)0.5F;
-            return new Location(portalBlock.getWorld(), x, (double)bounds.minY + 0.1, z);
+            double x = bounds.axis == Axis.X ? (double) (bounds.minX + bounds.maxX + 1) / (double) 2.0F : (double) bounds.minX + (double) 0.5F;
+            double z = bounds.axis == Axis.Z ? (double) (bounds.minZ + bounds.maxZ + 1) / (double) 2.0F : (double) bounds.minZ + (double) 0.5F;
+            return new Location(portalBlock.getWorld(), x, (double) bounds.minY + 0.1, z);
         }
     }
 
-    /** 读取传送门方块朝向；无法读取时回退为 X 轴。 */
+    /**
+     * 读取传送门方块朝向；无法读取时回退为 X 轴。
+     */
     static Axis axis(@Nullable Block portalBlock) {
         if (portalBlock != null) {
             BlockData blockData = portalBlock.getBlockData();
             if (blockData instanceof Orientable) {
-                Orientable orientable = (Orientable)blockData;
+                Orientable orientable = (Orientable) blockData;
                 return orientable.getAxis();
             }
         }
@@ -138,12 +146,16 @@ final class PortalFrameClassifier {
         return Axis.X;
     }
 
-    /** 比较两个材质是否相同，相同返回 1，否则返回 0（用于计数累加）。 */
+    /**
+     * 比较两个材质是否相同，相同返回 1，否则返回 0（用于计数累加）。
+     */
     private static int count(Material actual, Material expected) {
         return actual == expected ? 1 : 0;
     }
 
-    /** 计算传送门方块所在门的轴对齐包围盒；非传送门方块返回 null。 */
+    /**
+     * 计算传送门方块所在门的轴对齐包围盒；非传送门方块返回 null。
+     */
     private static @Nullable Bounds bounds(@Nullable Block portalBlock) {
         if (portalBlock != null && portalBlock.getType() == Material.NETHER_PORTAL) {
             World world = portalBlock.getWorld();
@@ -151,10 +163,10 @@ final class PortalFrameClassifier {
             int minY = portalBlock.getY();
 
             int maxY;
-            for(maxY = portalBlock.getY(); minY > world.getMinHeight() && world.getBlockAt(portalBlock.getX(), minY - 1, portalBlock.getZ()).getType() == Material.NETHER_PORTAL; --minY) {
+            for (maxY = portalBlock.getY(); minY > world.getMinHeight() && world.getBlockAt(portalBlock.getX(), minY - 1, portalBlock.getZ()).getType() == Material.NETHER_PORTAL; --minY) {
             }
 
-            while(maxY < world.getMaxHeight() - 1 && world.getBlockAt(portalBlock.getX(), maxY + 1, portalBlock.getZ()).getType() == Material.NETHER_PORTAL) {
+            while (maxY < world.getMaxHeight() - 1 && world.getBlockAt(portalBlock.getX(), maxY + 1, portalBlock.getZ()).getType() == Material.NETHER_PORTAL) {
                 ++maxY;
             }
 
@@ -162,10 +174,10 @@ final class PortalFrameClassifier {
                 int minX = portalBlock.getX();
 
                 int maxX;
-                for(maxX = portalBlock.getX(); world.getBlockAt(minX - 1, portalBlock.getY(), portalBlock.getZ()).getType() == Material.NETHER_PORTAL; --minX) {
+                for (maxX = portalBlock.getX(); world.getBlockAt(minX - 1, portalBlock.getY(), portalBlock.getZ()).getType() == Material.NETHER_PORTAL; --minX) {
                 }
 
-                while(world.getBlockAt(maxX + 1, portalBlock.getY(), portalBlock.getZ()).getType() == Material.NETHER_PORTAL) {
+                while (world.getBlockAt(maxX + 1, portalBlock.getY(), portalBlock.getZ()).getType() == Material.NETHER_PORTAL) {
                     ++maxX;
                 }
 
@@ -174,10 +186,10 @@ final class PortalFrameClassifier {
                 int minZ = portalBlock.getZ();
 
                 int maxZ;
-                for(maxZ = portalBlock.getZ(); world.getBlockAt(portalBlock.getX(), portalBlock.getY(), minZ - 1).getType() == Material.NETHER_PORTAL; --minZ) {
+                for (maxZ = portalBlock.getZ(); world.getBlockAt(portalBlock.getX(), portalBlock.getY(), minZ - 1).getType() == Material.NETHER_PORTAL; --minZ) {
                 }
 
-                while(world.getBlockAt(portalBlock.getX(), portalBlock.getY(), maxZ + 1).getType() == Material.NETHER_PORTAL) {
+                while (world.getBlockAt(portalBlock.getX(), portalBlock.getY(), maxZ + 1).getType() == Material.NETHER_PORTAL) {
                     ++maxZ;
                 }
 
@@ -188,18 +200,22 @@ final class PortalFrameClassifier {
         }
     }
 
-    /** 传送门框架类型。 */
-    static enum Type {
+    /**
+     * 传送门框架类型。
+     */
+    enum Type {
         VANILLA,
         FROST,
         HEAT,
         CUSTOM_MIXED,
         UNKNOWN;
 
-        private Type() {
+        Type() {
         }
 
-        /** 是否为自定义门（霜原、炽热或两者混合）。 */
+        /**
+         * 是否为自定义门（霜原、炽热或两者混合）。
+         */
         boolean isCustom() {
             return this == FROST || this == HEAT || this == CUSTOM_MIXED;
         }
@@ -210,8 +226,10 @@ final class PortalFrameClassifier {
         }
     }
 
-    /** 传送门的轴对齐包围盒（含朝向与各轴最小/最大坐标）。 */
-    private static record Bounds(Axis axis, int minX, int maxX, int minY, int maxY, int minZ, int maxZ) {
+    /**
+     * 传送门的轴对齐包围盒（含朝向与各轴最小/最大坐标）。
+     */
+    private record Bounds(Axis axis, int minX, int maxX, int minY, int maxY, int minZ, int maxZ) {
         private Bounds {
         }
     }

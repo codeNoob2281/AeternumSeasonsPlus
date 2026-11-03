@@ -951,16 +951,6 @@ crop:
     any_season: "Wächst in jeder Jahreszeit"
     greenhouse_light: "&8Unterirdisches Gewächshaus: Licht {light}+"
 
-farming:
-  compost:
-    raw_name: "&aRohkompost"
-    raw_lore_1: "&7Feuchte Mischung aus Erde und organischen Resten."
-    raw_lore_2: "&7Lass ihn 2 Tage lang in der Nähe von Wasser liegen."
-    ready_name: "&2Nährstoffreiche Ackererde"
-    ready_lore_1: "&7Pflanzen wachsen hier &ax2 &7schneller."
-    ready_lore_2: "&7Darauf zu laufen zerstört den Ackerboden nicht."
-    ready_message: "&aDein Kompost hat sich in nährstoffreiche Ackererde verwandelt."
-
 villager:
   lazy_tag: "&7[&6Faulpelz&7]"
 

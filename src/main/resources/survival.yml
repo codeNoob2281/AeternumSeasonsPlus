@@ -1,7 +1,7 @@
 temperature:
   enabled: false
   check_period_ticks: 20
-  disabled_worlds: []
+  disabled_worlds: [ ]
 
   display:
     unit: "C" # C | F

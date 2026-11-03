@@ -1,6 +1,6 @@
-package Kinkin.aeternum.frost;
+package kinkin.aeternum.frost;
 
-import Kinkin.aeternum.AeternumSeasonsPlugin;
+import kinkin.aeternum.AeternumSeasonsPlugin;
 import org.bukkit.Chunk;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
@@ -39,18 +39,18 @@ public final class FrostBiomeFixer implements Listener {
     @EventHandler
     public void onChunkLoad(ChunkLoadEvent event) {
         World world = event.getWorld();
-        if (world.getName().equalsIgnoreCase("aeternum_frost")) {
+        if ("aeternum_frost".equalsIgnoreCase(world.getName())) {
             Chunk chunk = event.getChunk();
             int worldMinY = world.getMinHeight();
             int worldMaxY = world.getMaxHeight();
 
-            for(int cx = 0; cx < 16; ++cx) {
-                for(int cz = 0; cz < 16; ++cz) {
+            for (int cx = 0; cx < 16; ++cx) {
+                for (int cz = 0; cz < 16; ++cz) {
                     int x = chunk.getX() * 16 + cx;
                     int z = chunk.getZ() * 16 + cz;
                     Biome current = world.getBiome(x, worldMinY, z);
                     if (!this.isColdBiome(current)) {
-                        for(int y = worldMinY; y < worldMaxY; y += 8) {
+                        for (int y = worldMinY; y < worldMaxY; y += 8) {
                             world.setBiome(x, y, z, Biome.SNOWY_PLAINS);
                         }
                     }

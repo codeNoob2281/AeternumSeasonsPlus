@@ -1,19 +1,12 @@
-package Kinkin.aeternum.world;
+package kinkin.aeternum.world;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.nio.file.AtomicMoveNotSupportedException;
-import java.nio.file.Files;
-import java.nio.file.LinkOption;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
-import java.util.HashMap;
-import java.util.Map;
 import org.bukkit.Material;
 import org.bukkit.plugin.java.JavaPlugin;
+
+import java.io.*;
+import java.nio.file.*;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * 秋季树叶存储（AutumnLeafStore）。
@@ -50,7 +43,8 @@ final class AutumnLeafStore {
                 DataInputStream input = new DataInputStream(new BufferedInputStream(Files.newInputStream(file)));
 
                 try {
-                    readEntriesBlock: {
+                    readEntriesBlock:
+                    {
                         if (input.readInt() != 1095517745) {
                             throw new IOException("Invalid leaf store header");
                         }
@@ -59,7 +53,7 @@ final class AutumnLeafStore {
                         if (count >= 0 && count <= 10000000) {
                             int index = 0;
 
-                            while(true) {
+                            while (true) {
                                 if (index >= count) {
                                     break readEntriesBlock;
                                 }
@@ -116,9 +110,9 @@ final class AutumnLeafStore {
                 output.writeInt(1095517745);
                 output.writeInt(leaves.size());
 
-                for(Map.Entry<String, Material> entry : leaves.entrySet()) {
-                    output.writeUTF((String)entry.getKey());
-                    output.writeUTF(((Material)entry.getValue()).name());
+                for (Map.Entry<String, Material> entry : leaves.entrySet()) {
+                    output.writeUTF((String) entry.getKey());
+                    output.writeUTF(((Material) entry.getValue()).name());
                 }
             } catch (Throwable writeFailure) {
                 try {

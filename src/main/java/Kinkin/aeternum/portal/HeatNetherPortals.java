@@ -1,20 +1,7 @@
-package Kinkin.aeternum.portal;
+package kinkin.aeternum.portal;
 
-import Kinkin.aeternum.AeternumSeasonsPlugin;
-import java.io.File;
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
-import java.util.concurrent.ConcurrentHashMap;
-import org.bukkit.Axis;
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.Particle;
-import org.bukkit.Sound;
-import org.bukkit.World;
+import kinkin.aeternum.AeternumSeasonsPlugin;
+import org.bukkit.*;
 import org.bukkit.World.Environment;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -33,6 +20,13 @@ import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerPortalEvent;
 import org.jetbrains.annotations.Nullable;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 炽热领域（aeternum_heat）下界传送门的连接管理器。
@@ -53,7 +47,9 @@ public final class HeatNetherPortals implements Listener {
     private final Map<PortalKey, PortalKey> portalConnections = new ConcurrentHashMap();
     private boolean registered;
 
-    /** 创建管理器并从数据文件加载已保存的传送门链接。 */
+    /**
+     * 创建管理器并从数据文件加载已保存的传送门链接。
+     */
     public HeatNetherPortals(AeternumSeasonsPlugin plugin) {
         super();
         this.plugin = plugin;
@@ -61,7 +57,9 @@ public final class HeatNetherPortals implements Listener {
         this.loadPortalLinks();
     }
 
-    /** 幂等地将本监听器注册到插件的事件总线。 */
+    /**
+     * 幂等地将本监听器注册到插件的事件总线。
+     */
     public void register() {
         if (!this.registered) {
             this.registered = true;
@@ -69,21 +67,25 @@ public final class HeatNetherPortals implements Listener {
         }
     }
 
-    /** 注销事件监听并保存当前传送门链接。 */
+    /**
+     * 注销事件监听并保存当前传送门链接。
+     */
     public void unregister() {
         this.registered = false;
         HandlerList.unregisterAll(this);
         this.savePortalLinks();
     }
 
-    /** 读取 heat_nether_links.yml，将成对出现的单向炽热门记录恢复为双向链接。 */
+    /**
+     * 读取 heat_nether_links.yml，将成对出现的单向炽热门记录恢复为双向链接。
+     */
     private void loadPortalLinks() {
         this.portalConnections.clear();
         if (this.portalDataFile.exists()) {
             FileConfiguration config = YamlConfiguration.loadConfiguration(this.portalDataFile);
             Map<PortalKey, PortalKey> loaded = new HashMap();
 
-            for(String key : config.getKeys(false)) {
+            for (String key : config.getKeys(false)) {
                 String destRaw = config.getString(key);
                 if (destRaw != null && !destRaw.isBlank()) {
                     PortalKey source = this.parsePortalKey(key);
@@ -94,10 +96,10 @@ public final class HeatNetherPortals implements Listener {
                 }
             }
 
-            for(Map.Entry<PortalKey, PortalKey> entry : loaded.entrySet()) {
-                PortalKey source = (PortalKey)entry.getKey();
-                PortalKey destination = (PortalKey)entry.getValue();
-                PortalKey reverse = (PortalKey)loaded.get(destination);
+            for (Map.Entry<PortalKey, PortalKey> entry : loaded.entrySet()) {
+                PortalKey source = (PortalKey) entry.getKey();
+                PortalKey destination = (PortalKey) entry.getValue();
+                PortalKey reverse = (PortalKey) loaded.get(destination);
                 if ((reverse == null || reverse.equals(source)) && !this.portalConnections.containsKey(source) && !this.portalConnections.containsKey(destination)) {
                     this.portalConnections.put(source, destination);
                     this.portalConnections.put(destination, source);
@@ -108,12 +110,14 @@ public final class HeatNetherPortals implements Listener {
         }
     }
 
-    /** 将当前所有双向链接写回 heat_nether_links.yml。 */
+    /**
+     * 将当前所有双向链接写回 heat_nether_links.yml。
+     */
     private void savePortalLinks() {
         FileConfiguration config = new YamlConfiguration();
 
-        for(Map.Entry<PortalKey, PortalKey> entry : this.portalConnections.entrySet()) {
-            config.set(this.formatPortalKey((PortalKey)entry.getKey()), this.formatPortalKey((PortalKey)entry.getValue()));
+        for (Map.Entry<PortalKey, PortalKey> entry : this.portalConnections.entrySet()) {
+            config.set(this.formatPortalKey((PortalKey) entry.getKey()), this.formatPortalKey((PortalKey) entry.getValue()));
         }
 
         try {
@@ -124,7 +128,9 @@ public final class HeatNetherPortals implements Listener {
 
     }
 
-    /** 将传送门键序列化为“世界|X|Y|Z|朝向|种类”格式。 */
+    /**
+     * 将传送门键序列化为“世界|X|Y|Z|朝向|种类”格式。
+     */
     private String formatPortalKey(PortalKey key) {
         String worldName = key.worldName;
         return worldName + "|" + key.x + "|" + key.y + "|" + key.z + "|" + key.axis.name() + "|" + key.kind.name();
@@ -154,12 +160,12 @@ public final class HeatNetherPortals implements Listener {
                         Block anchor = world.getBlockAt(x, y, z);
                         if (anchor.getType() == Material.NETHER_PORTAL) {
                             PortalBounds bounds = this.getPortalBounds(anchor);
-                            kind = bounds != null ? this.getPortalKind(bounds, world) : (worldName.equalsIgnoreCase("aeternum_heat") ? HeatNetherPortals.PortalKind.HEAT : HeatNetherPortals.PortalKind.VANILLA);
+                            kind = bounds != null ? this.getPortalKind(bounds, world) : ("aeternum_heat".equalsIgnoreCase(worldName) ? HeatNetherPortals.PortalKind.HEAT : HeatNetherPortals.PortalKind.VANILLA);
                         } else {
-                            kind = worldName.equalsIgnoreCase("aeternum_heat") ? HeatNetherPortals.PortalKind.HEAT : HeatNetherPortals.PortalKind.VANILLA;
+                            kind = "aeternum_heat".equalsIgnoreCase(worldName) ? HeatNetherPortals.PortalKind.HEAT : HeatNetherPortals.PortalKind.VANILLA;
                         }
                     } else {
-                        kind = worldName.equalsIgnoreCase("aeternum_heat") ? HeatNetherPortals.PortalKind.HEAT : HeatNetherPortals.PortalKind.VANILLA;
+                        kind = "aeternum_heat".equalsIgnoreCase(worldName) ? HeatNetherPortals.PortalKind.HEAT : HeatNetherPortals.PortalKind.VANILLA;
                     }
                 }
 
@@ -170,7 +176,9 @@ public final class HeatNetherPortals implements Listener {
         }
     }
 
-    /** 先解除两端原有链接，再建立新的双向链接并立即保存。 */
+    /**
+     * 先解除两端原有链接，再建立新的双向链接并立即保存。
+     */
     private void registerPortalLink(PortalKey source, PortalKey destination) {
         this.unlinkPortalEndpoint(source);
         this.unlinkPortalEndpoint(destination);
@@ -179,15 +187,19 @@ public final class HeatNetherPortals implements Listener {
         this.savePortalLinks();
     }
 
-    /** 解除指定端点的链接并立即保存。 */
+    /**
+     * 解除指定端点的链接并立即保存。
+     */
     private void removePortalLink(PortalKey endpoint) {
         this.unlinkPortalEndpoint(endpoint);
         this.savePortalLinks();
     }
 
-    /** 解除单个端点的双向映射：若对端确实指回自己，则一并移除对端记录。 */
+    /**
+     * 解除单个端点的双向映射：若对端确实指回自己，则一并移除对端记录。
+     */
     private void unlinkPortalEndpoint(PortalKey endpoint) {
-        PortalKey other = (PortalKey)this.portalConnections.remove(endpoint);
+        PortalKey other = (PortalKey) this.portalConnections.remove(endpoint);
         if (other != null && endpoint.equals(this.portalConnections.get(other))) {
             this.portalConnections.remove(other);
         }
@@ -199,8 +211,8 @@ public final class HeatNetherPortals implements Listener {
      * 则取消原版点火并自行点亮。
      */
     @EventHandler(
-        ignoreCancelled = true,
-        priority = EventPriority.NORMAL
+            ignoreCancelled = true,
+            priority = EventPriority.NORMAL
     )
     public void onInteract(PlayerInteractEvent event) {
         if (event.getAction() == Action.RIGHT_CLICK_BLOCK) {
@@ -226,8 +238,8 @@ public final class HeatNetherPortals implements Listener {
      * 投射物命中处理：玩家投掷的投射物击中方块后，检测命中面另一侧是否构成炽热门，是则点亮。
      */
     @EventHandler(
-        ignoreCancelled = true,
-        priority = EventPriority.NORMAL
+            ignoreCancelled = true,
+            priority = EventPriority.NORMAL
     )
     public void onProjectileHit(ProjectileHitEvent event) {
         Projectile projectile = event.getEntity();
@@ -244,31 +256,35 @@ public final class HeatNetherPortals implements Listener {
         }
     }
 
-    /** 将传送门内部区域填充为下界传送门方块，并播放音效与粒子。 */
+    /**
+     * 将传送门内部区域填充为下界传送门方块，并播放音效与粒子。
+     */
     private void lightPortal(HeatPortalShape shape) {
         World world = shape.world;
-        Orientable data = (Orientable)Material.NETHER_PORTAL.createBlockData();
+        Orientable data = (Orientable) Material.NETHER_PORTAL.createBlockData();
         data.setAxis(shape.axis);
 
-        for(int x = 0; x < shape.width; ++x) {
-            for(int y = 0; y < shape.height; ++y) {
+        for (int x = 0; x < shape.width; ++x) {
+            for (int y = 0; y < shape.height; ++y) {
                 Block block = shape.getInteriorBlock(x, y);
                 block.setBlockData(data, false);
             }
         }
 
         world.playSound(shape.getCenter(), Sound.BLOCK_PORTAL_TRAVEL, 1.0F, 1.0F);
-        world.spawnParticle(Particle.PORTAL, shape.getCenter(), 60, (double)0.5F, (double)1.0F, (double)0.5F, 0.1);
+        world.spawnParticle(Particle.PORTAL, shape.getCenter(), 60, (double) 0.5F, (double) 1.0F, (double) 0.5F, 0.1);
     }
 
-    /** 统计门框四周材质，若存在下界疣块则判定为“炽热门”，否则为原版门。 */
+    /**
+     * 统计门框四周材质，若存在下界疣块则判定为“炽热门”，否则为原版门。
+     */
     private PortalKind getPortalKind(PortalBounds bounds, World world) {
         int wart = 0;
         int obsidian = 0;
         if (bounds.axis == Axis.X) {
             int z = bounds.minZ;
 
-            for(int y = bounds.minY; y <= bounds.maxY; ++y) {
+            for (int y = bounds.minY; y <= bounds.maxY; ++y) {
                 Material left = world.getBlockAt(bounds.minX - 1, y, z).getType();
                 Material right = world.getBlockAt(bounds.maxX + 1, y, z).getType();
                 if (left == Material.NETHER_WART_BLOCK) {
@@ -284,7 +300,7 @@ public final class HeatNetherPortals implements Listener {
                 }
             }
 
-            for(int x = bounds.minX; x <= bounds.maxX; ++x) {
+            for (int x = bounds.minX; x <= bounds.maxX; ++x) {
                 Material bottom = world.getBlockAt(x, bounds.minY - 1, z).getType();
                 Material top = world.getBlockAt(x, bounds.maxY + 1, z).getType();
                 if (bottom == Material.NETHER_WART_BLOCK) {
@@ -302,7 +318,7 @@ public final class HeatNetherPortals implements Listener {
         } else {
             int x = bounds.minX;
 
-            for(int y = bounds.minY; y <= bounds.maxY; ++y) {
+            for (int y = bounds.minY; y <= bounds.maxY; ++y) {
                 Material north = world.getBlockAt(x, y, bounds.minZ - 1).getType();
                 Material south = world.getBlockAt(x, y, bounds.maxZ + 1).getType();
                 if (north == Material.NETHER_WART_BLOCK) {
@@ -318,7 +334,7 @@ public final class HeatNetherPortals implements Listener {
                 }
             }
 
-            for(int z = bounds.minZ; z <= bounds.maxZ; ++z) {
+            for (int z = bounds.minZ; z <= bounds.maxZ; ++z) {
                 Material bottom = world.getBlockAt(x, bounds.minY - 1, z).getType();
                 Material top = world.getBlockAt(x, bounds.maxY + 1, z).getType();
                 if (bottom == Material.NETHER_WART_BLOCK) {
@@ -343,8 +359,8 @@ public final class HeatNetherPortals implements Listener {
      * 解析目标门并以原朝向传送，随后延时展示领域标题。
      */
     @EventHandler(
-        ignoreCancelled = false,
-        priority = EventPriority.HIGHEST
+            ignoreCancelled = false,
+            priority = EventPriority.HIGHEST
     )
     public void onPortal(PlayerPortalEvent event) {
         if (this.isHeatPortalAt(event.getFrom())) {
@@ -364,10 +380,12 @@ public final class HeatNetherPortals implements Listener {
         }
     }
 
-    /** 实体传送门事件处理：若出发点为炽热门，则改为传送至解析出的目标门位置。 */
+    /**
+     * 实体传送门事件处理：若出发点为炽热门，则改为传送至解析出的目标门位置。
+     */
     @EventHandler(
-        ignoreCancelled = false,
-        priority = EventPriority.HIGHEST
+            ignoreCancelled = false,
+            priority = EventPriority.HIGHEST
     )
     public void onEntityPortal(EntityPortalEvent event) {
         if (this.isHeatPortalAt(event.getFrom())) {
@@ -380,11 +398,13 @@ public final class HeatNetherPortals implements Listener {
         }
     }
 
-    /** 传送后延迟一 tick，确认玩家已进入目标世界再展示领域标题。 */
+    /**
+     * 传送后延迟一 tick，确认玩家已进入目标世界再展示领域标题。
+     */
     private void scheduleRealmTitle(Player player, World from, World to) {
         if (player != null && from != null && to != null) {
-            boolean enteringHeat = to.getName().equalsIgnoreCase("aeternum_heat");
-            boolean leavingHeat = from.getName().equalsIgnoreCase("aeternum_heat");
+            boolean enteringHeat = "aeternum_heat".equalsIgnoreCase(to.getName());
+            boolean leavingHeat = "aeternum_heat".equalsIgnoreCase(from.getName());
             if (enteringHeat || leavingHeat) {
                 Bukkit.getScheduler().runTaskLater(this.plugin, () -> {
                     if (player.isOnline()) {
@@ -397,16 +417,18 @@ public final class HeatNetherPortals implements Listener {
         }
     }
 
-    /** 根据出发/目标世界展示“进入炽热领域”或“返回”的标题与副标题。 */
+    /**
+     * 根据出发/目标世界展示“进入炽热领域”或“返回”的标题与副标题。
+     */
     private void showRealmTitle(Player player, World from, World to) {
         String title;
         String subtitle;
-        if (to.getName().equalsIgnoreCase("aeternum_heat")) {
+        if ("aeternum_heat".equalsIgnoreCase(to.getName())) {
             String heatName = this.plugin.lang.tr(player, "realm.heat_overworld");
             title = this.plugin.lang.trf(player, "realm.heat_title", Map.of("name", heatName));
             subtitle = this.plugin.lang.tr(player, "realm.heat_subtitle");
         } else {
-            if (!from.getName().equalsIgnoreCase("aeternum_heat")) {
+            if (!"aeternum_heat".equalsIgnoreCase(from.getName())) {
                 return;
             }
 
@@ -414,7 +436,7 @@ public final class HeatNetherPortals implements Listener {
             subtitle = this.plugin.lang.trf(player, "realm.returned_from", Map.of("name", heatName));
             if (to.getName().equalsIgnoreCase(this.plugin.getMainOverworldName())) {
                 title = this.plugin.lang.tr(player, "realm.overworld_title");
-            } else if (to.getName().equalsIgnoreCase("aeternum_frost")) {
+            } else if ("aeternum_frost".equalsIgnoreCase(to.getName())) {
                 String frostName = this.plugin.lang.tr(player, "realm.frost_overworld");
                 title = this.plugin.lang.trf(player, "realm.frost_title", Map.of("name", frostName));
             } else {
@@ -427,7 +449,9 @@ public final class HeatNetherPortals implements Listener {
         player.sendTitle(title, subtitle, 10, 60, 10);
     }
 
-    /** 判断给定位置附近是否存在炽热门。 */
+    /**
+     * 判断给定位置附近是否存在炽热门。
+     */
     private boolean isHeatPortalAt(Location from) {
         Block portalBlock = this.findPortalBlock(from);
         if (portalBlock != null && portalBlock.getType() == Material.NETHER_PORTAL) {
@@ -438,7 +462,9 @@ public final class HeatNetherPortals implements Listener {
         }
     }
 
-    /** 解析炽热门的传送目标：优先复用已保存链接，否则就近复用或新建炽热门。 */
+    /**
+     * 解析炽热门的传送目标：优先复用已保存链接，否则就近复用或新建炽热门。
+     */
     private @Nullable PortalTarget resolvePortalTarget(Location from) {
         Block portalBlock = this.findPortalBlock(from);
         if (portalBlock != null && portalBlock.getType() == Material.NETHER_PORTAL) {
@@ -475,9 +501,11 @@ public final class HeatNetherPortals implements Listener {
         }
     }
 
-    /** 查找已保存且仍然有效（世界、门种类与归一化键一致）的链接目标；失效则清除链接。 */
+    /**
+     * 查找已保存且仍然有效（世界、门种类与归一化键一致）的链接目标；失效则清除链接。
+     */
     private @Nullable PortalTarget findLinkedPortal(PortalKey sourceKey, World expectedWorld, PortalKind expectedKind) {
-        PortalKey destKey = (PortalKey)this.portalConnections.get(sourceKey);
+        PortalKey destKey = (PortalKey) this.portalConnections.get(sourceKey);
         if (destKey == null) {
             return null;
         } else {
@@ -528,24 +556,24 @@ public final class HeatNetherPortals implements Listener {
             return null;
         } else {
             this.getPortalKind(bounds, fromWorld);
-            if (!fromName.equalsIgnoreCase("aeternum_heat")) {
+            if (!"aeternum_heat".equalsIgnoreCase(fromName)) {
                 return heatWorld == null ? null : new TeleportDecision(heatWorld, from.getX(), from.getY(), from.getZ(), axis, HeatNetherPortals.PortalKind.HEAT);
-            } else if (fromName.equalsIgnoreCase("aeternum_heat")) {
-                PortalKey sourceKey = bounds.toKey(fromWorld.getName(), HeatNetherPortals.PortalKind.HEAT);
-                PortalKey linkedKey = (PortalKey)this.portalConnections.get(sourceKey);
-                World returnWorld = linkedKey != null ? Bukkit.getWorld(linkedKey.worldName) : null;
-                return returnWorld != null && !returnWorld.getName().equalsIgnoreCase("aeternum_heat") ? new TeleportDecision(returnWorld, from.getX(), from.getY(), from.getZ(), axis, HeatNetherPortals.PortalKind.HEAT) : null;
             } else {
-                return null;
+                PortalKey sourceKey = bounds.toKey(fromWorld.getName(), HeatNetherPortals.PortalKind.HEAT);
+                PortalKey linkedKey = (PortalKey) this.portalConnections.get(sourceKey);
+                World returnWorld = linkedKey != null ? Bukkit.getWorld(linkedKey.worldName) : null;
+                return returnWorld != null && !"aeternum_heat".equalsIgnoreCase(returnWorld.getName()) ? new TeleportDecision(returnWorld, from.getX(), from.getY(), from.getZ(), axis, HeatNetherPortals.PortalKind.HEAT) : null;
             }
         }
     }
 
-    /** 读取传送门方块朝向；读取失败时回退为 X 轴。 */
+    /**
+     * 读取传送门方块朝向；读取失败时回退为 X 轴。
+     */
     private Axis getPortalAxis(Block portalBlock) {
         try {
             if (portalBlock.getBlockData() instanceof Orientable) {
-                return ((Orientable)portalBlock.getBlockData()).getAxis();
+                return ((Orientable) portalBlock.getBlockData()).getAxis();
             }
         } catch (Exception exception) {
         }
@@ -553,7 +581,9 @@ public final class HeatNetherPortals implements Listener {
         return Axis.X;
     }
 
-    /** 在给定位置周围半径 2 的立方体内查找最近的传送门方块（优先按门中心距离）。 */
+    /**
+     * 在给定位置周围半径 2 的立方体内查找最近的传送门方块（优先按门中心距离）。
+     */
     private @Nullable Block findPortalBlock(Location from) {
         World world = from.getWorld();
         if (world == null) {
@@ -565,9 +595,9 @@ public final class HeatNetherPortals implements Listener {
             int by = from.getBlockY();
             int bz = from.getBlockZ();
 
-            for(int dx = -2; dx <= 2; ++dx) {
-                for(int dy = -2; dy <= 2; ++dy) {
-                    for(int dz = -2; dz <= 2; ++dz) {
+            for (int dx = -2; dx <= 2; ++dx) {
+                for (int dy = -2; dy <= 2; ++dy) {
+                    for (int dz = -2; dz <= 2; ++dz) {
                         Block block = world.getBlockAt(bx + dx, by + dy, bz + dz);
                         if (block.getType() == Material.NETHER_PORTAL) {
                             PortalBounds bounds = this.getPortalBounds(block);
@@ -586,12 +616,12 @@ public final class HeatNetherPortals implements Listener {
             if (best != null) {
                 return best;
             } else {
-                for(int dx = -2; dx <= 2; ++dx) {
-                    for(int dy = -2; dy <= 2; ++dy) {
-                        for(int dz = -2; dz <= 2; ++dz) {
+                for (int dx = -2; dx <= 2; ++dx) {
+                    for (int dy = -2; dy <= 2; ++dy) {
+                        for (int dz = -2; dz <= 2; ++dz) {
                             Block block = world.getBlockAt(bx + dx, by + dy, bz + dz);
                             if (block.getType() == Material.NETHER_PORTAL) {
-                                Location c = block.getLocation().add((double)0.5F, (double)0.5F, (double)0.5F);
+                                Location c = block.getLocation().add((double) 0.5F, (double) 0.5F, (double) 0.5F);
                                 double score = c.distanceSquared(from);
                                 if (score < bestScore) {
                                     bestScore = score;
@@ -607,7 +637,9 @@ public final class HeatNetherPortals implements Listener {
         }
     }
 
-    /** 计算传送门方块所在门的包围盒（逐轴扩张以覆盖整座门的范围）。 */
+    /**
+     * 计算传送门方块所在门的包围盒（逐轴扩张以覆盖整座门的范围）。
+     */
     private @Nullable PortalBounds getPortalBounds(Block portalBlock) {
         if (portalBlock.getType() != Material.NETHER_PORTAL) {
             return null;
@@ -617,10 +649,10 @@ public final class HeatNetherPortals implements Listener {
             int minY = portalBlock.getY();
 
             int maxY;
-            for(maxY = portalBlock.getY(); minY > world.getMinHeight() && world.getBlockAt(portalBlock.getX(), minY - 1, portalBlock.getZ()).getType() == Material.NETHER_PORTAL; --minY) {
+            for (maxY = portalBlock.getY(); minY > world.getMinHeight() && world.getBlockAt(portalBlock.getX(), minY - 1, portalBlock.getZ()).getType() == Material.NETHER_PORTAL; --minY) {
             }
 
-            while(maxY < world.getMaxHeight() - 1 && world.getBlockAt(portalBlock.getX(), maxY + 1, portalBlock.getZ()).getType() == Material.NETHER_PORTAL) {
+            while (maxY < world.getMaxHeight() - 1 && world.getBlockAt(portalBlock.getX(), maxY + 1, portalBlock.getZ()).getType() == Material.NETHER_PORTAL) {
                 ++maxY;
             }
 
@@ -628,10 +660,10 @@ public final class HeatNetherPortals implements Listener {
                 int minX = portalBlock.getX();
 
                 int maxX;
-                for(maxX = portalBlock.getX(); world.getBlockAt(minX - 1, portalBlock.getY(), portalBlock.getZ()).getType() == Material.NETHER_PORTAL; --minX) {
+                for (maxX = portalBlock.getX(); world.getBlockAt(minX - 1, portalBlock.getY(), portalBlock.getZ()).getType() == Material.NETHER_PORTAL; --minX) {
                 }
 
-                while(world.getBlockAt(maxX + 1, portalBlock.getY(), portalBlock.getZ()).getType() == Material.NETHER_PORTAL) {
+                while (world.getBlockAt(maxX + 1, portalBlock.getY(), portalBlock.getZ()).getType() == Material.NETHER_PORTAL) {
                     ++maxX;
                 }
 
@@ -640,10 +672,10 @@ public final class HeatNetherPortals implements Listener {
                 int minZ = portalBlock.getZ();
 
                 int maxZ;
-                for(maxZ = portalBlock.getZ(); world.getBlockAt(portalBlock.getX(), portalBlock.getY(), minZ - 1).getType() == Material.NETHER_PORTAL; --minZ) {
+                for (maxZ = portalBlock.getZ(); world.getBlockAt(portalBlock.getX(), portalBlock.getY(), minZ - 1).getType() == Material.NETHER_PORTAL; --minZ) {
                 }
 
-                while(world.getBlockAt(portalBlock.getX(), portalBlock.getY(), maxZ + 1).getType() == Material.NETHER_PORTAL) {
+                while (world.getBlockAt(portalBlock.getX(), portalBlock.getY(), maxZ + 1).getType() == Material.NETHER_PORTAL) {
                     ++maxZ;
                 }
 
@@ -652,7 +684,9 @@ public final class HeatNetherPortals implements Listener {
         }
     }
 
-    /** 在目标世界就近复用可用炽热门，否则在安全点新建一座炽热门并返回其传送目标。 */
+    /**
+     * 在目标世界就近复用可用炽热门，否则在安全点新建一座炽热门并返回其传送目标。
+     */
     private @Nullable PortalTarget findOrCreatePortal(PortalKey sourceKey, World world, double x, double y, double z, Axis axis, PortalKind portalKind) {
         if (portalKind != HeatNetherPortals.PortalKind.HEAT) {
             return null;
@@ -661,10 +695,10 @@ public final class HeatNetherPortals implements Listener {
             if (reusable != null) {
                 return reusable;
             } else {
-                int bx = (int)Math.round(x);
-                int bz = (int)Math.round(z);
+                int bx = (int) Math.round(x);
+                int bz = (int) Math.round(z);
                 boolean followSurface = world.getEnvironment() != Environment.NETHER;
-                int preferredBottomY = followSurface ? world.getHighestBlockYAt(bx, bz) + 1 : this.clampNetherY(world, (int)Math.round(y)) + 1;
+                int preferredBottomY = followSurface ? world.getHighestBlockYAt(bx, bz) + 1 : this.clampNetherY(world, (int) Math.round(y)) + 1;
                 PortalBuildProtection.Site site = PortalBuildProtection.findSafeSite(world, bx, preferredBottomY, bz, axis, followSurface);
                 if (site == null) {
                     this.plugin.getLogger().warning("[HeatNetherPortals] No safe build site near " + world.getName() + " " + bx + "," + preferredBottomY + "," + bz);
@@ -681,20 +715,22 @@ public final class HeatNetherPortals implements Listener {
         }
     }
 
-    /** 在给定半径内查找种类匹配且可被当前来源占用的最近炽热门。 */
+    /**
+     * 在给定半径内查找种类匹配且可被当前来源占用的最近炽热门。
+     */
     private @Nullable PortalTarget findReusableNearbyPortal(PortalKey sourceKey, World world, double x, double y, double z, int radius, PortalKind expectedKind) {
-        int bx = (int)Math.round(x);
-        int by = (int)Math.round(y);
-        int bz = (int)Math.round(z);
+        int bx = (int) Math.round(x);
+        int by = (int) Math.round(y);
+        int bz = (int) Math.round(z);
         PortalTarget best = null;
         double bestDist = Double.MAX_VALUE;
 
-        for(int ix = bx - radius; ix <= bx + radius; ++ix) {
-            for(int iz = bz - radius; iz <= bz + radius; ++iz) {
+        for (int ix = bx - radius; ix <= bx + radius; ++ix) {
+            for (int iz = bz - radius; iz <= bz + radius; ++iz) {
                 int minY = Math.max(world.getMinHeight(), by - radius);
                 int maxY = Math.min(world.getMaxHeight() - 1, by + radius);
 
-                for(int iy = minY; iy <= maxY; ++iy) {
+                for (int iy = minY; iy <= maxY; ++iy) {
                     Block block = world.getBlockAt(ix, iy, iz);
                     if (block.getType() == Material.NETHER_PORTAL) {
                         PortalBounds bounds = this.getPortalBounds(block);
@@ -723,12 +759,14 @@ public final class HeatNetherPortals implements Listener {
         return best;
     }
 
-    /** 判断候选门是否可被来源门复用：未被占用、已被来源占用或原链接已失效时视为可用。 */
+    /**
+     * 判断候选门是否可被来源门复用：未被占用、已被来源占用或原链接已失效时视为可用。
+     */
     private boolean isPortalAvailableForSource(PortalKey sourceKey, PortalKey candidateKey, PortalKind expectedKind) {
         if (candidateKey.kind != expectedKind) {
             return false;
         } else {
-            PortalKey owner = (PortalKey)this.portalConnections.get(candidateKey);
+            PortalKey owner = (PortalKey) this.portalConnections.get(candidateKey);
             if (owner == null) {
                 return true;
             } else if (owner.equals(sourceKey)) {
@@ -736,11 +774,11 @@ public final class HeatNetherPortals implements Listener {
             } else if (!this.isPortalKeyAlive(candidateKey, expectedKind)) {
                 this.removePortalLink(candidateKey);
                 return true;
-            } else if (!this.isPortalKeyAlive(owner, (PortalKind)null)) {
+            } else if (!this.isPortalKeyAlive(owner, (PortalKind) null)) {
                 this.removePortalLink(candidateKey);
                 return true;
             } else {
-                PortalKey reverse = (PortalKey)this.portalConnections.get(owner);
+                PortalKey reverse = (PortalKey) this.portalConnections.get(owner);
                 if (reverse != null && reverse.equals(candidateKey)) {
                     return false;
                 } else {
@@ -751,7 +789,9 @@ public final class HeatNetherPortals implements Listener {
         }
     }
 
-    /** 校验传送门键对应的门是否仍有效（世界存在、为下界传送门、归一化一致，且种类可选匹配）。 */
+    /**
+     * 校验传送门键对应的门是否仍有效（世界存在、为下界传送门、归一化一致，且种类可选匹配）。
+     */
     private boolean isPortalKeyAlive(PortalKey key, @Nullable PortalKind expectedKind) {
         World world = Bukkit.getWorld(key.worldName);
         if (world == null) {
@@ -777,21 +817,25 @@ public final class HeatNetherPortals implements Listener {
         }
     }
 
-    /** 将下界目标高度限制在合理范围内（避开基岩层与建筑高度上限）。 */
+    /**
+     * 将下界目标高度限制在合理范围内（避开基岩层与建筑高度上限）。
+     */
     private int clampNetherY(World world, int preferredY) {
         int min = world.getMinHeight() + 8;
         int max = world.getMaxHeight() - 16;
         return Math.max(min, Math.min(max, preferredY));
     }
 
-    /** 传送门种类：原版（黑曜石框）或炽热（下界疣块框）。 */
-    private static enum PortalKind {
+    /**
+     * 传送门种类：原版（黑曜石框）或炽热（下界疣块框）。
+     */
+    private enum PortalKind {
         VANILLA(false),
         HEAT(true);
 
         private final boolean custom;
 
-        private PortalKind(boolean custom) {
+        PortalKind(boolean custom) {
             this.custom = custom;
         }
 
@@ -805,7 +849,9 @@ public final class HeatNetherPortals implements Listener {
         }
     }
 
-    /** 传送目标：推荐传送坐标与其对应的传送门键。 */
+    /**
+     * 传送目标：推荐传送坐标与其对应的传送门键。
+     */
     private static final class PortalTarget {
         final Location teleportLocation;
         final PortalKey key;
@@ -817,7 +863,9 @@ public final class HeatNetherPortals implements Listener {
         }
     }
 
-    /** 传送决策：目标世界、目标坐标、朝向与门种类。 */
+    /**
+     * 传送决策：目标世界、目标坐标、朝向与门种类。
+     */
     private static final class TeleportDecision {
         final World toWorld;
         final double targetX;
@@ -837,7 +885,9 @@ public final class HeatNetherPortals implements Listener {
         }
     }
 
-    /** 传送门键：以世界名、锚点坐标、朝向与种类唯一标识一座传送门。 */
+    /**
+     * 传送门键：以世界名、锚点坐标、朝向与种类唯一标识一座传送门。
+     */
     private static final class PortalKey {
         final String worldName;
         final int x;
@@ -856,23 +906,27 @@ public final class HeatNetherPortals implements Listener {
             this.kind = kind;
         }
 
+        @Override
         public boolean equals(Object obj) {
             if (this == obj) {
                 return true;
             } else if (!(obj instanceof PortalKey)) {
                 return false;
             } else {
-                PortalKey other = (PortalKey)obj;
+                PortalKey other = (PortalKey) obj;
                 return this.x == other.x && this.y == other.y && this.z == other.z && this.axis == other.axis && this.kind == other.kind && Objects.equals(this.worldName, other.worldName);
             }
         }
 
+        @Override
         public int hashCode() {
             return Objects.hash(new Object[]{this.worldName, this.x, this.y, this.z, this.axis, this.kind});
         }
     }
 
-    /** 传送门的轴对齐包围盒，提供包含判定、中心距离与传送点计算。 */
+    /**
+     * 传送门的轴对齐包围盒，提供包含判定、中心距离与传送点计算。
+     */
     private static final class PortalBounds {
         private final Axis axis;
         private final int minX;
@@ -897,11 +951,11 @@ public final class HeatNetherPortals implements Listener {
             double x = loc.getX();
             double y = loc.getY();
             double z = loc.getZ();
-            if (!(y < (double)this.minY) && !(y >= (double)(this.maxY + 1))) {
+            if (!(y < (double) this.minY) && !(y >= (double) (this.maxY + 1))) {
                 if (this.axis == Axis.X) {
-                    return x >= (double)this.minX && x < (double)(this.maxX + 1) && Math.abs(z - ((double)this.minZ + (double)0.5F)) <= (double)0.75F;
+                    return x >= (double) this.minX && x < (double) (this.maxX + 1) && Math.abs(z - ((double) this.minZ + (double) 0.5F)) <= (double) 0.75F;
                 } else {
-                    return z >= (double)this.minZ && z < (double)(this.maxZ + 1) && Math.abs(x - ((double)this.minX + (double)0.5F)) <= (double)0.75F;
+                    return z >= (double) this.minZ && z < (double) (this.maxZ + 1) && Math.abs(x - ((double) this.minX + (double) 0.5F)) <= (double) 0.75F;
                 }
             } else {
                 return false;
@@ -909,9 +963,9 @@ public final class HeatNetherPortals implements Listener {
         }
 
         private double distanceSquaredToCenter(Location loc) {
-            double cx = (double)(this.minX + this.maxX + 1) / (double)2.0F;
-            double cy = (double)(this.minY + this.maxY + 1) / (double)2.0F;
-            double cz = (double)(this.minZ + this.maxZ + 1) / (double)2.0F;
+            double cx = (double) (this.minX + this.maxX + 1) / (double) 2.0F;
+            double cy = (double) (this.minY + this.maxY + 1) / (double) 2.0F;
+            double cz = (double) (this.minZ + this.maxZ + 1) / (double) 2.0F;
             double dx = loc.getX() - cx;
             double dy = loc.getY() - cy;
             double dz = loc.getZ() - cz;
@@ -922,14 +976,14 @@ public final class HeatNetherPortals implements Listener {
             double x;
             double z;
             if (this.axis == Axis.X) {
-                x = (double)(this.minX + this.maxX + 1) / (double)2.0F;
-                z = (double)this.minZ + (double)0.5F;
+                x = (double) (this.minX + this.maxX + 1) / (double) 2.0F;
+                z = (double) this.minZ + (double) 0.5F;
             } else {
-                x = (double)this.minX + (double)0.5F;
-                z = (double)(this.minZ + this.maxZ + 1) / (double)2.0F;
+                x = (double) this.minX + (double) 0.5F;
+                z = (double) (this.minZ + this.maxZ + 1) / (double) 2.0F;
             }
 
-            double y = (double)this.minY + 0.1;
+            double y = (double) this.minY + 0.1;
             return new Location(world, x, y, z);
         }
 
@@ -938,7 +992,9 @@ public final class HeatNetherPortals implements Listener {
         }
     }
 
-    /** 炽热传送门的几何描述（底部锚点、宽高、朝向与框材质），提供建造、检测与取点工具。 */
+    /**
+     * 炽热传送门的几何描述（底部锚点、宽高、朝向与框材质），提供建造、检测与取点工具。
+     */
     private static final class HeatPortalShape {
         final World world;
         final int x0;
@@ -961,7 +1017,9 @@ public final class HeatNetherPortals implements Listener {
             this.frameMaterial = frameMaterial;
         }
 
-        /** 在指定中心与底部高度处以给定框材质建造一座炽热门，返回其几何描述。 */
+        /**
+         * 在指定中心与底部高度处以给定框材质建造一座炽热门，返回其几何描述。
+         */
         static HeatPortalShape buildAt(World world, int centerX, int bottomY, int centerZ, Axis axis, Material frameMaterial) {
             int width = 2;
             int height = 3;
@@ -970,8 +1028,8 @@ public final class HeatNetherPortals implements Listener {
                 int z0 = centerZ;
                 int y0 = bottomY;
 
-                for(int x = -1; x <= width; ++x) {
-                    for(int y = -1; y <= height; ++y) {
+                for (int x = -1; x <= width; ++x) {
+                    for (int y = -1; y <= height; ++y) {
                         Block block = world.getBlockAt(x0 + x, y0 + y, z0);
                         boolean frame = x == -1 || x == width || y == -1 || y == height;
                         block.setType(frame ? frameMaterial : Material.AIR, false);
@@ -984,8 +1042,8 @@ public final class HeatNetherPortals implements Listener {
                 int x0 = centerX;
                 int y0 = bottomY;
 
-                for(int z = -1; z <= width; ++z) {
-                    for(int y = -1; y <= height; ++y) {
+                for (int z = -1; z <= width; ++z) {
+                    for (int y = -1; y <= height; ++y) {
                         Block block = world.getBlockAt(x0, y0 + y, z0 + z);
                         boolean frame = z == -1 || z == width || y == -1 || y == height;
                         block.setType(frame ? frameMaterial : Material.AIR, false);
@@ -996,7 +1054,9 @@ public final class HeatNetherPortals implements Listener {
             }
         }
 
-        /** 以内部某格为起点，分别按 X、Z 两种朝向探测是否构成炽热门。 */
+        /**
+         * 以内部某格为起点，分别按 X、Z 两种朝向探测是否构成炽热门。
+         */
         static @Nullable HeatPortalShape detect(Block inside) {
             if (!inside.getType().isAir() && inside.getType() != Material.FIRE) {
                 return null;
@@ -1010,15 +1070,17 @@ public final class HeatNetherPortals implements Listener {
             }
         }
 
-        /** 以给定朝向尝试匹配炽热门框，命中则返回门对象。 */
+        /**
+         * 以给定朝向尝试匹配炽热门框，命中则返回门对象。
+         */
         private static @Nullable HeatPortalShape detectWithOrientation(World world, int cx, int cy, int cz, Axis axis) {
             int width = 2;
             int height = 3;
             if (axis == Axis.X) {
                 int z0 = cz;
 
-                for(int x0 = cx - 1; x0 <= cx; ++x0) {
-                    for(int y0 = cy - 2; y0 <= cy; ++y0) {
+                for (int x0 = cx - 1; x0 <= cx; ++x0) {
+                    for (int y0 = cy - 2; y0 <= cy; ++y0) {
                         if (cx >= x0 && cx < x0 + width && cy >= y0 && cy < y0 + height && isValidFrameX(world, x0, y0, z0, width, height, Material.NETHER_WART_BLOCK)) {
                             return new HeatPortalShape(world, x0, y0, z0, width, height, Axis.X, Material.NETHER_WART_BLOCK);
                         }
@@ -1027,8 +1089,8 @@ public final class HeatNetherPortals implements Listener {
             } else {
                 int x0 = cx;
 
-                for(int z0 = cz - 1; z0 <= cz; ++z0) {
-                    for(int y0 = cy - 2; y0 <= cy; ++y0) {
+                for (int z0 = cz - 1; z0 <= cz; ++z0) {
+                    for (int y0 = cy - 2; y0 <= cy; ++y0) {
                         if (cz >= z0 && cz < z0 + width && cy >= y0 && cy < y0 + height && isValidFrameZ(world, x0, y0, z0, width, height, Material.NETHER_WART_BLOCK)) {
                             return new HeatPortalShape(world, x0, y0, z0, width, height, Axis.Z, Material.NETHER_WART_BLOCK);
                         }
@@ -1039,10 +1101,12 @@ public final class HeatNetherPortals implements Listener {
             return null;
         }
 
-        /** 校验 X 轴朝向的门是否完全由给定框材质与空/火内部组成。 */
+        /**
+         * 校验 X 轴朝向的门是否完全由给定框材质与空/火内部组成。
+         */
         private static boolean isValidFrameX(World world, int x0, int y0, int z0, int width, int height, Material frameMaterial) {
-            for(int x = -1; x <= width; ++x) {
-                for(int y = -1; y <= height; ++y) {
+            for (int x = -1; x <= width; ++x) {
+                for (int y = -1; y <= height; ++y) {
                     Block block = world.getBlockAt(x0 + x, y0 + y, z0);
                     boolean frame = x == -1 || x == width || y == -1 || y == height;
                     if (frame) {
@@ -1058,10 +1122,12 @@ public final class HeatNetherPortals implements Listener {
             return true;
         }
 
-        /** 校验 Z 轴朝向的门是否完全由给定框材质与空/火内部组成。 */
+        /**
+         * 校验 Z 轴朝向的门是否完全由给定框材质与空/火内部组成。
+         */
         private static boolean isValidFrameZ(World world, int x0, int y0, int z0, int width, int height, Material frameMaterial) {
-            for(int z = -1; z <= width; ++z) {
-                for(int y = -1; y <= height; ++y) {
+            for (int z = -1; z <= width; ++z) {
+                for (int y = -1; y <= height; ++y) {
                     Block block = world.getBlockAt(x0, y0 + y, z0 + z);
                     boolean frame = z == -1 || z == width || y == -1 || y == height;
                     if (frame) {
@@ -1077,31 +1143,37 @@ public final class HeatNetherPortals implements Listener {
             return true;
         }
 
-        /** 取得门内部第 (dx, dy) 格对应的方块。 */
+        /**
+         * 取得门内部第 (dx, dy) 格对应的方块。
+         */
         Block getInteriorBlock(int dx, int dy) {
             return this.axis == Axis.X ? this.world.getBlockAt(this.x0 + dx, this.y0 + dy, this.z0) : this.world.getBlockAt(this.x0, this.y0 + dy, this.z0 + dx);
         }
 
-        /** 计算门中心的近似世界坐标。 */
+        /**
+         * 计算门中心的近似世界坐标。
+         */
         Location getCenter() {
             double cx;
             double cz;
             if (this.axis == Axis.X) {
-                cx = (double)this.x0 + (double)this.width / (double)2.0F + (double)0.5F;
-                cz = (double)this.z0 + (double)0.5F;
+                cx = (double) this.x0 + (double) this.width / (double) 2.0F + (double) 0.5F;
+                cz = (double) this.z0 + (double) 0.5F;
             } else {
-                cx = (double)this.x0 + (double)0.5F;
-                cz = (double)this.z0 + (double)this.width / (double)2.0F + (double)0.5F;
+                cx = (double) this.x0 + (double) 0.5F;
+                cz = (double) this.z0 + (double) this.width / (double) 2.0F + (double) 0.5F;
             }
 
-            double cy = (double)this.y0 + (double)1.0F;
+            double cy = (double) this.y0 + (double) 1.0F;
             return new Location(this.world, cx, cy, cz);
         }
 
-        /** 返回略高于底部的出生位置。 */
+        /**
+         * 返回略高于底部的出生位置。
+         */
         Location getSpawnLocation() {
             Location c = this.getCenter().clone();
-            c.setY((double)this.y0 + 0.1);
+            c.setY((double) this.y0 + 0.1);
             return c;
         }
     }

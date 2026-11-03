@@ -1,6 +1,6 @@
-package Kinkin.aeternum.farming;
+package kinkin.aeternum.farming;
 
-import Kinkin.aeternum.AeternumSeasonsPlugin;
+import kinkin.aeternum.AeternumSeasonsPlugin;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.Item;
@@ -52,30 +52,34 @@ public final class SeasonalCropLoreListener implements Listener {
         PlayerJoinEvent.getHandlerList().unregister(this);
     }
 
-    /** 物品生成时为其补充季节描述。 */
+    /**
+     * 物品生成时为其补充季节描述。
+     */
     @EventHandler(
-        ignoreCancelled = true
+            ignoreCancelled = true
     )
     public void onItemSpawn(ItemSpawnEvent e) {
         if (this.config.isEnabled()) {
             Item itemEntity = e.getEntity();
             ItemStack stack = itemEntity.getItemStack();
-            if (this.lore.apply(stack, (Player)null)) {
+            if (this.lore.apply(stack, (Player) null)) {
                 itemEntity.setItemStack(stack);
             }
 
         }
     }
 
-    /** 玩家拾取物品时按玩家语言补充季节描述，并交由村民兼容逻辑处理。 */
+    /**
+     * 玩家拾取物品时按玩家语言补充季节描述，并交由村民兼容逻辑处理。
+     */
     @EventHandler(
-        ignoreCancelled = true
+            ignoreCancelled = true
     )
     public void onPickup(EntityPickupItemEvent e) {
         if (this.config.isEnabled()) {
             LivingEntity entity = e.getEntity();
             if (entity instanceof Player) {
-                Player player = (Player)entity;
+                Player player = (Player) entity;
                 ItemStack stack = e.getItem().getItemStack();
                 if (this.lore.apply(stack, player)) {
                     e.getItem().setItemStack(stack);
@@ -86,38 +90,44 @@ public final class SeasonalCropLoreListener implements Listener {
         }
     }
 
-    /** 玩家合成物品时为产物补充季节描述。 */
+    /**
+     * 玩家合成物品时为产物补充季节描述。
+     */
     @EventHandler(
-        ignoreCancelled = true
+            ignoreCancelled = true
     )
     public void onCraft(CraftItemEvent e) {
         if (this.config.isEnabled()) {
             HumanEntity clicker = e.getWhoClicked();
             if (clicker instanceof Player) {
-                Player player = (Player)clicker;
+                Player player = (Player) clicker;
                 ItemStack itemStack = e.getCurrentItem();
                 this.lore.apply(itemStack, player);
             }
         }
     }
 
-    /** 战利品生成时为每个物品补充季节描述。 */
+    /**
+     * 战利品生成时为每个物品补充季节描述。
+     */
     @EventHandler(
-        ignoreCancelled = true
+            ignoreCancelled = true
     )
     public void onLoot(LootGenerateEvent e) {
         if (this.config.isEnabled()) {
-            e.getLoot().forEach((stack) -> this.lore.apply(stack, (Player)null));
+            e.getLoot().forEach((stack) -> this.lore.apply(stack, (Player) null));
         }
     }
 
-    /** 玩家加入时刷新其背包内物品的季节描述。 */
+    /**
+     * 玩家加入时刷新其背包内物品的季节描述。
+     */
     @EventHandler
     public void onJoin(PlayerJoinEvent e) {
         if (this.config.isEnabled()) {
             Player player = e.getPlayer();
 
-            for(ItemStack stack : player.getInventory().getContents()) {
+            for (ItemStack stack : player.getInventory().getContents()) {
                 this.lore.apply(stack, player);
             }
 

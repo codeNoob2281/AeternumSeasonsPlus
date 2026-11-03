@@ -1,12 +1,14 @@
-package Kinkin.aeternum.util;
+package kinkin.aeternum.util;
+
+import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.plugin.Plugin;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.plugin.Plugin;
+import java.util.logging.Level;
 
 /**
  * 配置文件集合管理器。
@@ -18,21 +20,37 @@ import org.bukkit.plugin.Plugin;
  */
 public final class Configs {
     private final Plugin plugin;
-    /** 日历状态配置（calendar.yml）。 */
+    /**
+     * 日历状态配置（calendar.yml）。
+     */
     public FileConfiguration calendar;
-    /** 主配置（config.yml）。 */
+    /**
+     * 主配置（config.yml）。
+     */
     public FileConfiguration config;
-    /** HUD 配置（hud.yml）。 */
+    /**
+     * HUD 配置（hud.yml）。
+     */
     public FileConfiguration hud;
-    /** 气候配置（climate.yml）。 */
+    /**
+     * 气候配置（climate.yml）。
+     */
     public FileConfiguration climate;
-    /** 生存配置（survival.yml）。 */
+    /**
+     * 生存配置（survival.yml）。
+     */
     public FileConfiguration survival;
-    /** 动物配置（fauna.yml）。 */
+    /**
+     * 动物配置（fauna.yml）。
+     */
     public FileConfiguration fauna;
-    /** 作物配置（crops.yml）。 */
+    /**
+     * 作物配置（crops.yml）。
+     */
     public FileConfiguration crops;
-    /** 事件配置（events.yml）。 */
+    /**
+     * 事件配置（events.yml）。
+     */
     public FileConfiguration events;
 
     public Configs(Plugin plugin) {
@@ -40,7 +58,9 @@ public final class Configs {
         this.plugin = plugin;
     }
 
-    /** 加载全部配置文件（不存在时先从 jar 释放默认文件）。 */
+    /**
+     * 加载全部配置文件（不存在时先从 jar 释放默认文件）。
+     */
     public void loadAll() {
         this.calendar = this.load("calendar.yml");
         this.config = this.load("config.yml");
@@ -52,7 +72,9 @@ public final class Configs {
         this.events = this.load("events.yml");
     }
 
-    /** 加载单个 YAML 文件，并把 jar 内的默认值合并为兜底（copyDefaults）。 */
+    /**
+     * 加载单个 YAML 文件，并把 jar 内的默认值合并为兜底（copyDefaults）。
+     */
     private FileConfiguration load(String name) {
         File f = new File(this.plugin.getDataFolder(), name);
         if (!f.exists()) {
@@ -85,18 +107,22 @@ public final class Configs {
         return cfg;
     }
 
-    /** 将指定配置保存到数据目录下的同名文件。 */
+    /**
+     * 将指定配置保存到数据目录下的同名文件。
+     */
     public void save(String name, FileConfiguration cfg) {
         try {
             cfg.options().copyDefaults(true);
             cfg.save(new File(this.plugin.getDataFolder(), name));
         } catch (IOException e) {
-            e.printStackTrace();
+            this.plugin.getLogger().log(Level.SEVERE, "Failed to save config: " + name, e);
         }
 
     }
 
-    /** 保存全部配置文件。 */
+    /**
+     * 保存全部配置文件。
+     */
     public void saveAll() {
         this.save("calendar.yml", this.calendar);
         this.save("hud.yml", this.hud);

@@ -1,6 +1,18 @@
-package Kinkin.aeternum.world;
+package kinkin.aeternum.world;
 
-import Kinkin.aeternum.AeternumSeasonsPlugin;
+import kinkin.aeternum.AeternumSeasonsPlugin;
+import org.bukkit.*;
+import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.entity.EntityType;
+import org.bukkit.entity.Illusioner;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.entity.CreatureSpawnEvent;
+import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
+import org.bukkit.event.entity.EntityDeathEvent;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.scheduler.BukkitRunnable;
+
 import java.util.EnumSet;
 import java.util.Map;
 import java.util.UUID;
@@ -8,21 +20,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
 import java.util.logging.Logger;
-import org.bukkit.Chunk;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.StructureType;
-import org.bukkit.World;
-import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.entity.EntityType;
-import org.bukkit.entity.Illusioner;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.Listener;
-import org.bukkit.event.entity.CreatureSpawnEvent;
-import org.bukkit.event.entity.EntityDeathEvent;
-import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.scheduler.BukkitRunnable;
 
 /**
  * 幻术师生成替换监听器。
@@ -38,29 +35,51 @@ import org.bukkit.scheduler.BukkitRunnable;
 public final class IllusionerSpawnListener implements Listener {
     private final AeternumSeasonsPlugin plugin;
     private boolean enabled;
-    /** 林地府邸内生成的灾厄村民被替换为幻术师的概率。 */
+    /**
+     * 林地府邸内生成的灾厄村民被替换为幻术师的概率。
+     */
     private double mansionReplacementChance;
-    /** 前哨站/村庄附近生成的掠夺者被替换为幻术师的概率。 */
+    /**
+     * 前哨站/村庄附近生成的掠夺者被替换为幻术师的概率。
+     */
     private double outpostReplacementChance;
-    /** 结构搜索的区块半径。 */
+    /**
+     * 结构搜索的区块半径。
+     */
     private int structureSearchRadiusChunks;
-    /** 幻术师全局生成冷却（毫秒）。 */
+    /**
+     * 幻术师全局生成冷却（毫秒）。
+     */
     private long globalSpawnCooldownMs;
-    /** 每秒允许的最大结构搜索次数。 */
+    /**
+     * 每秒允许的最大结构搜索次数。
+     */
     private int maxStructureSearchesPerSecond;
-    /** 命中结构时的缓存有效期（毫秒）。 */
+    /**
+     * 命中结构时的缓存有效期（毫秒）。
+     */
     private long cacheTtlPositiveMs;
-    /** 未命中结构时的缓存有效期（毫秒）。 */
+    /**
+     * 未命中结构时的缓存有效期（毫秒）。
+     */
     private long cacheTtlNegativeMs;
-    /** 允许触发掠夺者替换的生成原因。 */
+    /**
+     * 允许触发掠夺者替换的生成原因。
+     */
     private EnumSet<CreatureSpawnEvent.SpawnReason> allowedPillagerReasons;
-    /** 允许触发府邸替换的生成原因。 */
+    /**
+     * 允许触发府邸替换的生成原因。
+     */
     private EnumSet<CreatureSpawnEvent.SpawnReason> allowedMansionReasons;
-    /** 结构判定缓存：缓存键 -> (区块键 -> 缓存结果)。 */
+    /**
+     * 结构判定缓存：缓存键 -> (区块键 -> 缓存结果)。
+     */
     private final Map<CacheKey, ConcurrentHashMap<Long, CacheEntry>> chunkCache = new ConcurrentHashMap();
     private volatile int tokens;
     private volatile long tokenSecond;
-    /** 上一次成功生成幻术师的时间戳（全局共享）。 */
+    /**
+     * 上一次成功生成幻术师的时间戳（全局共享）。
+     */
     private static volatile long lastIllusionerSpawnTime = 0L;
     private boolean debug;
 
@@ -71,7 +90,9 @@ public final class IllusionerSpawnListener implements Listener {
         this.resetRateLimiter();
     }
 
-    /** 从 illusioner_spawning 配置节重新读取全部参数。 */
+    /**
+     * 从 illusioner_spawning 配置节重新读取全部参数。
+     */
     public void reloadFromConfig() {
         ConfigurationSection sec = this.plugin.cfg.climate.getConfigurationSection("illusioner_spawning");
         if (sec == null) {
@@ -92,7 +113,9 @@ public final class IllusionerSpawnListener implements Listener {
         }
     }
 
-    /** 重置令牌桶到当前秒并补满令牌。 */
+    /**
+     * 重置令牌桶到当前秒并补满令牌。
+     */
     private void resetRateLimiter() {
         this.tokenSecond = System.currentTimeMillis() / 1000L;
         this.tokens = this.maxStructureSearchesPerSecond;
@@ -102,7 +125,7 @@ public final class IllusionerSpawnListener implements Listener {
      * 监听生物生成事件：对符合条件的灾厄村民按概率与结构判定替换为幻术师。
      */
     @EventHandler(
-        ignoreCancelled = true
+            ignoreCancelled = true
     )
     public void onCreatureSpawn(CreatureSpawnEvent e) {
         if (this.enabled) {
@@ -146,16 +169,18 @@ public final class IllusionerSpawnListener implements Listener {
         }
     }
 
-    /** 在指定位置以相同生成原因生成一只幻术师，并处理调试日志与异常。 */
+    /**
+     * 在指定位置以相同生成原因生成一只幻术师，并处理调试日志与异常。
+     */
     private void spawnIllusioner(Location loc, CreatureSpawnEvent.SpawnReason reason) {
         World world = loc.getWorld();
         if (world != null) {
             try {
-                Illusioner illusioner = (Illusioner)world.spawn(loc, Illusioner.class, reason, false, (Consumer)null);
+                Illusioner illusioner = (Illusioner) world.spawn(loc, Illusioner.class, reason, false, (Consumer) null);
                 if (this.debug) {
                     Logger logger = this.plugin.getLogger();
                     int blockX = loc.getBlockX();
-                    logger.info("[IllusionerSpawn] Illusioner generado en " + blockX + ", " + loc.getBlockY() + ", " + loc.getBlockZ() + " (Razón: " + reason.name() + "), ent=" + String.valueOf(illusioner.getUniqueId()));
+                    logger.info("[IllusionerSpawn] Illusioner generado en " + blockX + ", " + loc.getBlockY() + ", " + loc.getBlockZ() + " (Razón: " + reason.name() + "), ent=" + illusioner.getUniqueId());
                 }
             } catch (Throwable ex) {
                 Logger logger = this.plugin.getLogger();
@@ -177,14 +202,14 @@ public final class IllusionerSpawnListener implements Listener {
             Chunk chunk = loc.getChunk();
             long chunkKey = packChunkKey(chunk.getX(), chunk.getZ());
             CacheKey key = new CacheKey(world.getUID(), structureType);
-            final ConcurrentHashMap<Long, CacheEntry> cacheMap = (ConcurrentHashMap)this.chunkCache.computeIfAbsent(key, (cacheKeyObj) -> new ConcurrentHashMap());
+            final ConcurrentHashMap<Long, CacheEntry> cacheMap = (ConcurrentHashMap) this.chunkCache.computeIfAbsent(key, (cacheKeyObj) -> new ConcurrentHashMap());
             long now = System.currentTimeMillis();
-            CacheEntry cached = (CacheEntry)cacheMap.get(chunkKey);
+            CacheEntry cached = (CacheEntry) cacheMap.get(chunkKey);
             if (cached != null && cached.expiresAtMs > now) {
                 return cached.inStructure;
             } else if (!this.tryConsumeToken(now)) {
                 if (this.debug) {
-                    this.plugin.getLogger().info("[IllusionerSpawn] RateLimit bloqueó locateNearestStructure (" + String.valueOf(structureType) + ")");
+                    this.plugin.getLogger().info("[IllusionerSpawn] RateLimit bloqueó locateNearestStructure (" + structureType + ")");
                 }
 
                 cacheMap.put(chunkKey, new CacheEntry(false, now + 10000L));
@@ -195,9 +220,10 @@ public final class IllusionerSpawnListener implements Listener {
                 cacheMap.put(chunkKey, new CacheEntry(result, now + ttl));
                 if (cacheMap.size() > 20000) {
                     (new BukkitRunnable() {
+                        @Override
                         public void run() {
                             long currentTime = System.currentTimeMillis();
-                            cacheMap.entrySet().removeIf((entry) -> ((CacheEntry)entry.getValue()).expiresAtMs <= currentTime);
+                            cacheMap.entrySet().removeIf((entry) -> ((CacheEntry) entry.getValue()).expiresAtMs <= currentTime);
                         }
                     }).runTask(this.plugin);
                 }
@@ -207,7 +233,9 @@ public final class IllusionerSpawnListener implements Listener {
         }
     }
 
-    /** 实际调用 locateNearestStructure 判断位置是否在结构半径内。 */
+    /**
+     * 实际调用 locateNearestStructure 判断位置是否在结构半径内。
+     */
     private boolean isNearStructureSlow(Location loc, StructureType structureType, int radiusChunks) {
         World world = loc.getWorld();
         if (world == null) {
@@ -218,7 +246,7 @@ public final class IllusionerSpawnListener implements Listener {
                 if (structureLocation == null) {
                     return false;
                 } else {
-                    double maxDistBlocks = (double)radiusChunks * (double)16.0F;
+                    double maxDistBlocks = (double) radiusChunks * (double) 16.0F;
                     return structureLocation.getWorld().equals(world) && structureLocation.distanceSquared(loc) <= maxDistBlocks * maxDistBlocks;
                 }
             } catch (Throwable ex) {
@@ -233,7 +261,9 @@ public final class IllusionerSpawnListener implements Listener {
         }
     }
 
-    /** 令牌桶限流：每秒补充一次令牌，成功消费返回 true。 */
+    /**
+     * 令牌桶限流：每秒补充一次令牌，成功消费返回 true。
+     */
     private boolean tryConsumeToken(long nowMs) {
         long currentSecond = nowMs / 1000L;
         if (currentSecond != this.tokenSecond) {
@@ -249,14 +279,18 @@ public final class IllusionerSpawnListener implements Listener {
         }
     }
 
-    /** 将区块坐标打包为单个 long 键。 */
+    /**
+     * 将区块坐标打包为单个 long 键。
+     */
     private static long packChunkKey(int cx, int cz) {
-        return (long)cx << 32 ^ (long)cz & 4294967295L;
+        return (long) cx << 32 ^ (long) cz & 4294967295L;
     }
 
-    /** 监听幻术师死亡：清空默认掉落并掉落 1~2 个不死图腾。 */
+    /**
+     * 监听幻术师死亡：清空默认掉落并掉落 1~2 个不死图腾。
+     */
     @EventHandler(
-        ignoreCancelled = true
+            ignoreCancelled = true
     )
     public void onEntityDeath(EntityDeathEvent e) {
         if (e.getEntityType() == EntityType.ILLUSIONER) {
@@ -267,13 +301,17 @@ public final class IllusionerSpawnListener implements Listener {
 
     }
 
-    /** 结构缓存键：世界 UUID + 结构类型。 */
-    private static record CacheKey(UUID worldId, StructureType type) {
+    /**
+     * 结构缓存键：世界 UUID + 结构类型。
+     */
+    private record CacheKey(UUID worldId, StructureType type) {
         private CacheKey {
         }
     }
 
-    /** 单个区块的结构判定缓存条目。 */
+    /**
+     * 单个区块的结构判定缓存条目。
+     */
     private static final class CacheEntry {
         final boolean inStructure;
         final long expiresAtMs;

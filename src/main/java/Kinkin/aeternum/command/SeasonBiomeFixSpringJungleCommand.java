@@ -1,14 +1,7 @@
-package Kinkin.aeternum.command;
+package kinkin.aeternum.command;
 
-import Kinkin.aeternum.AeternumSeasonsPlugin;
-import Kinkin.aeternum.world.BiomeSpoofAdapter;
-import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import kinkin.aeternum.AeternumSeasonsPlugin;
+import kinkin.aeternum.world.BiomeSpoofAdapter;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.World;
@@ -20,6 +13,9 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
+
+import java.lang.reflect.Field;
+import java.util.*;
 
 /**
  * 生物群系修复命令（/seasonbiomefix）。
@@ -51,6 +47,7 @@ public final class SeasonBiomeFixSpringJungleCommand implements CommandExecutor,
      * {@code args[1]} 可作为额外的预算覆盖。随后收集目标世界的已加载区块，
      * 逐 tick 重绘生物群系并输出进度。</p>
      */
+    @Override
     public boolean onCommand(final CommandSender sender, Command cmd, String label, String[] args) {
         if (!sender.hasPermission("aeternum.command.biomefix")) {
             return true;
@@ -63,7 +60,7 @@ public final class SeasonBiomeFixSpringJungleCommand implements CommandExecutor,
                 Integer maybeBudget = this.tryParseInt(firstArg);
                 if (maybeBudget != null) {
                     budget = Math.max(1, maybeBudget);
-                } else if (firstArg.equalsIgnoreCase("all")) {
+                } else if ("all".equalsIgnoreCase(firstArg)) {
                     allWorlds = true;
                 } else {
                     targetWorld = Bukkit.getWorld(firstArg);
@@ -83,7 +80,7 @@ public final class SeasonBiomeFixSpringJungleCommand implements CommandExecutor,
 
             if (!allWorlds && targetWorld == null) {
                 if (sender instanceof Player) {
-                    Player player = (Player)sender;
+                    Player player = (Player) sender;
                     targetWorld = player.getWorld();
                 } else {
                     targetWorld = this.firstNormalWorld();
@@ -102,9 +99,9 @@ public final class SeasonBiomeFixSpringJungleCommand implements CommandExecutor,
 
             final List<ChunkPos> work = new ArrayList();
             if (allWorlds) {
-                for(World world : Bukkit.getWorlds()) {
+                for (World world : Bukkit.getWorlds()) {
                     if (world.getEnvironment() == Environment.NORMAL) {
-                        for(Chunk chunk : world.getLoadedChunks()) {
+                        for (Chunk chunk : world.getLoadedChunks()) {
                             work.add(new ChunkPos(world.getUID(), chunk.getX(), chunk.getZ()));
                         }
                     }
@@ -114,7 +111,7 @@ public final class SeasonBiomeFixSpringJungleCommand implements CommandExecutor,
                     sender.sendMessage("§eAviso: este mundo no es NORMAL, igual lo proceso (pero lo normal es solo overworld).");
                 }
 
-                for(Chunk chunk : targetWorld.getLoadedChunks()) {
+                for (Chunk chunk : targetWorld.getLoadedChunks()) {
                     work.add(new ChunkPos(targetWorld.getUID(), chunk.getX(), chunk.getZ()));
                 }
             }
@@ -138,12 +135,13 @@ public final class SeasonBiomeFixSpringJungleCommand implements CommandExecutor,
                     int skippedUnloaded = 0;
                     int ticks = 0;
 
+                    @Override
                     public void run() {
                         ++this.ticks;
                         int doneThisTick = 0;
 
-                        while(doneThisTick < budgetFinal && this.idx < work.size()) {
-                            ChunkPos pos = (ChunkPos)work.get(this.idx++);
+                        while (doneThisTick < budgetFinal && this.idx < work.size()) {
+                            ChunkPos pos = (ChunkPos) work.get(this.idx++);
                             World world = Bukkit.getWorld(pos.worldId);
                             if (world != null) {
                                 if (!world.isChunkLoaded(pos.cx, pos.cz)) {
@@ -196,9 +194,9 @@ public final class SeasonBiomeFixSpringJungleCommand implements CommandExecutor,
         int maxY = world.getMaxHeight();
         boolean anyChange = false;
 
-        for(int x = 0; x < 16; x += 4) {
-            for(int z = 0; z < 16; z += 4) {
-                for(int y = minY; y < maxY; y += 4) {
+        for (int x = 0; x < 16; x += 4) {
+            for (int z = 0; z < 16; z += 4) {
+                for (int y = minY; y < maxY; y += 4) {
                     Biome currentBiome = world.getBiome(bx + x, y, bz + z);
                     if (currentBiome != target) {
                         world.setBiome(bx + x, y, bz + z, target);
@@ -215,15 +213,17 @@ public final class SeasonBiomeFixSpringJungleCommand implements CommandExecutor,
         return anyChange;
     }
 
-    /** 通过反射清空 {@link BiomeSpoofAdapter} 的静态/实例缓存，避免修复期间被伪装数据干扰。 */
+    /**
+     * 通过反射清空 {@link BiomeSpoofAdapter} 的静态/实例缓存，避免修复期间被伪装数据干扰。
+     */
     private void hardResetBiomeSpoofInternals(CommandSender sender) {
         if (this.biomeSpoof != null) {
             try {
                 Field cold = BiomeSpoofAdapter.class.getDeclaredField("COLD_CHUNKS");
                 cold.setAccessible(true);
-                Object coldSet = cold.get((Object)null);
+                Object coldSet = cold.get((Object) null);
                 if (coldSet instanceof Set) {
-                    Set<?> coldChunks = (Set)coldSet;
+                    Set<?> coldChunks = (Set) coldSet;
                     coldChunks.clear();
                 }
 
@@ -231,7 +231,7 @@ public final class SeasonBiomeFixSpringJungleCommand implements CommandExecutor,
                 spoofed.setAccessible(true);
                 Object spoofedSet = spoofed.get(this.biomeSpoof);
                 if (spoofedSet instanceof Set) {
-                    Set<?> spoofedChunks = (Set)spoofedSet;
+                    Set<?> spoofedChunks = (Set) spoofedSet;
                     spoofedChunks.clear();
                 }
 
@@ -239,7 +239,7 @@ public final class SeasonBiomeFixSpringJungleCommand implements CommandExecutor,
                 backups.setAccessible(true);
                 Object backupsMap = backups.get(this.biomeSpoof);
                 if (backupsMap instanceof Map) {
-                    Map<?, ?> backupsByKey = (Map)backupsMap;
+                    Map<?, ?> backupsByKey = (Map) backupsMap;
                     backupsByKey.clear();
                 }
 
@@ -253,7 +253,9 @@ public final class SeasonBiomeFixSpringJungleCommand implements CommandExecutor,
         }
     }
 
-    /** 反射清空 BiomeSpoofAdapter 上某个 Map 类型字段；任何异常都静默忽略。 */
+    /**
+     * 反射清空 BiomeSpoofAdapter 上某个 Map 类型字段；任何异常都静默忽略。
+     */
     private void tryClearFieldMap(String fieldName) {
         try {
             Field field = BiomeSpoofAdapter.class.getDeclaredField(fieldName);
@@ -267,9 +269,11 @@ public final class SeasonBiomeFixSpringJungleCommand implements CommandExecutor,
 
     }
 
-    /** 返回第一个已加载的 NORMAL（主世界）维度，找不到返回 null。 */
+    /**
+     * 返回第一个已加载的 NORMAL（主世界）维度，找不到返回 null。
+     */
     private World firstNormalWorld() {
-        for(World world : Bukkit.getWorlds()) {
+        for (World world : Bukkit.getWorlds()) {
             if (world.getEnvironment() == Environment.NORMAL) {
                 return world;
             }
@@ -278,7 +282,9 @@ public final class SeasonBiomeFixSpringJungleCommand implements CommandExecutor,
         return null;
     }
 
-    /** 尝试把字符串解析为整数，失败返回 null。 */
+    /**
+     * 尝试把字符串解析为整数，失败返回 null。
+     */
     private Integer tryParseInt(String input) {
         try {
             return Integer.parseInt(input);
@@ -287,7 +293,10 @@ public final class SeasonBiomeFixSpringJungleCommand implements CommandExecutor,
         }
     }
 
-    /** 本命令不提供参数补全。 */
+    /**
+     * 本命令不提供参数补全。
+     */
+    @Override
     public List<String> onTabComplete(CommandSender sender, Command cmd, String label, String[] args) {
         return Collections.emptyList();
     }
@@ -296,8 +305,10 @@ public final class SeasonBiomeFixSpringJungleCommand implements CommandExecutor,
         TARGET = Biome.SAVANNA;
     }
 
-    /** 待处理区块的坐标（世界 UUID + 区块 x/z）。 */
-    private static record ChunkPos(UUID worldId, int cx, int cz) {
+    /**
+     * 待处理区块的坐标（世界 UUID + 区块 x/z）。
+     */
+    private record ChunkPos(UUID worldId, int cx, int cz) {
         private ChunkPos {
         }
     }

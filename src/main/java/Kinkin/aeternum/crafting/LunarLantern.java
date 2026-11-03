@@ -1,24 +1,9 @@
-package Kinkin.aeternum.crafting;
+package kinkin.aeternum.crafting;
 
-import Kinkin.aeternum.AeternumSeasonsPlugin;
-import Kinkin.aeternum.calendar.SeasonService;
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Set;
-import java.util.concurrent.ThreadLocalRandom;
+import kinkin.aeternum.AeternumSeasonsPlugin;
+import kinkin.aeternum.calendar.SeasonService;
 import net.md_5.bungee.api.ChatColor;
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.NamespacedKey;
-import org.bukkit.Particle;
-import org.bukkit.World;
+import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.Ageable;
 import org.bukkit.block.data.BlockData;
@@ -42,6 +27,11 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitTask;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * 月光灯笼（Lunar Lantern）。
@@ -77,7 +67,9 @@ public final class LunarLantern implements Listener, Runnable {
         this.loadData();
     }
 
-    /** 从数据文件读取已放置的月光灯笼位置；若只有旧路径的数据文件，则迁移并保存到新路径。 */
+    /**
+     * 从数据文件读取已放置的月光灯笼位置；若只有旧路径的数据文件，则迁移并保存到新路径。
+     */
     private void loadData() {
         this.placedLanterns.clear();
         if (this.dataFile.exists()) {
@@ -96,7 +88,9 @@ public final class LunarLantern implements Listener, Runnable {
         }
     }
 
-    /** 将已放置的月光灯笼位置写入数据文件。 */
+    /**
+     * 将已放置的月光灯笼位置写入数据文件。
+     */
     private void saveData() {
         YamlConfiguration cfg = new YamlConfiguration();
         cfg.set("blocks", new ArrayList(this.placedLanterns));
@@ -109,27 +103,35 @@ public final class LunarLantern implements Listener, Runnable {
 
     }
 
-    /** 向服务器注册事件监听器与合成配方，并启动周期任务。 */
+    /**
+     * 向服务器注册事件监听器与合成配方，并启动周期任务。
+     */
     public void register() {
         Bukkit.getPluginManager().registerEvents(this, this.plugin);
         this.registerRecipe();
         this.startTask();
     }
 
-    /** 注销事件监听器、停止周期任务并移除已注册的合成配方。 */
+    /**
+     * 注销事件监听器、停止周期任务并移除已注册的合成配方。
+     */
     public void unregister() {
         HandlerList.unregisterAll(this);
         this.stopTask();
         Bukkit.removeRecipe(this.recipeKey);
     }
 
-    /** 启动周期任务（每 40 tick 执行一次）。 */
+    /**
+     * 启动周期任务（每 40 tick 执行一次）。
+     */
     private void startTask() {
         this.stopTask();
         this.task = Bukkit.getScheduler().runTaskTimer(this.plugin, this, 40L, 40L);
     }
 
-    /** 停止周期任务（若正在运行）。 */
+    /**
+     * 停止周期任务（若正在运行）。
+     */
     private void stopTask() {
         if (this.task != null) {
             this.task.cancel();
@@ -138,7 +140,9 @@ public final class LunarLantern implements Listener, Runnable {
 
     }
 
-    /** 注册月光灯笼的合成配方：L 灯笼、R 红石、E 末影珍珠。 */
+    /**
+     * 注册月光灯笼的合成配方：L 灯笼、R 红石、E 末影珍珠。
+     */
     private void registerRecipe() {
         ItemStack dummy = new ItemStack(Material.LANTERN);
         ShapedRecipe recipe = new ShapedRecipe(this.recipeKey, dummy);
@@ -158,14 +162,14 @@ public final class LunarLantern implements Listener, Runnable {
         if (event.getRecipe() != null) {
             Recipe recipe = event.getRecipe();
             if (recipe instanceof ShapedRecipe) {
-                ShapedRecipe shaped = (ShapedRecipe)recipe;
+                ShapedRecipe shaped = (ShapedRecipe) recipe;
                 if (this.recipeKey.equals(shaped.getKey())) {
                     ItemStack[] matrix = event.getInventory().getMatrix();
                     int lanternSlots = 0;
                     int redstoneSlots = 0;
                     int pearlSlots = 0;
 
-                    for(ItemStack stack : matrix) {
+                    for (ItemStack stack : matrix) {
                         if (stack != null && stack.getType() != Material.AIR) {
                             Material type = stack.getType();
                             if (type == Material.LANTERN) {
@@ -174,7 +178,7 @@ public final class LunarLantern implements Listener, Runnable {
                                 ++redstoneSlots;
                             } else {
                                 if (type != Material.ENDER_PEARL) {
-                                    event.getInventory().setResult((ItemStack)null);
+                                    event.getInventory().setResult((ItemStack) null);
                                     return;
                                 }
 
@@ -187,7 +191,7 @@ public final class LunarLantern implements Listener, Runnable {
                         HumanEntity viewer = event.getView().getPlayer();
                         Player craftingPlayer;
                         if (viewer instanceof Player) {
-                            Player player = (Player)viewer;
+                            Player player = (Player) viewer;
                             craftingPlayer = player;
                         } else {
                             craftingPlayer = null;
@@ -198,7 +202,7 @@ public final class LunarLantern implements Listener, Runnable {
                         ItemMeta meta = result.getItemMeta();
                         if (meta != null) {
                             PersistentDataContainer pdc = meta.getPersistentDataContainer();
-                            pdc.set(this.itemTagKey, PersistentDataType.BYTE, (byte)1);
+                            pdc.set(this.itemTagKey, PersistentDataType.BYTE, (byte) 1);
 
                             try {
                                 String name = this.plugin.lang.tr(crafter, "item.lunar_lantern.name");
@@ -217,7 +221,7 @@ public final class LunarLantern implements Listener, Runnable {
 
                         event.getInventory().setResult(result);
                     } else {
-                        event.getInventory().setResult((ItemStack)null);
+                        event.getInventory().setResult((ItemStack) null);
                     }
                 }
             }
@@ -235,7 +239,7 @@ public final class LunarLantern implements Listener, Runnable {
                 return false;
             } else {
                 PersistentDataContainer pdc = meta.getPersistentDataContainer();
-                Byte flag = (Byte)pdc.get(this.itemTagKey, PersistentDataType.BYTE);
+                Byte flag = (Byte) pdc.get(this.itemTagKey, PersistentDataType.BYTE);
                 if (flag != null && flag == 1) {
                     return true;
                 } else {
@@ -246,7 +250,7 @@ public final class LunarLantern implements Listener, Runnable {
                     if (lore.stream().anyMatch((line) -> line.contains("AET_CUSTOM_LL"))) {
                         looksLikeLunar = true;
                     } else if (!display.isEmpty() && !lore.isEmpty()) {
-                        String firstLore = ChatColor.stripColor((String)lore.get(0));
+                        String firstLore = ChatColor.stripColor((String) lore.get(0));
                         String firstLoreLower = firstLore.toLowerCase(Locale.ROOT);
                         if (firstLoreLower.contains("lunar") || firstLoreLower.contains("luna")) {
                             looksLikeLunar = true;
@@ -254,7 +258,7 @@ public final class LunarLantern implements Listener, Runnable {
                     }
 
                     if (looksLikeLunar) {
-                        pdc.set(this.itemTagKey, PersistentDataType.BYTE, (byte)1);
+                        pdc.set(this.itemTagKey, PersistentDataType.BYTE, (byte) 1);
                         stack.setItemMeta(meta);
                         return true;
                     } else {
@@ -267,9 +271,11 @@ public final class LunarLantern implements Listener, Runnable {
         }
     }
 
-    /** 监听方块放置：放置的是月光灯笼时，记录该位置并保存数据。 */
+    /**
+     * 监听方块放置：放置的是月光灯笼时，记录该位置并保存数据。
+     */
     @EventHandler(
-        ignoreCancelled = true
+            ignoreCancelled = true
     )
     public void onPlace(BlockPlaceEvent event) {
         ItemStack inHand = event.getItemInHand();
@@ -282,10 +288,12 @@ public final class LunarLantern implements Listener, Runnable {
         }
     }
 
-    /** 监听方块破坏：破坏的是已登记的月光灯笼时，取消原掉落并改为掉落对应的自定义物品。 */
+    /**
+     * 监听方块破坏：破坏的是已登记的月光灯笼时，取消原掉落并改为掉落对应的自定义物品。
+     */
     @EventHandler(
-        ignoreCancelled = true,
-        priority = EventPriority.HIGHEST
+            ignoreCancelled = true,
+            priority = EventPriority.HIGHEST
     )
     public void onBreak(BlockBreakEvent event) {
         Block block = event.getBlock();
@@ -299,7 +307,7 @@ public final class LunarLantern implements Listener, Runnable {
                 ItemMeta meta = drop.getItemMeta();
                 if (meta != null) {
                     PersistentDataContainer pdc = meta.getPersistentDataContainer();
-                    pdc.set(this.itemTagKey, PersistentDataType.BYTE, (byte)1);
+                    pdc.set(this.itemTagKey, PersistentDataType.BYTE, (byte) 1);
 
                     try {
                         String name = this.plugin.lang.tr(breaker, "item.lunar_lantern.name");
@@ -316,18 +324,22 @@ public final class LunarLantern implements Listener, Runnable {
                     drop.setItemMeta(meta);
                 }
 
-                block.getWorld().dropItemNaturally(block.getLocation().add((double)0.5F, 0.1, (double)0.5F), drop);
+                block.getWorld().dropItemNaturally(block.getLocation().add((double) 0.5F, 0.1, (double) 0.5F), drop);
             }
         }
     }
 
-    /** 生成方块的位置键：世界名;x;y;z。 */
+    /**
+     * 生成方块的位置键：世界名;x;y;z。
+     */
     private String blockKey(Block block) {
         String worldName = block.getWorld().getName();
         return worldName + ";" + block.getX() + ";" + block.getY() + ";" + block.getZ();
     }
 
-    /** 判断方块是否为已登记的月光灯笼。 */
+    /**
+     * 判断方块是否为已登记的月光灯笼。
+     */
     private boolean isLunarLanternBlock(Block block) {
         return block.getType() == Material.LANTERN && this.placedLanterns.contains(this.blockKey(block));
     }
@@ -336,9 +348,10 @@ public final class LunarLantern implements Listener, Runnable {
      * 周期任务：遍历已登记的月光灯笼，清理失效记录（格式错误、世界不存在、方块已消失）；
      * 对有效的灯笼在白天播放待机粒子，在夜晚播放夜间粒子并催熟植物、祝福玩家。
      */
+    @Override
     public void run() {
         if (!this.placedLanterns.isEmpty()) {
-            for(String key : new ArrayList<>(this.placedLanterns)) {
+            for (String key : new ArrayList<>(this.placedLanterns)) {
                 String[] parts = key.split(";");
                 if (parts.length != 4) {
                     this.placedLanterns.remove(key);
@@ -384,42 +397,48 @@ public final class LunarLantern implements Listener, Runnable {
         }
     }
 
-    /** 白天待机效果：在灯笼上方少量播放附魔粒子。 */
+    /**
+     * 白天待机效果：在灯笼上方少量播放附魔粒子。
+     */
     private void idleParticles(Block center) {
         World world = center.getWorld();
-        Location loc = center.getLocation().add((double)0.5F, 0.8, (double)0.5F);
+        Location loc = center.getLocation().add((double) 0.5F, 0.8, (double) 0.5F);
         world.spawnParticle(Particle.ENCHANT, loc, 4, 0.15, 0.2, 0.15);
     }
 
-    /** 夜晚效果：在灯笼上方播放灵魂粒子与末地烛粒子。 */
+    /**
+     * 夜晚效果：在灯笼上方播放灵魂粒子与末地烛粒子。
+     */
     private void nightParticles(Block center) {
         World world = center.getWorld();
-        Location loc = center.getLocation().add((double)0.5F, 0.9, (double)0.5F);
-        world.spawnParticle(Particle.SOUL, loc, 8, (double)0.25F, 0.3, (double)0.25F);
+        Location loc = center.getLocation().add((double) 0.5F, 0.9, (double) 0.5F);
+        world.spawnParticle(Particle.SOUL, loc, 8, (double) 0.25F, 0.3, (double) 0.25F);
         world.spawnParticle(Particle.END_ROD, loc, 4, 0.15, 0.2, 0.15);
     }
 
-    /** 夜晚催熟灯笼周围的作物，并有机会让蘑菇增殖。 */
+    /**
+     * 夜晚催熟灯笼周围的作物，并有机会让蘑菇增殖。
+     */
     private void boostNocturnalPlants(Block center) {
         World world = center.getWorld();
         int radius = 5;
         int attempts = 30;
         int baseY = center.getY();
 
-        for(int i = 0; i < attempts; ++i) {
+        for (int i = 0; i < attempts; ++i) {
             int dx = this.rnd.nextInt(-radius, radius + 1);
             int dz = this.rnd.nextInt(-radius, radius + 1);
             int x = center.getX() + dx;
             int z = center.getZ() + dz;
 
-            for(int dy = -3; dy <= 3; ++dy) {
+            for (int dy = -3; dy <= 3; ++dy) {
                 Block block = world.getBlockAt(x, baseY + dy, z);
                 Material type = block.getType();
                 if (type == Material.RED_MUSHROOM || type == Material.BROWN_MUSHROOM) {
                     if (this.rnd.nextDouble() < 0.3) {
                         this.spreadMushroom(block);
                     } else {
-                        world.spawnParticle(Particle.SPORE_BLOSSOM_AIR, block.getLocation().add((double)0.5F, 0.3, (double)0.5F), 4, 0.2, 0.2, 0.2);
+                        world.spawnParticle(Particle.SPORE_BLOSSOM_AIR, block.getLocation().add((double) 0.5F, 0.3, (double) 0.5F), 4, 0.2, 0.2, 0.2);
                     }
                     break;
                 }
@@ -430,7 +449,7 @@ public final class LunarLantern implements Listener, Runnable {
                         if (this.rnd.nextDouble() < 0.35) {
                             ageable.setAge(ageable.getAge() + 1);
                             block.setBlockData(ageable, false);
-                            world.spawnParticle(Particle.SPORE_BLOSSOM_AIR, block.getLocation().add((double)0.5F, 0.4, (double)0.5F), 5, 0.2, 0.3, 0.2);
+                            world.spawnParticle(Particle.SPORE_BLOSSOM_AIR, block.getLocation().add((double) 0.5F, 0.4, (double) 0.5F), 5, 0.2, 0.3, 0.2);
                         }
                         break;
                     }
@@ -440,13 +459,15 @@ public final class LunarLantern implements Listener, Runnable {
 
     }
 
-    /** 在蘑菇周围尝试将其扩散到附近合适的方块上。 */
+    /**
+     * 在蘑菇周围尝试将其扩散到附近合适的方块上。
+     */
     private void spreadMushroom(Block source) {
         World world = source.getWorld();
         Material type = source.getType();
         int radius = 2;
 
-        for(int i = 0; i < 6; ++i) {
+        for (int i = 0; i < 6; ++i) {
             int dx = this.rnd.nextInt(-radius, radius + 1);
             int dz = this.rnd.nextInt(-radius, radius + 1);
             Block ground = source.getRelative(dx, -1, dz);
@@ -455,7 +476,7 @@ public final class LunarLantern implements Listener, Runnable {
                 Material groundType = ground.getType();
                 if (groundType == Material.DIRT || groundType == Material.GRASS_BLOCK || groundType == Material.MYCELIUM || groundType == Material.PODZOL || groundType == Material.NETHERRACK || groundType == Material.CRIMSON_NYLIUM || groundType == Material.WARPED_NYLIUM) {
                     air.setType(type, false);
-                    world.spawnParticle(Particle.SPORE_BLOSSOM_AIR, air.getLocation().add((double)0.5F, 0.3, (double)0.5F), 6, 0.2, 0.3, 0.2);
+                    world.spawnParticle(Particle.SPORE_BLOSSOM_AIR, air.getLocation().add((double) 0.5F, 0.3, (double) 0.5F), 6, 0.2, 0.3, 0.2);
                     break;
                 }
             }
@@ -463,22 +484,24 @@ public final class LunarLantern implements Listener, Runnable {
 
     }
 
-    /** 夜晚祝福灯笼周围的玩家：给予短暂夜视并播放附魔粒子。 */
+    /**
+     * 夜晚祝福灯笼周围的玩家：给予短暂夜视并播放附魔粒子。
+     */
     private void blessNearbyPlayers(Block center) {
         World world = center.getWorld();
-        Location loc = center.getLocation().add((double)0.5F, 0.9, (double)0.5F);
+        Location loc = center.getLocation().add((double) 0.5F, 0.9, (double) 0.5F);
         int radius = 6;
 
-        for(Entity entity : world.getNearbyEntities(loc, (double)radius, (double)radius, (double)radius)) {
+        for (Entity entity : world.getNearbyEntities(loc, (double) radius, (double) radius, (double) radius)) {
             if (entity instanceof Player player) {
                 player.addPotionEffect(new PotionEffect(PotionEffectType.NIGHT_VISION, 120, 0, true, false, true));
-                world.spawnParticle(Particle.ENCHANT, player.getLocation().add((double)0.0F, (double)1.0F, (double)0.0F), 4, 0.2, 0.3, 0.2);
+                world.spawnParticle(Particle.ENCHANT, player.getLocation().add((double) 0.0F, (double) 1.0F, (double) 0.0F), 4, 0.2, 0.3, 0.2);
             }
         }
 
     }
 
     static {
-        PERSISTENT_LORE_TAG = String.valueOf(ChatColor.BLACK) + "AET_CUSTOM_LL";
+        PERSISTENT_LORE_TAG = ChatColor.BLACK + "AET_CUSTOM_LL";
     }
 }

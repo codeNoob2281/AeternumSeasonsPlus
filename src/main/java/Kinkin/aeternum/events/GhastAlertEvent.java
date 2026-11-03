@@ -1,17 +1,9 @@
-package Kinkin.aeternum.events;
+package kinkin.aeternum.events;
 
-import Kinkin.aeternum.AeternumSeasonsPlugin;
-import Kinkin.aeternum.calendar.CalendarState;
-import Kinkin.aeternum.calendar.Season;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.ThreadLocalRandom;
-import org.bukkit.Bukkit;
-import org.bukkit.Chunk;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.Particle;
-import org.bukkit.World;
+import kinkin.aeternum.AeternumSeasonsPlugin;
+import kinkin.aeternum.calendar.CalendarState;
+import kinkin.aeternum.calendar.Season;
+import org.bukkit.*;
 import org.bukkit.World.Environment;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Entity;
@@ -20,9 +12,13 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.entity.CreatureSpawnEvent;
-import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
+import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.inventory.ItemStack;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * 恶魂惊扰事件（Ghast Alert）。
@@ -38,25 +34,45 @@ import org.bukkit.inventory.ItemStack;
 public final class GhastAlertEvent implements SeasonalEvent {
     private final AeternumSeasonsPlugin plugin;
     private boolean enabled;
-    /** 事件最短持续天数。 */
+    /**
+     * 事件最短持续天数。
+     */
     private int minDur;
-    /** 事件最长持续天数。 */
+    /**
+     * 事件最长持续天数。
+     */
     private int maxDur;
-    /** 每天触发事件的基础概率。 */
+    /**
+     * 每天触发事件的基础概率。
+     */
     private double baseChance;
-    /** 自然生成的恶魂被“标记”的概率。 */
+    /**
+     * 自然生成的恶魂被“标记”的概率。
+     */
     private double markedGhastChance;
-    /** 击杀被标记恶魂时额外掉落恶魂之泪的概率。 */
+    /**
+     * 击杀被标记恶魂时额外掉落恶魂之泪的概率。
+     */
     private double extraTearChance;
-    /** 被标记恶魂额外召唤同伴的概率。 */
+    /**
+     * 被标记恶魂额外召唤同伴的概率。
+     */
     private double extraSpawnChance;
-    /** 同一区块额外召唤的冷却时间（毫秒）。 */
+    /**
+     * 同一区块额外召唤的冷却时间（毫秒）。
+     */
     private long chunkCooldownMs;
-    /** 附近恶魂数量上限，达到后不再额外召唤。 */
+    /**
+     * 附近恶魂数量上限，达到后不再额外召唤。
+     */
     private int maxNearbyGhasts;
-    /** 统计附近恶魂时的搜索半径。 */
+    /**
+     * 统计附近恶魂时的搜索半径。
+     */
     private double nearbyRadius;
-    /** 记录每个区块最近一次额外召唤的时间戳，键为“世界UUID:x:z”。 */
+    /**
+     * 记录每个区块最近一次额外召唤的时间戳，键为“世界UUID:x:z”。
+     */
     private final Map<String, Long> chunkLastExtra = new HashMap();
 
     public GhastAlertEvent(AeternumSeasonsPlugin plugin) {
@@ -65,42 +81,52 @@ public final class GhastAlertEvent implements SeasonalEvent {
         this.reloadFromConfig();
     }
 
-    /** 从 events.yml 重新读取本事件的配置项。 */
+    /**
+     * 从 events.yml 重新读取本事件的配置项。
+     */
     private void reloadFromConfig() {
         FileConfiguration config = YamlEvents.get(this.plugin);
         this.enabled = config.getBoolean("events.ghast_alert.enabled", true);
         this.minDur = config.getInt("events.ghast_alert.min_duration_days", 1);
         this.maxDur = config.getInt("events.ghast_alert.max_duration_days", 1);
         this.baseChance = config.getDouble("events.ghast_alert.base_chance_per_day", 0.08);
-        this.markedGhastChance = config.getDouble("events.ghast_alert.marked_ghast_chance", (double)0.25F);
+        this.markedGhastChance = config.getDouble("events.ghast_alert.marked_ghast_chance", (double) 0.25F);
         this.extraTearChance = config.getDouble("events.ghast_alert.extra_tear_chance", 0.3);
         this.extraSpawnChance = config.getDouble("events.ghast_alert.extra_spawn_chance", 0.8);
         this.chunkCooldownMs = config.getLong("events.ghast_alert.chunk_cooldown_ms", 15000L);
         this.maxNearbyGhasts = config.getInt("events.ghast_alert.max_nearby_ghasts", 6);
-        this.nearbyRadius = config.getDouble("events.ghast_alert.nearby_radius", (double)48.0F);
+        this.nearbyRadius = config.getDouble("events.ghast_alert.nearby_radius", (double) 48.0F);
     }
 
+    @Override
     public String getId() {
         return "ghast_alert";
     }
 
+    @Override
     public String getDisplayName() {
         return "Ghast Alert";
     }
 
+    @Override
     public boolean isSeasonAllowed(Season season) {
         return true;
     }
 
+    @Override
     public int getMinDurationDays() {
         return this.minDur;
     }
 
+    @Override
     public int getMaxDurationDays() {
         return this.maxDur;
     }
 
-    /** 仅当有玩家位于下界、且通过基础概率判定时才允许开始。 */
+    /**
+     * 仅当有玩家位于下界、且通过基础概率判定时才允许开始。
+     */
+    @Override
     public boolean canStartToday(CalendarState state, EventContext context) {
         if (!this.enabled) {
             return false;
@@ -114,11 +140,14 @@ public final class GhastAlertEvent implements SeasonalEvent {
         }
     }
 
-    /** 事件开始时清空区块冷却记录，并向所有身处下界的玩家发送标题提示。 */
+    /**
+     * 事件开始时清空区块冷却记录，并向所有身处下界的玩家发送标题提示。
+     */
+    @Override
     public void onStart(CalendarState state, EventContext context) {
         this.chunkLastExtra.clear();
 
-        for(Player player : Bukkit.getOnlinePlayers()) {
+        for (Player player : Bukkit.getOnlinePlayers()) {
             if (player.getWorld().getEnvironment() == Environment.NETHER) {
                 player.sendTitle(this.plugin.lang.tr(player, "event.ghast_alert.title"), this.plugin.lang.tr(player, "event.ghast_alert.subtitle"), 20, 80, 40);
             }
@@ -126,11 +155,14 @@ public final class GhastAlertEvent implements SeasonalEvent {
 
     }
 
-    /** 事件结束时清空区块冷却记录，并通知所有身处下界的玩家事件已结束。 */
+    /**
+     * 事件结束时清空区块冷却记录，并通知所有身处下界的玩家事件已结束。
+     */
+    @Override
     public void onEnd(CalendarState state, EventContext context) {
         this.chunkLastExtra.clear();
 
-        for(Player player : Bukkit.getOnlinePlayers()) {
+        for (Player player : Bukkit.getOnlinePlayers()) {
             if (player.getWorld().getEnvironment() == Environment.NETHER) {
                 player.sendMessage(this.plugin.lang.tr(player, "event.ghast_alert.end"));
             }
@@ -138,9 +170,11 @@ public final class GhastAlertEvent implements SeasonalEvent {
 
     }
 
+    @Override
     public void onDayTick(CalendarState state, EventContext context) {
     }
 
+    @Override
     public void onTick(CalendarState state, EventContext context) {
     }
 
@@ -167,11 +201,11 @@ public final class GhastAlertEvent implements SeasonalEvent {
                         String worldId = String.valueOf(world.getUID());
                         String chunkKey = worldId + ":" + chunk.getX() + ":" + chunk.getZ();
                         long now = System.currentTimeMillis();
-                        long lastExtraAt = (Long)this.chunkLastExtra.getOrDefault(chunkKey, 0L);
+                        long lastExtraAt = (Long) this.chunkLastExtra.getOrDefault(chunkKey, 0L);
                         if (now - lastExtraAt >= this.chunkCooldownMs) {
                             int nearbyGhastCount = 0;
 
-                            for(Entity nearbyEntity : ghast.getNearbyEntities(this.nearbyRadius, this.nearbyRadius, this.nearbyRadius)) {
+                            for (Entity nearbyEntity : ghast.getNearbyEntities(this.nearbyRadius, this.nearbyRadius, this.nearbyRadius)) {
                                 if (nearbyEntity instanceof Ghast) {
                                     ++nearbyGhastCount;
                                     if (nearbyGhastCount >= this.maxNearbyGhasts) {
@@ -183,16 +217,16 @@ public final class GhastAlertEvent implements SeasonalEvent {
                             this.chunkLastExtra.put(chunkKey, now);
                             Location baseLocation = ghast.getLocation();
                             ThreadLocalRandom random = ThreadLocalRandom.current();
-                            double offsetX = random.nextDouble((double)-18.0F, (double)18.0F);
-                            double offsetZ = random.nextDouble((double)-18.0F, (double)18.0F);
-                            double offsetY = random.nextDouble((double)-6.0F, (double)8.0F);
+                            double offsetX = random.nextDouble((double) -18.0F, (double) 18.0F);
+                            double offsetZ = random.nextDouble((double) -18.0F, (double) 18.0F);
+                            double offsetY = random.nextDouble((double) -6.0F, (double) 8.0F);
                             Location spawnLocation = baseLocation.clone().add(offsetX, offsetY, offsetZ);
                             if (!spawnLocation.getChunk().isLoaded()) {
                                 spawnLocation.getChunk().load();
                             }
 
                             world.spawn(spawnLocation, Ghast.class, (spawnedGhast) -> {
-                                spawnedGhast.getWorld().spawnParticle(Particle.SMOKE, spawnedGhast.getLocation().add((double)0.0F, (double)1.5F, (double)0.0F), 10, 0.6, (double)0.5F, 0.6, 0.01);
+                                spawnedGhast.getWorld().spawnParticle(Particle.SMOKE, spawnedGhast.getLocation().add((double) 0.0F, (double) 1.5F, (double) 0.0F), 10, 0.6, (double) 0.5F, 0.6, 0.01);
                                 if (Math.random() < this.markedGhastChance * 0.6) {
                                     String displayName = this.plugin.lang.trServer("event.ghast_alert.ghast_name");
                                     spawnedGhast.setCustomName(displayName);
@@ -221,7 +255,7 @@ public final class GhastAlertEvent implements SeasonalEvent {
                         event.getDrops().add(new ItemStack(Material.GHAST_TEAR, 1));
                     }
 
-                    ghast.getWorld().spawnParticle(Particle.SMOKE, ghast.getLocation().add((double)0.0F, (double)2.0F, (double)0.0F), 14, 0.7, 0.6, 0.7, 0.01);
+                    ghast.getWorld().spawnParticle(Particle.SMOKE, ghast.getLocation().add((double) 0.0F, (double) 2.0F, (double) 0.0F), 14, 0.7, 0.6, 0.7, 0.01);
                 }
             }
         }

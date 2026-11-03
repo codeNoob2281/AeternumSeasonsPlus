@@ -4,7 +4,7 @@ fish_trap:
   tick_seconds: 60                  # Segundos por intento / Seconds per tick
   required_adjacent_water: 1        # Agua adyacente / Adjacent water
   book_level_cap: 3                 # Nivel máx libros / Book level cap
-  weights:                          # Pesos de botín / Loot weights
+  weights: # Pesos de botín / Loot weights
     fish: 500
     junk: 350
     treasure: 50
@@ -19,7 +19,7 @@ creature_generator:
   tick_seconds: 180                 # Segundos por tick / Seconds per tick
   require_player_nearby: true       # Requiere jugador / Require player
   player_range: 16                  # Rango del jugador / Player range
-  allowed_weighted:                 # Probabilidades mobs / Mob weights
+  allowed_weighted: # Probabilidades mobs / Mob weights
     RABBIT: 60
     FROG: 25
     BEE: 10
@@ -34,7 +34,7 @@ stables:
     min_height: 3                   # Altura mín techo / Min roof height
     max_height: 25                  # Altura máx techo / Max roof height
     allow_any_solid: true           # Bloques sólidos / Allow solid blocks
-    allow: []                       # Bloques permitidos / Allowed blocks
+    allow: [ ]                       # Bloques permitidos / Allowed blocks
     area_radius: 2                  # Radio del área / Area radius
     use_skylight: true              # Usar luz solar / Use skylight
     skylight_max: 14                # Luz máx (techo) / Max skylight
@@ -49,7 +49,7 @@ stables:
     check_interval_ticks: 200       # Legacy / sin uso
     per_tick: 40                    # Legacy / sin uso
     damage: 1000.0                  # Legacy / sin uso
-    types:                          # Legacy / sin uso
+    types: # Legacy / sin uso
       - COW
       - PIG
       - CHICKEN
@@ -120,7 +120,7 @@ cold_exposure:
   min_block_light_level: 8          # Legacy / sin uso
   max_roof_height: 6                # Legacy / sin uso
   heat_light_scan_radius: 6         # Legacy / sin uso
-  heat_light_blocks:                # Legacy / sin uso
+  heat_light_blocks: # Legacy / sin uso
     - TORCH
     - SOUL_TORCH
     - LANTERN

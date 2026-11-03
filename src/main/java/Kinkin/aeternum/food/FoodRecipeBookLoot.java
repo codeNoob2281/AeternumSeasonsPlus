@@ -1,11 +1,8 @@
-package Kinkin.aeternum.food;
+package kinkin.aeternum.food;
 
-import Kinkin.aeternum.AeternumSeasonsPlugin;
-import Kinkin.aeternum.lang.LanguageManager;
-import Kinkin.aeternum.util.BookPaginator;
-import java.util.List;
-import java.util.Random;
-import java.util.concurrent.ThreadLocalRandom;
+import kinkin.aeternum.AeternumSeasonsPlugin;
+import kinkin.aeternum.lang.LanguageManager;
+import kinkin.aeternum.util.BookPaginator;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -18,6 +15,10 @@ import org.bukkit.event.world.LootGenerateEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.BookMeta;
 import org.bukkit.loot.LootTable;
+
+import java.util.List;
+import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * 食物配方书掉落监听器（Food Recipe Book Loot）。
@@ -38,22 +39,30 @@ public final class FoodRecipeBookLoot implements Listener {
         this.lang = lang;
     }
 
-    /** 把本监听器注册到 Bukkit 事件系统。 */
+    /**
+     * 把本监听器注册到 Bukkit 事件系统。
+     */
     public void register() {
         Bukkit.getPluginManager().registerEvents(this, this.plugin);
     }
 
-    /** 从 Bukkit 事件系统注销本监听器的全部处理器。 */
+    /**
+     * 从 Bukkit 事件系统注销本监听器的全部处理器。
+     */
     public void unregister() {
         HandlerList.unregisterAll(this);
     }
 
-    /** 按玩家语言翻译；玩家为 null 时退回服务端默认语言。 */
+    /**
+     * 按玩家语言翻译；玩家为 null 时退回服务端默认语言。
+     */
     private String trPlayerOrServer(Player player, String key) {
         return player != null ? this.lang.tr(player, key) : this.lang.trServer(key);
     }
 
-    /** 判断字符串是否为 null 或空串。 */
+    /**
+     * 判断字符串是否为 null 或空串。
+     */
     private boolean isNullOrEmpty(String text) {
         return text == null || text.isEmpty();
     }
@@ -69,7 +78,7 @@ public final class FoodRecipeBookLoot implements Listener {
             String[] lines = text.split("\n", -1);
             StringBuilder builder = new StringBuilder();
 
-            for(int lineIndex = 0; lineIndex < lines.length; ++lineIndex) {
+            for (int lineIndex = 0; lineIndex < lines.length; ++lineIndex) {
                 String line = lines[lineIndex];
                 if (line.trim().isEmpty()) {
                     line = "§r";
@@ -93,7 +102,7 @@ public final class FoodRecipeBookLoot implements Listener {
      */
     private ItemStack buildRecipeBook(Player player) {
         ItemStack book = new ItemStack(Material.WRITTEN_BOOK);
-        BookMeta meta = (BookMeta)book.getItemMeta();
+        BookMeta meta = (BookMeta) book.getItemMeta();
         if (meta == null) {
             return book;
         } else {
@@ -158,7 +167,7 @@ public final class FoodRecipeBookLoot implements Listener {
                 Entity sourceEntity = e.getEntity();
                 Player playerOrNull;
                 if (sourceEntity instanceof Player) {
-                    Player player = (Player)sourceEntity;
+                    Player player = (Player) sourceEntity;
                     playerOrNull = player;
                 } else {
                     playerOrNull = null;
@@ -166,15 +175,15 @@ public final class FoodRecipeBookLoot implements Listener {
 
                 Player looter = playerOrNull;
                 boolean isVillage = VillageFoodLoot.matches(key);
-                boolean isMineshaft = path.equals("chests/abandoned_mineshaft");
-                boolean isMansion = path.equals("chests/woodland_mansion");
+                boolean isMineshaft = "chests/abandoned_mineshaft".equals(path);
+                boolean isMansion = "chests/woodland_mansion".equals(path);
                 boolean isStronghold = path.startsWith("chests/stronghold_");
                 if (isVillage || isMineshaft || isMansion || isStronghold) {
                     double bookChance;
                     if (isVillage) {
                         bookChance = 0.15;
                     } else if (isMineshaft) {
-                        bookChance = (double)0.25F;
+                        bookChance = (double) 0.25F;
                     } else if (isMansion) {
                         bookChance = 0.3;
                     } else {

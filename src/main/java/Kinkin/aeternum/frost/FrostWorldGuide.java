@@ -1,15 +1,8 @@
-package Kinkin.aeternum.frost;
+package kinkin.aeternum.frost;
 
-import Kinkin.aeternum.AeternumSeasonsPlugin;
-import Kinkin.aeternum.util.BookPaginator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import org.bukkit.Bukkit;
-import org.bukkit.Material;
-import org.bukkit.NamespacedKey;
-import org.bukkit.Sound;
-import org.bukkit.World;
+import kinkin.aeternum.AeternumSeasonsPlugin;
+import kinkin.aeternum.util.BookPaginator;
+import org.bukkit.*;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.HandlerList;
@@ -21,6 +14,10 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.BookMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * 永霜世界引导书发放器。
@@ -56,7 +53,7 @@ public final class FrostWorldGuide implements Listener {
     public void onWorldChange(PlayerChangedWorldEvent event) {
         Player player = event.getPlayer();
         World targetWorld = player.getWorld();
-        if (targetWorld != null && targetWorld.getName().equalsIgnoreCase("aeternum_frost")) {
+        if (targetWorld != null && "aeternum_frost".equalsIgnoreCase(targetWorld.getName())) {
             this.giveGuideIfNeeded(player);
         }
 
@@ -69,7 +66,7 @@ public final class FrostWorldGuide implements Listener {
     public void onJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
         World world = player.getWorld();
-        if (world != null && world.getName().equalsIgnoreCase("aeternum_frost")) {
+        if (world != null && "aeternum_frost".equalsIgnoreCase(world.getName())) {
             this.giveGuideIfNeeded(player);
         }
 
@@ -83,7 +80,7 @@ public final class FrostWorldGuide implements Listener {
         Player player = event.getPlayer();
         Bukkit.getScheduler().runTask(this.plugin, () -> {
             World world = player.getWorld();
-            if (world != null && world.getName().equalsIgnoreCase("aeternum_frost")) {
+            if (world != null && "aeternum_frost".equalsIgnoreCase(world.getName())) {
                 this.giveGuideIfNeeded(player);
             }
 
@@ -107,7 +104,7 @@ public final class FrostWorldGuide implements Listener {
      */
     private boolean hasGuideFlag(Player player) {
         PersistentDataContainer pdc = player.getPersistentDataContainer();
-        Byte flag = (Byte)pdc.get(this.FLAG_KEY, PersistentDataType.BYTE);
+        Byte flag = (Byte) pdc.get(this.FLAG_KEY, PersistentDataType.BYTE);
         return flag != null && flag == 1;
     }
 
@@ -117,7 +114,7 @@ public final class FrostWorldGuide implements Listener {
     private void setGuideFlag(Player player, boolean value) {
         PersistentDataContainer pdc = player.getPersistentDataContainer();
         if (value) {
-            pdc.set(this.FLAG_KEY, PersistentDataType.BYTE, (byte)1);
+            pdc.set(this.FLAG_KEY, PersistentDataType.BYTE, (byte) 1);
         } else {
             pdc.remove(this.FLAG_KEY);
         }
@@ -129,7 +126,7 @@ public final class FrostWorldGuide implements Listener {
      */
     private ItemStack createGuideBook(Player player) {
         ItemStack book = new ItemStack(Material.WRITTEN_BOOK);
-        BookMeta meta = (BookMeta)book.getItemMeta();
+        BookMeta meta = (BookMeta) book.getItemMeta();
         if (meta == null) {
             return book;
         } else {
@@ -138,7 +135,7 @@ public final class FrostWorldGuide implements Listener {
             BookPaginator paginator = new BookPaginator();
             boolean first = true;
 
-            for(int i = 1; i <= 50; ++i) {
+            for (int i = 1; i <= 50; ++i) {
                 String key = "frost_guide.page" + i;
                 String text = this.plugin.lang.tr(player, key);
                 if (text.equals(key)) {
@@ -167,7 +164,7 @@ public final class FrostWorldGuide implements Listener {
      */
     public boolean giveGuideNow(Player player) {
         World world = player.getWorld();
-        if (world != null && world.getName().equalsIgnoreCase("aeternum_frost")) {
+        if (world != null && "aeternum_frost".equalsIgnoreCase(world.getName())) {
             ItemStack book = this.createGuideBook(player);
             Map<Integer, ItemStack> leftover = player.getInventory().addItem(new ItemStack[]{book});
             if (!leftover.isEmpty()) {
@@ -186,7 +183,7 @@ public final class FrostWorldGuide implements Listener {
      * 强制为位于永霜世界的玩家发放引导书（不播放提示音），放不下则掉落。
      */
     public void giveGuideForce(Player player) {
-        if (player.getWorld() != null && player.getWorld().getName().equalsIgnoreCase("aeternum_frost")) {
+        if (player.getWorld() != null && "aeternum_frost".equalsIgnoreCase(player.getWorld().getName())) {
             ItemStack book = this.createGuideBook(player);
             HashMap<Integer, ItemStack> leftover = player.getInventory().addItem(new ItemStack[]{book});
             if (!leftover.isEmpty()) {

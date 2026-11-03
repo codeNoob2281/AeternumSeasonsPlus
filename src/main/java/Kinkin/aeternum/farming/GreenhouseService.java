@@ -1,4 +1,4 @@
-package Kinkin.aeternum.farming;
+package kinkin.aeternum.farming;
 
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -43,9 +43,9 @@ public final class GreenhouseService {
             int cropY = crop.getY();
             int maxY = Math.min(cropY + this.config.getMaxRoofHeight(), world.getMaxHeight() - 1);
 
-            for(int dx = -this.config.getGreenhouseRadius(); dx <= this.config.getGreenhouseRadius(); ++dx) {
-                for(int dz = -this.config.getGreenhouseRadius(); dz <= this.config.getGreenhouseRadius(); ++dz) {
-                    for(int y = cropY + 1; y <= maxY; ++y) {
+            for (int dx = -this.config.getGreenhouseRadius(); dx <= this.config.getGreenhouseRadius(); ++dx) {
+                for (int dz = -this.config.getGreenhouseRadius(); dz <= this.config.getGreenhouseRadius(); ++dz) {
+                    for (int y = cropY + 1; y <= maxY; ++y) {
                         Material mat = world.getBlockAt(crop.getX() + dx, y, crop.getZ() + dz).getType();
                         if (this.config.getGreenhouseBlocks().contains(mat)) {
                             ++glassCount;
@@ -74,7 +74,7 @@ public final class GreenhouseService {
         int cropZ = crop.getZ();
         int startY = crop.getY() + 1;
 
-        for(int y = world.getMaxHeight() - 1; y >= startY; --y) {
+        for (int y = world.getMaxHeight() - 1; y >= startY; --y) {
             Material mat = world.getBlockAt(cropX, y, cropZ).getType();
             if (!mat.isAir()) {
                 return false;
@@ -99,7 +99,7 @@ public final class GreenhouseService {
         int maxY = Math.min(startY + this.config.getMaxRoofHeight(), world.getMaxHeight() - 1);
         boolean foundGlass = false;
 
-        for(int y = startY; y <= maxY; ++y) {
+        for (int y = startY; y <= maxY; ++y) {
             Block block = world.getBlockAt(cropX, y, cropZ);
             Material mat = block.getType();
             if (mat != Material.AIR && mat != Material.CAVE_AIR && mat != Material.VOID_AIR) {
@@ -128,7 +128,7 @@ public final class GreenhouseService {
         if (!world.hasStorm()) {
             return false;
         } else {
-            return this.isInGreenhouse(crop) ? false : this.canSeeSky(crop);
+            return !this.isInGreenhouse(crop) && this.canSeeSky(crop);
         }
     }
 }

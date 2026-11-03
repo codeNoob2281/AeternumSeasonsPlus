@@ -1,6 +1,6 @@
-package Kinkin.aeternum.world;
+package kinkin.aeternum.world;
 
-import Kinkin.aeternum.AeternumSeasonsPlugin;
+import kinkin.aeternum.AeternumSeasonsPlugin;
 import com.sk89q.worldedit.bukkit.BukkitAdapter;
 import com.sk89q.worldedit.math.BlockVector3;
 import com.sk89q.worldguard.WorldGuard;
@@ -36,7 +36,9 @@ public final class WinterWorldGuardHelper {
         super();
     }
 
-    /** 从配置初始化区域保护开关，并尝试 hook WorldGuard 与 GPFlags。 */
+    /**
+     * 从配置初始化区域保护开关，并尝试 hook WorldGuard 与 GPFlags。
+     */
     public static void init(AeternumSeasonsPlugin plugin) {
         respectRegions = plugin.cfg != null && plugin.cfg.climate != null ? plugin.cfg.climate.getBoolean("real_snow.worldguard_respect_regions", plugin.getConfig().getBoolean("winter_painter.worldguard_respect_regions", false)) : plugin.getConfig().getBoolean("winter_painter.worldguard_respect_regions", false);
         defaultSnowMeltInRegions = plugin.cfg != null && plugin.cfg.climate != null ? plugin.cfg.climate.getBoolean("real_snow.worldguard.default_melt_in_regions", false) : plugin.getConfig().getBoolean("real_snow.worldguard.default_melt_in_regions", false);
@@ -50,42 +52,58 @@ public final class WinterWorldGuardHelper {
 
     }
 
-    /** 是否允许该方块降雪。 */
+    /**
+     * 是否允许该方块降雪。
+     */
     public static boolean canSnowFall(Block b) {
         return checkByFlagName(b, "aeternum-snow-fall", true, false, false) && GPFlagsCompat.canSnowForm(b);
     }
 
-    /** 是否允许该方块融雪。 */
+    /**
+     * 是否允许该方块融雪。
+     */
     public static boolean canSnowMelt(Block b) {
         return checkByFlagName(b, "aeternum-snow-melt", true, defaultSnowMeltInRegions, false);
     }
 
-    /** 是否允许该方块结冰。 */
+    /**
+     * 是否允许该方块结冰。
+     */
     public static boolean canIceForm(Block b) {
         return checkByFlagName(b, "aeternum-ice-form", true, false, false) && GPFlagsCompat.canIceForm(b);
     }
 
-    /** 是否允许该方块融冰。 */
+    /**
+     * 是否允许该方块融冰。
+     */
     public static boolean canIceMelt(Block b) {
         return checkByFlagName(b, "aeternum-ice-melt", true, false, false);
     }
 
-    /** 是否允许该方块形成霜冰。 */
+    /**
+     * 是否允许该方块形成霜冰。
+     */
     public static boolean canFrostedIceForm(Block b) {
         return checkByFlagName(b, "aeternum-frosted-ice-form", true, false, false) && GPFlagsCompat.canIceForm(b);
     }
 
-    /** 是否允许该方块融化霜冰。 */
+    /**
+     * 是否允许该方块融化霜冰。
+     */
     public static boolean canFrostedIceMelt(Block b) {
         return checkByFlagName(b, "aeternum-frosted-ice-melt", true, false, false);
     }
 
-    /** 是否允许对该方块执行冬季涂抹（如替换为雪层等）。 */
+    /**
+     * 是否允许对该方块执行冬季涂抹（如替换为雪层等）。
+     */
     public static boolean canWinterPaint(Block b) {
         return checkByFlagName(b, "aeternum-winter-paint", true, false, false);
     }
 
-    /** 按方块当前材质推断应查询哪一类冬季旗帜，综合判断是否允许修改该方块。 */
+    /**
+     * 按方块当前材质推断应查询哪一类冬季旗帜，综合判断是否允许修改该方块。
+     */
     public static boolean canModify(Block b) {
         if (hooked && respectRegions && b != null) {
             Material material = b.getType();
@@ -110,9 +128,9 @@ public final class WinterWorldGuardHelper {
     /**
      * 查询方块所在区域针对指定旗帜的许可结果。
      *
-     * @param flagName 旗帜名称
-     * @param defaultOutsideRegions 方块不在任何区域内时的默认结果
-     * @param defaultInRegionsWhenNull 在区域内但旗帜未设置时的默认结果
+     * @param flagName                          旗帜名称
+     * @param defaultOutsideRegions             方块不在任何区域内时的默认结果
+     * @param defaultInRegionsWhenNull          在区域内但旗帜未设置时的默认结果
      * @param fallbackIfFlagMissingInsideRegion 在区域内但旗帜未注册时的回退结果
      */
     private static boolean checkByFlagName(Block b, String flagName, boolean defaultOutsideRegions, boolean defaultInRegionsWhenNull, boolean fallbackIfFlagMissingInsideRegion) {
@@ -128,11 +146,11 @@ public final class WinterWorldGuardHelper {
                     if (stateFlag == null) {
                         return fallbackIfFlagMissingInsideRegion;
                     } else {
-                        StateFlag.State state = regionSet.queryState((RegionAssociable)null, new StateFlag[]{stateFlag});
+                        StateFlag.State state = regionSet.queryState((RegionAssociable) null, new StateFlag[]{stateFlag});
                         if (state == State.DENY) {
                             return false;
                         } else {
-                            return state == State.ALLOW ? true : defaultInRegionsWhenNull;
+                            return state == State.ALLOW || defaultInRegionsWhenNull;
                         }
                     }
                 } else {
@@ -144,7 +162,9 @@ public final class WinterWorldGuardHelper {
         }
     }
 
-    /** 解析指定名称的状态旗帜；兼容带/不带 {@code aeternum-} 前缀的注册方式。 */
+    /**
+     * 解析指定名称的状态旗帜；兼容带/不带 {@code aeternum-} 前缀的注册方式。
+     */
     private static StateFlag resolveStateFlag(String name) {
         try {
             FlagRegistry flagRegistry = WorldGuard.getInstance().getFlagRegistry();
@@ -156,7 +176,7 @@ public final class WinterWorldGuardHelper {
             if (name.startsWith("aeternum-")) {
                 flag = flagRegistry.get(name.substring("aeternum-".length()));
                 if (flag instanceof StateFlag) {
-                    StateFlag strippedStateFlag = (StateFlag)flag;
+                    StateFlag strippedStateFlag = (StateFlag) flag;
                     return strippedStateFlag;
                 }
             }
@@ -164,7 +184,7 @@ public final class WinterWorldGuardHelper {
             if (!name.startsWith("aeternum-")) {
                 flag = flagRegistry.get("aeternum-" + name);
                 if (flag instanceof StateFlag) {
-                    StateFlag prefixedStateFlag = (StateFlag)flag;
+                    StateFlag prefixedStateFlag = (StateFlag) flag;
                     return prefixedStateFlag;
                 }
             }
@@ -174,7 +194,9 @@ public final class WinterWorldGuardHelper {
         return null;
     }
 
-    /** 获取方块位置所属世界的可适用区域集合，世界未加载时返回 null。 */
+    /**
+     * 获取方块位置所属世界的可适用区域集合，世界未加载时返回 null。
+     */
     private static ApplicableRegionSet getRegionSet(World bukkitWorld, Location location) {
         RegionContainer container = WorldGuard.getInstance().getPlatform().getRegionContainer();
         RegionManager manager = container.get(BukkitAdapter.adapt(bukkitWorld));

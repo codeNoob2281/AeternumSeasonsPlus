@@ -1,7 +1,6 @@
-package Kinkin.aeternum.world;
+package kinkin.aeternum.world;
 
-import Kinkin.aeternum.AeternumSeasonsPlugin;
-import java.util.Locale;
+import kinkin.aeternum.AeternumSeasonsPlugin;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World.Environment;
@@ -16,6 +15,8 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
 
+import java.util.Locale;
+
 /**
  * 雪傀儡生物群系高温保护。
  *
@@ -28,7 +29,9 @@ import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
  */
 public final class SnowGolemBiomeProtection implements Listener {
     private final AeternumSeasonsPlugin plugin;
-    /** 是否启用保护（来自配置）。 */
+    /**
+     * 是否启用保护（来自配置）。
+     */
     private final boolean enabled;
 
     public SnowGolemBiomeProtection(AeternumSeasonsPlugin plugin) {
@@ -37,21 +40,27 @@ public final class SnowGolemBiomeProtection implements Listener {
         this.enabled = plugin.cfg.climate.getBoolean("biome_spoof.protect_snow_golems_from_biome_heat", true);
     }
 
-    /** 注册监听器（先注销旧实例以避免重复注册）。 */
+    /**
+     * 注册监听器（先注销旧实例以避免重复注册）。
+     */
     public void register() {
         HandlerList.unregisterAll(this);
         this.plugin.getServer().getPluginManager().registerEvents(this, this.plugin);
     }
 
-    /** 注销监听器。 */
+    /**
+     * 注销监听器。
+     */
     public void unregister() {
         HandlerList.unregisterAll(this);
     }
 
-    /** 在 LOWEST 优先级提前拦截生物群系高温伤害。 */
+    /**
+     * 在 LOWEST 优先级提前拦截生物群系高温伤害。
+     */
     @EventHandler(
-        priority = EventPriority.LOWEST,
-        ignoreCancelled = false
+            priority = EventPriority.LOWEST,
+            ignoreCancelled = false
     )
     public void onDamageFirst(EntityDamageEvent event) {
         Entity entity = event.getEntity();
@@ -62,10 +71,12 @@ public final class SnowGolemBiomeProtection implements Listener {
         }
     }
 
-    /** 在 MONITOR 优先级兜底拦截（其他插件可能重新设置伤害）。 */
+    /**
+     * 在 MONITOR 优先级兜底拦截（其他插件可能重新设置伤害）。
+     */
     @EventHandler(
-        priority = EventPriority.MONITOR,
-        ignoreCancelled = false
+            priority = EventPriority.MONITOR,
+            ignoreCancelled = false
     )
     public void onDamageFinal(EntityDamageEvent event) {
         Entity entity = event.getEntity();
@@ -76,7 +87,9 @@ public final class SnowGolemBiomeProtection implements Listener {
         }
     }
 
-    /** 判断该伤害是否属于需要保护屏蔽的生物群系高温伤害。 */
+    /**
+     * 判断该伤害是否属于需要保护屏蔽的生物群系高温伤害。
+     */
     private boolean isBiomeHeatDamage(EntityDamageEvent event, Snowman snowman) {
         if (!this.enabled) {
             return false;
@@ -95,9 +108,11 @@ public final class SnowGolemBiomeProtection implements Listener {
         }
     }
 
-    /** 取消伤害并将伤害值与火焰刻清零。 */
+    /**
+     * 取消伤害并将伤害值与火焰刻清零。
+     */
     private void blockDamage(EntityDamageEvent event, Snowman snowman) {
-        event.setDamage((double)0.0F);
+        event.setDamage((double) 0.0F);
         event.setCancelled(true);
         if (snowman.getFireTicks() < 0) {
             snowman.setFireTicks(0);
@@ -105,20 +120,26 @@ public final class SnowGolemBiomeProtection implements Listener {
 
     }
 
-    /** 判断雪傀儡所处生物群系是否为炎热类型。 */
+    /**
+     * 判断雪傀儡所处生物群系是否为炎热类型。
+     */
     private boolean isHotBiome(Snowman snowman) {
         String key = this.biomeKey(snowman);
         return key.contains("desert") || key.contains("savanna") || key.contains("badlands");
     }
 
-    /** 获取雪傀儡所在生物群系的完整小写 key。 */
+    /**
+     * 获取雪傀儡所在生物群系的完整小写 key。
+     */
     private String biomeKey(Snowman snowman) {
         Location location = snowman.getLocation();
         Biome biome = snowman.getWorld().getBiome(location.getBlockX(), location.getBlockY(), location.getBlockZ());
         return biome.getKey().getKey().toLowerCase(Locale.ROOT);
     }
 
-    /** 获取伤害类型的小写 key，获取失败时返回 "unknown"。 */
+    /**
+     * 获取伤害类型的小写 key，获取失败时返回 "unknown"。
+     */
     private String damageTypeKey(EntityDamageEvent event) {
         try {
             DamageSource source = event.getDamageSource();
@@ -131,14 +152,18 @@ public final class SnowGolemBiomeProtection implements Listener {
         return "unknown";
     }
 
-    /** 判断玩家脚下与脚下一格是否为真实火源。 */
+    /**
+     * 判断玩家脚下与脚下一格是否为真实火源。
+     */
     private boolean touchesRealHeatSource(Location location) {
         Material feet = location.getBlock().getType();
-        Material below = location.clone().subtract((double)0.0F, (double)1.0F, (double)0.0F).getBlock().getType();
+        Material below = location.clone().subtract((double) 0.0F, (double) 1.0F, (double) 0.0F).getBlock().getType();
         return this.isRealHeatSource(feet) || this.isRealHeatSource(below);
     }
 
-    /** 判断方块类型是否为真实火源（火、岩浆、营火等）。 */
+    /**
+     * 判断方块类型是否为真实火源（火、岩浆、营火等）。
+     */
     private boolean isRealHeatSource(Material material) {
         return material == Material.FIRE || material == Material.SOUL_FIRE || material == Material.LAVA || material == Material.MAGMA_BLOCK || material == Material.CAMPFIRE || material == Material.SOUL_CAMPFIRE;
     }

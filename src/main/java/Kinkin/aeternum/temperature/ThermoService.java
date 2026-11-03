@@ -1,29 +1,11 @@
-package Kinkin.aeternum.temperature;
+package kinkin.aeternum.temperature;
 
-import Kinkin.aeternum.AeternumSeasonsPlugin;
-import Kinkin.aeternum.calendar.Season;
-import Kinkin.aeternum.calendar.SeasonService;
-import java.util.EnumSet;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
+import kinkin.aeternum.AeternumSeasonsPlugin;
+import kinkin.aeternum.calendar.Season;
+import kinkin.aeternum.calendar.SeasonService;
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
-import org.bukkit.Bukkit;
-import org.bukkit.Color;
-import org.bukkit.GameMode;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.NamespacedKey;
-import org.bukkit.Particle;
-import org.bukkit.Registry;
-import org.bukkit.Sound;
-import org.bukkit.World;
+import org.bukkit.*;
 import org.bukkit.block.Biome;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
@@ -45,6 +27,9 @@ import org.bukkit.potion.PotionEffectType;
 import org.bukkit.potion.PotionType;
 import org.bukkit.scheduler.BukkitScheduler;
 import org.bukkit.scheduler.BukkitTask;
+
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 温度系统核心服务。
@@ -68,9 +53,13 @@ public final class ThermoService implements Listener, Runnable {
     private BukkitTask task;
     private BukkitTask overlayTask;
     private final FreezeOverlay freezeOverlay = new FreezeOverlay();
-    /** 每个玩家的温度状态缓存。 */
+    /**
+     * 每个玩家的温度状态缓存。
+     */
     private final Map<UUID, ThermoPlayerState> states = new ConcurrentHashMap();
-    /** 每个玩家最近一次计算得到的温度读数，供外部查询。 */
+    /**
+     * 每个玩家最近一次计算得到的温度读数，供外部查询。
+     */
     private final Map<UUID, TemperatureReading> temperatureReadings = new ConcurrentHashMap();
     // 以下为从 survival.yml 读取的温度系统配置项
     private boolean enabled;
@@ -133,13 +122,19 @@ public final class ThermoService implements Listener, Runnable {
     private int coldFreezePerCycle;
     private int coldThawPerCycle;
     private boolean fullArmorSafe;
-    /** 温度系统不生效的世界名称集合。 */
+    /**
+     * 温度系统不生效的世界名称集合。
+     */
     private final Set<String> disabledWorlds = new HashSet();
-    /** 炎热 / 寒冷 / 冰冻温区对应的生物群系集合。 */
+    /**
+     * 炎热 / 寒冷 / 冰冻温区对应的生物群系集合。
+     */
     private final Set<Biome> hotBiomes = new HashSet();
     private final Set<Biome> snowyBiomes = new HashSet();
     private final Set<Biome> frozenBiomes = new HashSet();
-    /** 视为热源的方块、需点燃才生效的热源方块、手持保暖物品、以及头盔禁用材质。 */
+    /**
+     * 视为热源的方块、需点燃才生效的热源方块、手持保暖物品、以及头盔禁用材质。
+     */
     private final Set<Material> heatSourceBlocks = EnumSet.noneOf(Material.class);
     private final Set<Material> litOnlyHeatBlocks = EnumSet.noneOf(Material.class);
     private final Set<Material> warmHandItems = EnumSet.noneOf(Material.class);
@@ -149,7 +144,7 @@ public final class ThermoService implements Listener, Runnable {
      * 获取指定玩家当前的温度读数，若尚未计算则返回 null。
      */
     public TemperatureReading getTemperatureReading(UUID playerId) {
-        return (TemperatureReading)this.temperatureReadings.get(playerId);
+        return (TemperatureReading) this.temperatureReadings.get(playerId);
     }
 
     public ThermoService(AeternumSeasonsPlugin plugin, SeasonService seasons) {
@@ -174,7 +169,7 @@ public final class ThermoService implements Listener, Runnable {
 
         this.freezeOverlay.clear();
         if (this.enabled) {
-            this.task = Bukkit.getScheduler().runTaskTimer(this.plugin, this, 20L, Math.max(1L, (long)this.checkPeriodTicks));
+            this.task = Bukkit.getScheduler().runTaskTimer(this.plugin, this, 20L, Math.max(1L, (long) this.checkPeriodTicks));
             BukkitScheduler scheduler = Bukkit.getScheduler();
             AeternumSeasonsPlugin pluginInstance = this.plugin;
             FreezeOverlay overlay = this.freezeOverlay;
@@ -200,7 +195,7 @@ public final class ThermoService implements Listener, Runnable {
         this.freezeOverlay.clear();
         HandlerList.unregisterAll(this);
 
-        for(Player player : Bukkit.getOnlinePlayers()) {
+        for (Player player : Bukkit.getOnlinePlayers()) {
             this.thawPlayer(player);
         }
 
@@ -257,7 +252,7 @@ public final class ThermoService implements Listener, Runnable {
         this.hotHelmetTempC = survivalConfig.getInt("temperature.heat.desert.helmet_temp_celsius", 28);
         this.hotDamageAfterTicks = Math.max(20, survivalConfig.getInt("temperature.heat.desert.damage_after_seconds", 300) * 20);
         this.hotDamageEveryTicks = Math.max(20, survivalConfig.getInt("temperature.heat.desert.damage_every_ticks", 40));
-        this.hotDamageAmount = survivalConfig.getDouble("temperature.heat.desert.damage_amount", (double)1.0F);
+        this.hotDamageAmount = survivalConfig.getDouble("temperature.heat.desert.damage_amount", (double) 1.0F);
         this.hotHungerEveryTicks = Math.max(20, survivalConfig.getInt("temperature.heat.desert.hunger_every_ticks", 80));
         this.hotHungerDrain = Math.max(1, survivalConfig.getInt("temperature.heat.desert.hunger_drain", 1));
         this.hotHallucinationAfterTicks = Math.max(20, survivalConfig.getInt("temperature.heat.desert.hallucination_after_seconds", 120) * 20);
@@ -274,16 +269,16 @@ public final class ThermoService implements Listener, Runnable {
         this.frozenMinArmorPieces = Math.max(0, survivalConfig.getInt("temperature.cold.frozen.min_armor_pieces", 4));
         this.coldShelterTempC = survivalConfig.getInt("temperature.cold.shelter_temp_celsius", 12);
         this.snowyDamageEveryTicks = Math.max(20, survivalConfig.getInt("temperature.cold.snowy.damage_every_ticks", 60));
-        this.snowyDamageAmount = survivalConfig.getDouble("temperature.cold.snowy.damage_amount", (double)0.5F);
+        this.snowyDamageAmount = survivalConfig.getDouble("temperature.cold.snowy.damage_amount", (double) 0.5F);
         this.frozenDamageEveryTicks = Math.max(20, survivalConfig.getInt("temperature.cold.frozen.damage_every_ticks", 40));
-        this.frozenDamageAmount = survivalConfig.getDouble("temperature.cold.frozen.damage_amount", (double)1.0F);
+        this.frozenDamageAmount = survivalConfig.getDouble("temperature.cold.frozen.damage_amount", (double) 1.0F);
         this.coldSlownessLevel = Math.max(0, survivalConfig.getInt("temperature.cold.effects.slowness_level", 1));
         this.coldFreezePerCycle = Math.max(1, survivalConfig.getInt("temperature.cold.effects.freeze_ticks_per_cycle", 40));
         this.coldThawPerCycle = Math.max(1, survivalConfig.getInt("temperature.cold.effects.thaw_ticks_per_cycle", 60));
         this.fullArmorSafe = survivalConfig.getBoolean("temperature.cold.full_armor_safe", true);
         this.disabledWorlds.clear();
 
-        for(String worldName : survivalConfig.getStringList("temperature.disabled_worlds")) {
+        for (String worldName : survivalConfig.getStringList("temperature.disabled_worlds")) {
             if (worldName != null && !worldName.isBlank()) {
                 this.disabledWorlds.add(worldName.trim());
             }
@@ -309,12 +304,12 @@ public final class ThermoService implements Listener, Runnable {
      * 将配置中的生物群系名称解析为 {@link Biome} 并加入目标集合，无法解析时记录警告。
      */
     private void loadBiomes(List<String> list, Set<Biome> out) {
-        for(String value : list) {
+        for (String value : list) {
             if (value != null && !value.isBlank()) {
                 String raw = value.trim().toLowerCase(Locale.ROOT);
                 NamespacedKey key = raw.contains(":") ? NamespacedKey.fromString(raw) : NamespacedKey.minecraft(raw);
                 if (key != null) {
-                    Biome biome = (Biome)Registry.BIOME.get(key);
+                    Biome biome = (Biome) Registry.BIOME.get(key);
                     if (biome != null) {
                         out.add(biome);
                     } else {
@@ -330,7 +325,7 @@ public final class ThermoService implements Listener, Runnable {
      * 将配置中的材质名称解析为 {@link Material} 并加入目标集合，无法解析时静默忽略。
      */
     private void loadMaterials(List<String> list, Set<Material> out) {
-        for(String value : list) {
+        for (String value : list) {
             if (value != null && !value.isBlank()) {
                 try {
                     out.add(Material.valueOf(value.trim().toUpperCase(Locale.ROOT)));
@@ -344,11 +339,12 @@ public final class ThermoService implements Listener, Runnable {
     /**
      * 每个检查周期遍历在线玩家更新温度，并清理已离线玩家的温度读数。
      */
+    @Override
     public void run() {
         if (this.enabled) {
             Set<UUID> onlineIds = new HashSet();
 
-            for(Player player : Bukkit.getOnlinePlayers()) {
+            for (Player player : Bukkit.getOnlinePlayers()) {
                 onlineIds.add(player.getUniqueId());
                 this.updatePlayer(player);
             }
@@ -361,7 +357,7 @@ public final class ThermoService implements Listener, Runnable {
      * 计算并应用单个玩家的温度：更新读数、动作栏、冷热伤害与沙暴效果，并维护解冻。
      */
     private void updatePlayer(Player player) {
-        ThermoPlayerState state = (ThermoPlayerState)this.states.computeIfAbsent(player.getUniqueId(), (id) -> new ThermoPlayerState());
+        ThermoPlayerState state = (ThermoPlayerState) this.states.computeIfAbsent(player.getUniqueId(), (id) -> new ThermoPlayerState());
         state.tickDown(this.checkPeriodTicks);
         if (player.isOnline() && !player.isDead()) {
             World world = player.getWorld();
@@ -513,7 +509,7 @@ public final class ThermoService implements Listener, Runnable {
                 case SUMMER -> offset = this.summerOffsetC;
                 case AUTUMN -> offset = this.autumnOffsetC;
                 case WINTER -> offset = this.winterOffsetC;
-                default -> throw new MatchException((String)null, (Throwable)null);
+                default -> throw new MatchException((String) null, (Throwable) null);
             }
 
             return offset;
@@ -661,7 +657,7 @@ public final class ThermoService implements Listener, Runnable {
             }
 
             Location eye = player.getEyeLocation();
-            player.getWorld().spawnParticle(Particle.DUST, eye, 8, 0.45, (double)0.25F, 0.45, (double)0.0F, new Particle.DustOptions(Color.fromRGB(214, 193, 156), 1.1F));
+            player.getWorld().spawnParticle(Particle.DUST, eye, 8, 0.45, (double) 0.25F, 0.45, (double) 0.0F, new Particle.DustOptions(Color.fromRGB(214, 193, 156), 1.1F));
             if (state.stormSoundCooldownTicks <= 0) {
                 player.playSound(player.getLocation(), Sound.BLOCK_SAND_HIT, 0.35F, 0.75F);
                 state.stormSoundCooldownTicks = 40;
@@ -797,7 +793,7 @@ public final class ThermoService implements Listener, Runnable {
         int y = base.getY();
         int z = base.getZ();
 
-        for(int dy = 1; dy <= this.roofScanHeight; ++dy) {
+        for (int dy = 1; dy <= this.roofScanHeight; ++dy) {
             Block up = world.getBlockAt(x, y + dy, z);
             if (up.getType().isSolid()) {
                 return true;
@@ -817,15 +813,15 @@ public final class ThermoService implements Listener, Runnable {
         int baseZ = base.getZ();
         int radiusSq = radius * radius;
 
-        for(int dx = -radius; dx <= radius; ++dx) {
-            for(int dz = -radius; dz <= radius; ++dz) {
+        for (int dx = -radius; dx <= radius; ++dx) {
+            for (int dz = -radius; dz <= radius; ++dz) {
                 if (dx * dx + dz * dz <= radiusSq) {
                     int x = baseX + dx;
                     int z = baseZ + dz;
                     int chunkX = x >> 4;
                     int chunkZ = z >> 4;
                     if (world.isChunkLoaded(chunkX, chunkZ)) {
-                        for(int dy = -2; dy <= 2; ++dy) {
+                        for (int dy = -2; dy <= 2; ++dy) {
                             Block block = world.getBlockAt(x, baseY + dy, z);
                             Material type = block.getType();
                             if (this.heatSourceBlocks.contains(type)) {
@@ -838,7 +834,7 @@ public final class ThermoService implements Listener, Runnable {
                                     return true;
                                 }
 
-                                Lightable lightable = (Lightable)data;
+                                Lightable lightable = (Lightable) data;
                                 if (lightable.isLit()) {
                                     return true;
                                 }
@@ -863,7 +859,7 @@ public final class ThermoService implements Listener, Runnable {
      * 玩家饮下普通水瓶时，给予一定时长的降温缓解。
      */
     @EventHandler(
-        ignoreCancelled = true
+            ignoreCancelled = true
     )
     public void onDrinkWater(PlayerItemConsumeEvent event) {
         if (this.enabled && this.heatEnabled) {
@@ -871,9 +867,9 @@ public final class ThermoService implements Listener, Runnable {
             if (item != null && item.getType() == Material.POTION) {
                 ItemMeta itemMeta = item.getItemMeta();
                 if (itemMeta instanceof PotionMeta) {
-                    PotionMeta meta = (PotionMeta)itemMeta;
+                    PotionMeta meta = (PotionMeta) itemMeta;
                     if (meta.getBasePotionType() == PotionType.WATER) {
-                        ThermoPlayerState state = (ThermoPlayerState)this.states.computeIfAbsent(event.getPlayer().getUniqueId(), (id) -> new ThermoPlayerState());
+                        ThermoPlayerState state = (ThermoPlayerState) this.states.computeIfAbsent(event.getPlayer().getUniqueId(), (id) -> new ThermoPlayerState());
                         state.wetReliefTicks = Math.max(state.wetReliefTicks, this.hotDrinkReliefTicks);
                     }
                 }
@@ -885,19 +881,19 @@ public final class ThermoService implements Listener, Runnable {
      * 水瓶溅射命中玩家时，按溅射强度给予降温缓解。
      */
     @EventHandler(
-        ignoreCancelled = true
+            ignoreCancelled = true
     )
     public void onWaterSplash(PotionSplashEvent event) {
         if (this.enabled && this.heatEnabled) {
             ItemMeta itemMeta = event.getPotion().getItem().getItemMeta();
             if (itemMeta instanceof PotionMeta) {
-                PotionMeta meta = (PotionMeta)itemMeta;
+                PotionMeta meta = (PotionMeta) itemMeta;
                 if (meta.getBasePotionType() == PotionType.WATER) {
-                    for(LivingEntity affected : event.getAffectedEntities()) {
+                    for (LivingEntity affected : event.getAffectedEntities()) {
                         if (affected instanceof Player) {
-                            Player player = (Player)affected;
+                            Player player = (Player) affected;
                             if (!(event.getIntensity(affected) <= 0.05)) {
-                                ThermoPlayerState state = (ThermoPlayerState)this.states.computeIfAbsent(player.getUniqueId(), (id) -> new ThermoPlayerState());
+                                ThermoPlayerState state = (ThermoPlayerState) this.states.computeIfAbsent(player.getUniqueId(), (id) -> new ThermoPlayerState());
                                 state.wetReliefTicks = Math.max(state.wetReliefTicks, this.hotSplashReliefTicks);
                             }
                         }
@@ -911,7 +907,7 @@ public final class ThermoService implements Listener, Runnable {
     /**
      * 玩家温度读数：以摄氏度原始值保存，并提供按单位换算后的数值与符号。
      */
-    public static record TemperatureReading(int celsius, TemperatureUnit unit) {
+    public record TemperatureReading(int celsius, TemperatureUnit unit) {
         public TemperatureReading {
         }
 

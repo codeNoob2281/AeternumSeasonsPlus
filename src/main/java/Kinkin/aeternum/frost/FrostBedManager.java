@@ -1,9 +1,6 @@
-package Kinkin.aeternum.frost;
+package kinkin.aeternum.frost;
 
-import Kinkin.aeternum.AeternumSeasonsPlugin;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import kinkin.aeternum.AeternumSeasonsPlugin;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Tag;
@@ -16,9 +13,13 @@ import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerBedEnterEvent;
-import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.event.player.PlayerBedEnterEvent.BedEnterResult;
+import org.bukkit.event.player.PlayerRespawnEvent;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 
 /**
  * 永霜世界床位与重生点管理器。
@@ -33,11 +34,17 @@ public final class FrostBedManager implements Listener {
     private static final String OVERWORLD_NAME = "world";
     private static final String FROST_WORLD_NAME = "aeternum_frost";
     private final AeternumSeasonsPlugin plugin;
-    /** 玩家在主世界记录过的床位置。 */
+    /**
+     * 玩家在主世界记录过的床位置。
+     */
     private final Map<UUID, Location> overworldBeds = new HashMap();
-    /** 玩家在永霜世界记录过的床位置。 */
+    /**
+     * 玩家在永霜世界记录过的床位置。
+     */
     private final Map<UUID, Location> frostBeds = new HashMap();
-    /** 记录玩家最近一次死亡所在的世界名称。 */
+    /**
+     * 记录玩家最近一次死亡所在的世界名称。
+     */
     private final Map<UUID, String> lastDeathWorld = new HashMap();
 
     public FrostBedManager(AeternumSeasonsPlugin plugin) {
@@ -60,18 +67,18 @@ public final class FrostBedManager implements Listener {
      * 玩家成功上床时，按所在世界记录床的位置（主世界或永霜世界）。
      */
     @EventHandler(
-        ignoreCancelled = true
+            ignoreCancelled = true
     )
     public void onBedEnter(PlayerBedEnterEvent event) {
         if (event.getBedEnterResult() == BedEnterResult.OK) {
             Player player = event.getPlayer();
-            Location bedLoc = event.getBed().getLocation().clone().add((double)0.5F, 0.1, (double)0.5F);
+            Location bedLoc = event.getBed().getLocation().clone().add((double) 0.5F, 0.1, (double) 0.5F);
             World world = bedLoc.getWorld();
             if (world != null) {
                 String worldName = world.getName();
-                if (worldName.equalsIgnoreCase("world")) {
+                if ("world".equalsIgnoreCase(worldName)) {
                     this.overworldBeds.put(player.getUniqueId(), bedLoc);
-                } else if (worldName.equalsIgnoreCase("aeternum_frost")) {
+                } else if ("aeternum_frost".equalsIgnoreCase(worldName)) {
                     this.frostBeds.put(player.getUniqueId(), bedLoc);
                 }
 
@@ -96,20 +103,20 @@ public final class FrostBedManager implements Listener {
      * 玩家重生时，若死亡世界为永霜世界或主世界，则将其重生点指向对应世界记录过的床。
      */
     @EventHandler(
-        priority = EventPriority.HIGHEST
+            priority = EventPriority.HIGHEST
     )
     public void onRespawn(PlayerRespawnEvent event) {
         Player player = event.getPlayer();
         UUID playerId = player.getUniqueId();
-        String deathWorld = (String)this.lastDeathWorld.remove(playerId);
+        String deathWorld = (String) this.lastDeathWorld.remove(playerId);
         if (deathWorld != null) {
-            if (deathWorld.equalsIgnoreCase("aeternum_frost")) {
+            if ("aeternum_frost".equalsIgnoreCase(deathWorld)) {
                 Location frostBed = this.getFrostBed(player);
                 if (frostBed != null) {
                     event.setRespawnLocation(frostBed);
                 }
 
-            } else if (deathWorld.equalsIgnoreCase("world")) {
+            } else if ("world".equalsIgnoreCase(deathWorld)) {
                 Location overworldBed = this.getOverworldBed(player);
                 if (overworldBed != null) {
                     event.setRespawnLocation(overworldBed);
@@ -123,14 +130,14 @@ public final class FrostBedManager implements Listener {
      * 获取玩家在主世界记录的有效床位置，无效时返回 null。
      */
     public @Nullable Location getOverworldBed(Player player) {
-        return this.validateBed((Location)this.overworldBeds.get(player.getUniqueId()), "world");
+        return this.validateBed((Location) this.overworldBeds.get(player.getUniqueId()), "world");
     }
 
     /**
      * 获取玩家在永霜世界记录的有效床位置，无效时返回 null。
      */
     public @Nullable Location getFrostBed(Player player) {
-        return this.validateBed((Location)this.frostBeds.get(player.getUniqueId()), "aeternum_frost");
+        return this.validateBed((Location) this.frostBeds.get(player.getUniqueId()), "aeternum_frost");
     }
 
     /**

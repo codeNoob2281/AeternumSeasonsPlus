@@ -1,9 +1,10 @@
-package Kinkin.aeternum.events;
+package kinkin.aeternum.events;
 
-import Kinkin.aeternum.AeternumSeasonsPlugin;
-import java.io.File;
+import kinkin.aeternum.AeternumSeasonsPlugin;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
+
+import java.io.File;
 
 /**
  * {@code events.yml} 的加载与缓存工具。
@@ -13,14 +14,18 @@ import org.bukkit.configuration.file.YamlConfiguration;
  * {@link #reload(AeternumSeasonsPlugin)} 会清空缓存以便重新加载。</p>
  */
 public final class YamlEvents {
-    /** 已加载的配置缓存，null 表示尚未加载。 */
+    /**
+     * 已加载的配置缓存，null 表示尚未加载。
+     */
     private static FileConfiguration cached;
 
     private YamlEvents() {
         super();
     }
 
-    /** 返回 events.yml 的配置对象（按需加载并缓存）。 */
+    /**
+     * 返回 events.yml 的配置对象（按需加载并缓存）。
+     */
     public static FileConfiguration get(AeternumSeasonsPlugin plugin) {
         if (cached != null) {
             return cached;
@@ -38,7 +43,9 @@ public final class YamlEvents {
         }
     }
 
-    /** 清空缓存并重新加载 events.yml。 */
+    /**
+     * 清空缓存并重新加载 events.yml。
+     */
     public static void reload(AeternumSeasonsPlugin plugin) {
         cached = null;
         get(plugin);

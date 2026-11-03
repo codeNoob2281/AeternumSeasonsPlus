@@ -1,4 +1,4 @@
-package Kinkin.aeternum.calendar;
+package kinkin.aeternum.calendar;
 
 /**
  * 季节枚举。
@@ -11,10 +11,12 @@ public enum Season {
     AUTUMN,
     WINTER;
 
-    private Season() {
+    Season() {
     }
 
-    /** 返回该季节的展示名称（西班牙语）。 */
+    /**
+     * 返回该季节的展示名称（西班牙语）。
+     */
     public String display() {
         String displayName;
         switch (this.ordinal()) {
@@ -22,7 +24,7 @@ public enum Season {
             case 1 -> displayName = "Verano";
             case 2 -> displayName = "Otoño";
             case 3 -> displayName = "Invierno";
-            default -> throw new MatchException((String)null, (Throwable)null);
+            default -> throw new MatchException((String) null, (Throwable) null);
         }
 
         return displayName;

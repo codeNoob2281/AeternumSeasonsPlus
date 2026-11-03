@@ -7,7 +7,7 @@ winter_painter:
 
 season_guide:
   give_on_first_join: true           # si está false, NO se entrega el libro/guía al unirse
-                                     # if false, the book/guide is NOT delivered upon joining
+  # if false, the book/guide is NOT delivered upon joining
 golems:
   max_per_chunk: 3                   # Límite por chunk / Limit per chunk
 
@@ -40,12 +40,12 @@ features:
       enabled: true                  # Portal mundo infernal / Heat world portal
 
 worlds:
-  disabled_season_fx:                # Mundos sin efectos / Worlds with no FX
+  disabled_season_fx: # Mundos sin efectos / Worlds with no FX
     - world_the_end
     - Spawn
 
 SeasonFood: true                     # Deshabilitar las semilla, cultivos y el libro de recetas
-                                     # Disable seeds, crops, and the recipe book
+# Disable seeds, crops, and the recipe book
 
 seasoncraft:
   enabled: true                      # Activar SeasonCraft / Enable SeasonCraft
@@ -64,12 +64,12 @@ seasoncraft:
 
 heat_loot:
   enabled: true                      # Loot de calor / Heat loot enabled
-  worlds:                            # Mundos con loot / Worlds with loot
+  worlds: # Mundos con loot / Worlds with loot
     - aeternum_heat
-  items_per_chest:                   # Items por cofre / Items per chest
+  items_per_chest: # Items por cofre / Items per chest
     min: 3
     max: 6
-  gear_pool:                         # Lista de objetos / Item pool
+  gear_pool: # Lista de objetos / Item pool
     - DIAMOND_SWORD
     - DIAMOND_PICKAXE
     - DIAMOND_AXE
@@ -81,13 +81,13 @@ heat_loot:
     - NETHERITE_INGOT
     - ENCHANTED_GOLDEN_APPLE
     - BOOK
-  enchants_per_item:                 # Encantos por item / Enchants per item
+  enchants_per_item: # Encantos por item / Enchants per item
     min: 1
     max: 3
-  enchant_level:                     # Niveles deseados / Desired levels
+  enchant_level: # Niveles deseados / Desired levels
     min: 6
     max: 10
-  book_enchants:                     # Encantos en libros / Book enchants
+  book_enchants: # Encantos en libros / Book enchants
     min: 2
     max: 4
 
@@ -96,7 +96,7 @@ enchants:
     enabled: true                    # Límites de encanto / Enchant caps
     default_max: 10                  # Máximo general / General max level
     clamp_to_vanilla: false          # Forzar nivel vanilla / Clamp to vanilla
-    overrides:                       # Ajustes por encanto / Per enchant overrides
+    overrides: # Ajustes por encanto / Per enchant overrides
       minecraft:aqua_affinity: 3
       minecraft:bane_of_arthropods: 7
       minecraft:binding_curse: 1

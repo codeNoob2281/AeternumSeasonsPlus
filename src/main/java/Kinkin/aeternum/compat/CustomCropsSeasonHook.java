@@ -1,7 +1,7 @@
-package Kinkin.aeternum.compat;
+package kinkin.aeternum.compat;
 
-import Kinkin.aeternum.AeternumSeasonsPlugin;
-import Kinkin.aeternum.calendar.CalendarState;
+import kinkin.aeternum.AeternumSeasonsPlugin;
+import kinkin.aeternum.calendar.CalendarState;
 import net.momirealms.customcrops.api.BukkitCustomCropsPlugin;
 import net.momirealms.customcrops.api.core.world.Season;
 import net.momirealms.customcrops.api.integration.SeasonProvider;
@@ -21,13 +21,17 @@ public final class CustomCropsSeasonHook {
         super();
     }
 
-    /** 注册 CustomCrops 的季节提供者，并输出一条钩子就绪日志。 */
+    /**
+     * 注册 CustomCrops 的季节提供者，并输出一条钩子就绪日志。
+     */
     public static void register(AeternumSeasonsPlugin plugin) {
         BukkitCustomCropsPlugin.getInstance().getIntegrationManager().registerSeasonProvider(new AeternumSeasonProvider(plugin));
         plugin.getLogger().info("[AeternumSeasons] Hooked CustomCrops SeasonProvider (AeternumSeasons).");
     }
 
-    /** 将 AeternumSeasons 的日历季节桥接为 CustomCrops 的季节枚举。 */
+    /**
+     * 将 AeternumSeasons 的日历季节桥接为 CustomCrops 的季节枚举。
+     */
     private static final class AeternumSeasonProvider implements SeasonProvider {
         private final AeternumSeasonsPlugin plugin;
 
@@ -42,12 +46,13 @@ public final class CustomCropsSeasonHook {
          * <p>先按名称精确匹配；若季节命名不同（AUTUMN/FALL 差异），则互做一次兼容转换；
          * 仍无法匹配时回退到 {@link Season#SPRING}。</p>
          */
+        @Override
         public @NotNull Season getSeason(@NotNull World world) {
             if (this.plugin.getSeasons() == null) {
                 return Season.SPRING;
             } else {
                 CalendarState st = this.plugin.getSeasons().getStateCopy(world);
-                Kinkin.aeternum.calendar.Season s = st.season;
+                kinkin.aeternum.calendar.Season s = st.season;
                 String name = s.name();
 
                 try {
@@ -72,7 +77,10 @@ public final class CustomCropsSeasonHook {
             }
         }
 
-        /** 提供者标识名，供 CustomCrops 区分来源。 */
+        /**
+         * 提供者标识名，供 CustomCrops 区分来源。
+         */
+        @Override
         public String identifier() {
             return "AeternumSeasons";
         }

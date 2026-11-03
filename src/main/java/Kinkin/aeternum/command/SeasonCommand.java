@@ -1,24 +1,20 @@
-package Kinkin.aeternum.command;
+package kinkin.aeternum.command;
 
-import Kinkin.aeternum.AeternumSeasonsPlugin;
-import Kinkin.aeternum.calendar.CalendarState;
-import Kinkin.aeternum.calendar.Season;
-import Kinkin.aeternum.calendar.SeasonService;
-import Kinkin.aeternum.hud.HudService;
-import Kinkin.aeternum.world.BiomeSpoofAdapter;
-import java.io.File;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import kinkin.aeternum.AeternumSeasonsPlugin;
+import kinkin.aeternum.calendar.CalendarState;
+import kinkin.aeternum.calendar.Season;
+import kinkin.aeternum.calendar.SeasonService;
+import kinkin.aeternum.hud.HudService;
+import kinkin.aeternum.world.BiomeSpoofAdapter;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
+
+import java.io.File;
+import java.util.*;
+import java.util.logging.Level;
 
 /**
  * /season 命令执行器。
@@ -45,7 +41,9 @@ public final class SeasonCommand implements CommandExecutor, TabCompleter {
         this.biomeSpoof = biomeSpoof;
     }
 
-    /** 立即把内存中的 climate.yml 配置写盘，失败时记录日志并提示发送者。 */
+    /**
+     * 立即把内存中的 climate.yml 配置写盘，失败时记录日志并提示发送者。
+     */
     private void saveClimateNow(CommandSender sender) {
         try {
             File f = new File(this.plugin.getDataFolder(), "climate.yml");
@@ -57,31 +55,38 @@ public final class SeasonCommand implements CommandExecutor, TabCompleter {
 
     }
 
-    /** 返回季节的本地化显示名；若翻译缺失则回退到季节自身的显示名。 */
+    /**
+     * 返回季节的本地化显示名；若翻译缺失则回退到季节自身的显示名。
+     */
     private String seasonName(CommandSender sender, Season season) {
-        Player player = sender instanceof Player ? (Player)sender : null;
+        Player player = sender instanceof Player ? (Player) sender : null;
         String key = "season." + season.name();
         String val = this.plugin.lang.tr(player, key);
         return val != null && !val.isBlank() && !val.equalsIgnoreCase(key) ? val : season.display();
     }
 
-    /** 便捷方法：按发送者类型（玩家/控制台）获取本地化文本。 */
+    /**
+     * 便捷方法：按发送者类型（玩家/控制台）获取本地化文本。
+     */
     private String tr(CommandSender sender, String key) {
-        Player player = sender instanceof Player ? (Player)sender : null;
+        Player player = sender instanceof Player ? (Player) sender : null;
         return this.plugin.lang.tr(player, key);
     }
 
-    /** 便捷方法：带占位符变量的本地化文本。 */
+    /**
+     * 便捷方法：带占位符变量的本地化文本。
+     */
     private String trf(CommandSender sender, String key, Map<String, Object> vars) {
-        Player player = sender instanceof Player ? (Player)sender : null;
+        Player player = sender instanceof Player ? (Player) sender : null;
         return this.plugin.lang.trf(player, key, vars);
     }
 
     /**
      * 处理 /season 命令：解析子命令并按权限分派到对应分支。
      */
+    @Override
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
-        if (args.length != 0 && !args[0].equalsIgnoreCase("info")) {
+        if (args.length != 0 && !"info".equalsIgnoreCase(args[0])) {
             switch (args[0].toLowerCase(Locale.ROOT)) {
                 case "set":
                     if (!sender.hasPermission("aeternum.command.set")) {
@@ -168,9 +173,8 @@ public final class SeasonCommand implements CommandExecutor, TabCompleter {
                         this.plugin.reloadEverything();
                         sender.sendMessage(this.tr(sender, "cmd.season.reload.done"));
                     } catch (Throwable error) {
-                        this.plugin.getLogger().severe("[Season] Reload falló: " + error.getMessage());
-                        error.printStackTrace();
-                        sender.sendMessage("§c[Season] Reload falló. Revisa consola.");
+                        this.plugin.getLogger().log(Level.SEVERE, "[Season] Reload failed", error);
+                        sender.sendMessage("§c[Season] Reload failed. Check console.");
                     }
 
                     return true;
@@ -179,7 +183,7 @@ public final class SeasonCommand implements CommandExecutor, TabCompleter {
                         return this.deny(sender);
                     } else {
                         if (sender instanceof Player) {
-                            Player player = (Player)sender;
+                            Player player = (Player) sender;
                             if (args.length < 2) {
                                 HudService.HudMode current = this.hud.getPlayerMode(player);
                                 String modeNameRaw = current.name();
@@ -331,22 +335,27 @@ public final class SeasonCommand implements CommandExecutor, TabCompleter {
         }
     }
 
-    /** 发送无权限提示并返回 true（供命令处理器直接返回）。 */
+    /**
+     * 发送无权限提示并返回 true（供命令处理器直接返回）。
+     */
     private boolean deny(CommandSender sender) {
         sender.sendMessage(this.tr(sender, "cmd.season.no_permission"));
         return true;
     }
 
-    /** 按子命令与权限补全参数。 */
+    /**
+     * 按子命令与权限补全参数。
+     */
+    @Override
     public List<String> onTabComplete(CommandSender sender, Command cmd, String label, String[] args) {
         if (args.length != 1) {
-            if (args.length == 2 && args[0].equalsIgnoreCase("set")) {
+            if (args.length == 2 && "set".equalsIgnoreCase(args[0])) {
                 return !sender.hasPermission("aeternum.command.set") && !sender.hasPermission("aeternum.command.base") ? Collections.emptyList() : Arrays.asList("SPRING", "SUMMER", "AUTUMN", "WINTER");
-            } else if (args.length == 2 && args[0].equalsIgnoreCase("hud")) {
+            } else if (args.length == 2 && "hud".equalsIgnoreCase(args[0])) {
                 return !sender.hasPermission("aeternum.command.hud") && !sender.hasPermission("aeternum.command.base") ? Collections.emptyList() : Arrays.asList("fixed", "variable", "off");
-            } else if (args.length == 2 && args[0].equalsIgnoreCase("biomes")) {
+            } else if (args.length == 2 && "biomes".equalsIgnoreCase(args[0])) {
                 return !sender.hasPermission("aeternum.command.biomes") && !sender.hasPermission("aeternum.command.base") ? Collections.emptyList() : Arrays.asList("on", "off", "restore", "backup");
-            } else if (args.length == 3 && args[0].equalsIgnoreCase("biomes") && args[1].equalsIgnoreCase("backup")) {
+            } else if (args.length == 3 && "biomes".equalsIgnoreCase(args[0]) && "backup".equalsIgnoreCase(args[1])) {
                 return !sender.hasPermission("aeternum.command.biomes") && !sender.hasPermission("aeternum.command.base") ? Collections.emptyList() : Arrays.asList("on", "off");
             } else {
                 return Collections.emptyList();

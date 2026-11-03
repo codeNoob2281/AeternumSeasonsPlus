@@ -1,12 +1,13 @@
-package Kinkin.aeternum.world;
+package kinkin.aeternum.world;
 
-import Kinkin.aeternum.AeternumSeasonsPlugin;
-import java.lang.reflect.Method;
+import kinkin.aeternum.AeternumSeasonsPlugin;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
+
+import java.lang.reflect.Method;
 
 /**
  * Guilds/GPFlags 兼容层。
@@ -21,20 +22,30 @@ import org.bukkit.plugin.Plugin;
 final class GPFlagsCompat {
     private static AeternumSeasonsPlugin plugin;
     private static boolean hooked;
-    /** 反射缓存：旗帜定义上的 {@code getFlagInstanceAtLocation(Location, Player)} 方法。 */
+    /**
+     * 反射缓存：旗帜定义上的 {@code getFlagInstanceAtLocation(Location, Player)} 方法。
+     */
     private static Method getFlagAtLocation;
-    /** NoBlockForm 旗帜定义。 */
+    /**
+     * NoBlockForm 旗帜定义。
+     */
     private static Object noBlockForm;
-    /** NoIceForm 旗帜定义。 */
+    /**
+     * NoIceForm 旗帜定义。
+     */
     private static Object noIceForm;
-    /** NoSnowForm 旗帜定义。 */
+    /**
+     * NoSnowForm 旗帜定义。
+     */
     private static Object noSnowForm;
 
     private GPFlagsCompat() {
         super();
     }
 
-    /** 初始化兼容层：重置状态并尝试与 GPFlags 建立反射 hook。 */
+    /**
+     * 初始化兼容层：重置状态并尝试与 GPFlags 建立反射 hook。
+     */
     static void init(AeternumSeasonsPlugin owner) {
         plugin = owner;
         hooked = false;
@@ -68,17 +79,23 @@ final class GPFlagsCompat {
         }
     }
 
-    /** 判断该方块是否允许形成积雪（未受 NoBlockForm / NoSnowForm 限制）。 */
+    /**
+     * 判断该方块是否允许形成积雪（未受 NoBlockForm / NoSnowForm 限制）。
+     */
     static boolean canSnowForm(Block block) {
         return !isActive(noBlockForm, block) && !isActive(noSnowForm, block);
     }
 
-    /** 判断该方块是否允许形成结冰（未受 NoBlockForm / NoIceForm 限制）。 */
+    /**
+     * 判断该方块是否允许形成结冰（未受 NoBlockForm / NoIceForm 限制）。
+     */
     static boolean canIceForm(Block block) {
         return !isActive(noBlockForm, block) && !isActive(noIceForm, block);
     }
 
-    /** 查询给定旗帜定义在方块位置是否生效；发生异常时关闭 hook 并返回 false。 */
+    /**
+     * 查询给定旗帜定义在方块位置是否生效；发生异常时关闭 hook 并返回 false。
+     */
     private static boolean isActive(Object definition, Block block) {
         if (hooked && definition != null && block != null) {
             try {

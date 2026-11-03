@@ -951,17 +951,6 @@ crop:
     any_season: "&7Pousse en toute saison"
     greenhouse_light: "&8Serre souterraine: lumière {light}+"
 
-farming:
-  compost:
-    raw_name: "&aCompost brut"
-    raw_lore_1: "&7Mélange humide de terre et de restes organiques."
-    raw_lore_2: "&7Laissez-le près de l’eau pendant 2 jours."
-    ready_name: "&2Terre richement fertilisée"
-    ready_lore_1: "&7Les cultures poussent ici &ax2 &7plus vite."
-    ready_lore_2: "&7La piétiner ne casse pas la terre labourée."
-    ready_message: "&aVotre compost s’est transformé en terre richement fertilisée."
-
-
 villager:
   lazy_tag: "&7[&6Paresseux&7]"
 

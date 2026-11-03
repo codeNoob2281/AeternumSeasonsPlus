@@ -1,20 +1,21 @@
-package Kinkin.aeternum;
+package kinkin.aeternum;
 
-import Kinkin.aeternum.calendar.CalendarState;
-import Kinkin.aeternum.calendar.Season;
-import Kinkin.aeternum.calendar.SeasonService;
-import Kinkin.aeternum.events.SeasonalEvent;
-import Kinkin.aeternum.events.SeasonalEventService;
-import Kinkin.aeternum.lang.LanguageManager;
-import Kinkin.aeternum.temperature.TemperatureUnit;
-import Kinkin.aeternum.temperature.ThermoService;
-import java.util.LinkedHashSet;
-import java.util.Locale;
+import kinkin.aeternum.calendar.CalendarState;
+import kinkin.aeternum.calendar.Season;
+import kinkin.aeternum.calendar.SeasonService;
+import kinkin.aeternum.events.SeasonalEvent;
+import kinkin.aeternum.events.SeasonalEventService;
+import kinkin.aeternum.lang.LanguageManager;
+import kinkin.aeternum.temperature.TemperatureUnit;
+import kinkin.aeternum.temperature.ThermoService;
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
+
+import java.util.LinkedHashSet;
+import java.util.Locale;
 
 /**
  * PlaceholderAPI 占位符扩展。
@@ -40,27 +41,42 @@ public final class AeternumPlaceholders extends PlaceholderExpansion {
         this.plugin = plugin;
     }
 
-    /** 占位符前缀标识，对应 {@code %aeternum_...%}。 */
+    /**
+     * 占位符前缀标识，对应 {@code %aeternum_...%}。
+     */
+    @Override
     public @NotNull String getIdentifier() {
         return "aeternum";
     }
 
-    /** 扩展作者，取自插件描述信息。 */
+    /**
+     * 扩展作者，取自插件描述信息。
+     */
+    @Override
     public @NotNull String getAuthor() {
         return String.join(", ", this.plugin.getDescription().getAuthors());
     }
 
-    /** 扩展版本，取自插件描述信息。 */
+    /**
+     * 扩展版本，取自插件描述信息。
+     */
+    @Override
     public @NotNull String getVersion() {
         return this.plugin.getDescription().getVersion();
     }
 
-    /** 保持扩展常驻，服务器重载时不会被自动反注册。 */
+    /**
+     * 保持扩展常驻，服务器重载时不会被自动反注册。
+     */
+    @Override
     public boolean persist() {
         return true;
     }
 
-    /** 仅当服务端已安装 PlaceholderAPI 时才允许注册。 */
+    /**
+     * 仅当服务端已安装 PlaceholderAPI 时才允许注册。
+     */
+    @Override
     public boolean canRegister() {
         return Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null;
     }
@@ -75,6 +91,7 @@ public final class AeternumPlaceholders extends PlaceholderExpansion {
      * @param params 占位符参数（已去掉前缀）
      * @return 解析后的文本，或在无数据时返回空串
      */
+    @Override
     public String onPlaceholderRequest(Player player, String params) {
         if (player == null) {
             return "";
@@ -97,7 +114,8 @@ public final class AeternumPlaceholders extends PlaceholderExpansion {
                         case "temperature_value" -> result = String.valueOf(reading.value());
                         case "temperature_unit" -> result = reading.symbol();
                         case "temperature_celsius" -> result = String.valueOf(reading.celsius());
-                        case "temperature_fahrenheit" -> result = String.valueOf(TemperatureUnit.FAHRENHEIT.fromCelsiusRounded(reading.celsius()));
+                        case "temperature_fahrenheit" ->
+                                result = String.valueOf(TemperatureUnit.FAHRENHEIT.fromCelsiusRounded(reading.celsius()));
                         default -> result = reading.value() + " " + reading.symbol();
                     }
 
@@ -239,9 +257,9 @@ public final class AeternumPlaceholders extends PlaceholderExpansion {
         String name = world.getName();
         if (this.plugin.lang == null) {
             return name;
-        } else if (name.equalsIgnoreCase("aeternum_frost")) {
+        } else if ("aeternum_frost".equalsIgnoreCase(name)) {
             return this.plugin.lang.tr(player, "realm.frost");
-        } else if (name.equalsIgnoreCase("aeternum_heat")) {
+        } else if ("aeternum_heat".equalsIgnoreCase(name)) {
             return this.plugin.lang.tr(player, "realm.heat");
         } else {
             String key = "realm.overworld";
@@ -280,7 +298,7 @@ public final class AeternumPlaceholders extends PlaceholderExpansion {
             String id = event.getId().toLowerCase(Locale.ROOT);
             LinkedHashSet<String> bases = new LinkedHashSet();
             bases.add("event." + id);
-            if (id.equals("season_festival")) {
+            if ("season_festival".equals(id)) {
                 bases.add("event.festival");
             }
 
@@ -296,7 +314,7 @@ public final class AeternumPlaceholders extends PlaceholderExpansion {
                 bases.add("event." + blessingBase);
             }
 
-            for(String base : bases) {
+            for (String base : bases) {
                 String value = this.plugin.lang.tr(player, base + ".name");
                 if (value != null && !value.equals(base + ".name")) {
                     return value;

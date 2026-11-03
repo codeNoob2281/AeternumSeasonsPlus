@@ -10,7 +10,9 @@
     <packaging>jar</packaging>
 
     <name>AeternumSeasons</name>
-    <description>A completely independent seasons plugin (decompiled rebuild). https://github.com/KinkinxD12/Aeternum-Seasons</description>
+    <description>A completely independent seasons plugin (decompiled rebuild).
+        https://github.com/KinkinxD12/Aeternum-Seasons
+    </description>
 
     <properties>
         <java.version>21</java.version>

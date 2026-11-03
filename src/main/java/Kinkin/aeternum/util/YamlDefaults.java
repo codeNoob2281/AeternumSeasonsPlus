@@ -1,12 +1,13 @@
-package Kinkin.aeternum.util;
+package kinkin.aeternum.util;
+
+import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
-import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.plugin.java.JavaPlugin;
 
 /**
  * YAML 默认值合并工具。
@@ -72,9 +73,9 @@ public final class YamlDefaults {
             }
 
             if ("climate.yml".equals(fileName)) {
-                for(String obsolete : new String[]{"autumn_foliage", "autumn_foilage"}) {
+                for (String obsolete : new String[]{"autumn_foliage", "autumn_foilage"}) {
                     if (current.contains(obsolete)) {
-                        current.set(obsolete, (Object)null);
+                        current.set(obsolete, (Object) null);
                         changed = true;
                     }
                 }
@@ -97,7 +98,7 @@ public final class YamlDefaults {
                 }
 
                 if (!current.contains("villager_type_overrides.appearance.override_chance") && current.contains("villager_type_overrides.override_chance")) {
-                    current.set("villager_type_overrides.appearance.override_chance", current.getDouble("villager_type_overrides.override_chance", (double)1.0F));
+                    current.set("villager_type_overrides.appearance.override_chance", current.getDouble("villager_type_overrides.override_chance", (double) 1.0F));
                     changed = true;
                 }
 
@@ -107,7 +108,7 @@ public final class YamlDefaults {
                 }
             }
 
-            for(String key : def.getKeys(true)) {
+            for (String key : def.getKeys(true)) {
                 if (!current.contains(key)) {
                     current.set(key, def.get(key));
                     changed = true;

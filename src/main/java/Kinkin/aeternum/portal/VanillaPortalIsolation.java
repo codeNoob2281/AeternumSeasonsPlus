@@ -1,7 +1,6 @@
-package Kinkin.aeternum.portal;
+package kinkin.aeternum.portal;
 
-import Kinkin.aeternum.AeternumSeasonsPlugin;
-import java.util.logging.Logger;
+import kinkin.aeternum.AeternumSeasonsPlugin;
 import org.bukkit.Axis;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -16,6 +15,8 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityPortalEvent;
 import org.bukkit.event.player.PlayerPortalEvent;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.logging.Logger;
 
 /**
  * 原版传送门隔离器。
@@ -32,13 +33,17 @@ public final class VanillaPortalIsolation implements Listener {
     private final AeternumSeasonsPlugin plugin;
     private boolean registered;
 
-    /** 创建隔离器（不立即注册监听）。 */
+    /**
+     * 创建隔离器（不立即注册监听）。
+     */
     public VanillaPortalIsolation(AeternumSeasonsPlugin plugin) {
         super();
         this.plugin = plugin;
     }
 
-    /** 幂等地将本监听器注册到服务器的事件总线。 */
+    /**
+     * 幂等地将本监听器注册到服务器的事件总线。
+     */
     public void register() {
         if (!this.registered) {
             this.registered = true;
@@ -46,7 +51,9 @@ public final class VanillaPortalIsolation implements Listener {
         }
     }
 
-    /** 注销事件监听。 */
+    /**
+     * 注销事件监听。
+     */
     public void unregister() {
         this.registered = false;
         HandlerList.unregisterAll(this);
@@ -57,8 +64,8 @@ public final class VanillaPortalIsolation implements Listener {
      * 无法找到落点时取消传送。
      */
     @EventHandler(
-        ignoreCancelled = true,
-        priority = EventPriority.HIGHEST
+            ignoreCancelled = true,
+            priority = EventPriority.HIGHEST
     )
     public void onPlayerPortal(PlayerPortalEvent event) {
         IsolationResult result = this.isolateVanillaRoute(event.getFrom(), event.getTo());
@@ -75,10 +82,12 @@ public final class VanillaPortalIsolation implements Listener {
         }
     }
 
-    /** 实体传送门事件处理：与玩家逻辑一致，将实体改派到隔离后的原版落点或取消。 */
+    /**
+     * 实体传送门事件处理：与玩家逻辑一致，将实体改派到隔离后的原版落点或取消。
+     */
     @EventHandler(
-        ignoreCancelled = true,
-        priority = EventPriority.HIGHEST
+            ignoreCancelled = true,
+            priority = EventPriority.HIGHEST
     )
     public void onEntityPortal(EntityPortalEvent event) {
         IsolationResult result = this.isolateVanillaRoute(event.getFrom(), event.getTo());
@@ -95,8 +104,8 @@ public final class VanillaPortalIsolation implements Listener {
      * 判定并隔离一次原版传送：仅当源门为原版门、目标处为自定义门时拦截，
      * 并尝试在目标附近寻找或新建原版门作为落点。
      *
-     * @param from                  源位置
-     * @param requestedDestination  原版逻辑给出的目标位置（可空）
+     * @param from                 源位置
+     * @param requestedDestination 原版逻辑给出的目标位置（可空）
      * @return 隔离结果；包含是否拦截与实际落点
      */
     private IsolationResult isolateVanillaRoute(Location from, @Nullable Location requestedDestination) {
@@ -132,7 +141,9 @@ public final class VanillaPortalIsolation implements Listener {
         }
     }
 
-    /** 在给定中心周围指定水平半径、纵向 ±48 的范围内查找最近的原版传送门落点。 */
+    /**
+     * 在给定中心周围指定水平半径、纵向 ±48 的范围内查找最近的原版传送门落点。
+     */
     private @Nullable Location findNearbyVanillaPortal(Location center, int radius) {
         World world = center.getWorld();
         if (world == null) {
@@ -146,9 +157,9 @@ public final class VanillaPortalIsolation implements Listener {
             Location best = null;
             double bestDistance = Double.MAX_VALUE;
 
-            for(int x = bx - radius; x <= bx + radius; ++x) {
-                for(int z = bz - radius; z <= bz + radius; ++z) {
-                    for(int y = minY; y <= maxY; ++y) {
+            for (int x = bx - radius; x <= bx + radius; ++x) {
+                for (int z = bz - radius; z <= bz + radius; ++z) {
+                    for (int y = minY; y <= maxY; ++y) {
                         Block block = world.getBlockAt(x, y, z);
                         if (block.getType() == Material.NETHER_PORTAL && PortalFrameClassifier.classify(block) == PortalFrameClassifier.Type.VANILLA) {
                             Location teleport = PortalFrameClassifier.teleportLocation(block);
@@ -168,7 +179,9 @@ public final class VanillaPortalIsolation implements Listener {
         }
     }
 
-    /** 在目标世界选择安全站点并建造一座分离的原版门，返回其传送落点。 */
+    /**
+     * 在目标世界选择安全站点并建造一座分离的原版门，返回其传送落点。
+     */
     private @Nullable Location buildSeparatedVanillaPortal(World world, Location preferred, Axis axis) {
         int x = preferred.getBlockX();
         int z = preferred.getBlockZ();
@@ -183,15 +196,17 @@ public final class VanillaPortalIsolation implements Listener {
         }
     }
 
-    /** 在指定中心/底部高度以黑曜石框建造一座 2x3 的原版门并点亮，返回黑洞门方块。 */
+    /**
+     * 在指定中心/底部高度以黑曜石框建造一座 2x3 的原版门并点亮，返回黑洞门方块。
+     */
     private Block buildPortal(World world, int centerX, int bottomY, int centerZ, Axis axis) {
         int width = 2;
         int height = 3;
         int x0 = axis == Axis.X ? centerX - 1 : centerX;
         int z0 = axis == Axis.Z ? centerZ - 1 : centerZ;
 
-        for(int horizontal = -1; horizontal <= width; ++horizontal) {
-            for(int vertical = -1; vertical <= height; ++vertical) {
+        for (int horizontal = -1; horizontal <= width; ++horizontal) {
+            for (int vertical = -1; vertical <= height; ++vertical) {
                 int x = axis == Axis.X ? x0 + horizontal : x0;
                 int z = axis == Axis.Z ? z0 + horizontal : z0;
                 boolean frame = horizontal == -1 || horizontal == width || vertical == -1 || vertical == height;
@@ -199,11 +214,11 @@ public final class VanillaPortalIsolation implements Listener {
             }
         }
 
-        Orientable portalData = (Orientable)Material.NETHER_PORTAL.createBlockData();
+        Orientable portalData = (Orientable) Material.NETHER_PORTAL.createBlockData();
         portalData.setAxis(axis);
 
-        for(int horizontal = 0; horizontal < width; ++horizontal) {
-            for(int vertical = 0; vertical < height; ++vertical) {
+        for (int horizontal = 0; horizontal < width; ++horizontal) {
+            for (int vertical = 0; vertical < height; ++vertical) {
                 int x = axis == Axis.X ? x0 + horizontal : x0;
                 int z = axis == Axis.Z ? z0 + horizontal : z0;
                 world.getBlockAt(x, bottomY + vertical, z).setBlockData(portalData, false);
@@ -213,9 +228,11 @@ public final class VanillaPortalIsolation implements Listener {
         return world.getBlockAt(x0, bottomY, z0);
     }
 
-    /** 隔离结果：是否拦截，以及（可空）实际落点。 */
-    private static record IsolationResult(boolean intercepted, @Nullable Location destination) {
-        private static final IsolationResult NOT_INTERCEPTED = new IsolationResult(false, (Location)null);
+    /**
+     * 隔离结果：是否拦截，以及（可空）实际落点。
+     */
+    private record IsolationResult(boolean intercepted, @Nullable Location destination) {
+        private static final IsolationResult NOT_INTERCEPTED = new IsolationResult(false, (Location) null);
 
         private IsolationResult {
         }

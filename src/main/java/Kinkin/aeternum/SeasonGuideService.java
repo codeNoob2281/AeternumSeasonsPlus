@@ -1,8 +1,5 @@
-package Kinkin.aeternum;
+package kinkin.aeternum;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.UUID;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
@@ -11,6 +8,10 @@ import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.scheduler.BukkitRunnable;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.UUID;
 
 /**
  * 季节指南首次登录推送服务。
@@ -49,29 +50,39 @@ public final class SeasonGuideService implements Listener {
 
     }
 
-    /** 把本服务注册为 Bukkit 事件监听器。 */
+    /**
+     * 把本服务注册为 Bukkit 事件监听器。
+     */
     public void register() {
         Bukkit.getPluginManager().registerEvents(this, this.plugin);
     }
 
-    /** 注销所有事件监听并落盘玩家数据。 */
+    /**
+     * 注销所有事件监听并落盘玩家数据。
+     */
     public void unregister() {
         HandlerList.unregisterAll(this);
         this.save();
     }
 
-    /** 判断指定玩家是否已经看过季节指南。 */
+    /**
+     * 判断指定玩家是否已经看过季节指南。
+     */
     private boolean hasSeenGuide(UUID id) {
-        return this.data.getBoolean("players." + String.valueOf(id) + ".seen_guide", false);
+        return this.data.getBoolean("players." + id + ".seen_guide", false);
     }
 
-    /** 标记指定玩家已经看过季节指南并立即保存。 */
+    /**
+     * 标记指定玩家已经看过季节指南并立即保存。
+     */
     private void markSeenGuide(UUID id) {
-        this.data.set("players." + String.valueOf(id) + ".seen_guide", true);
+        this.data.set("players." + id + ".seen_guide", true);
         this.save();
     }
 
-    /** 将玩家数据写入磁盘，失败时仅记录警告，不影响主流程。 */
+    /**
+     * 将玩家数据写入磁盘，失败时仅记录警告，不影响主流程。
+     */
     private void save() {
         try {
             this.data.save(this.file);
@@ -92,6 +103,7 @@ public final class SeasonGuideService implements Listener {
         if (!this.hasSeenGuide(player.getUniqueId())) {
             this.markSeenGuide(player.getUniqueId());
             (new BukkitRunnable() {
+                @Override
                 public void run() {
                     if (player.isOnline()) {
                         SeasonGuide.sendGuide(player, SeasonGuideService.this.plugin);

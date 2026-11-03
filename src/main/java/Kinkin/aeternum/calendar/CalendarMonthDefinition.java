@@ -1,4 +1,4 @@
-package Kinkin.aeternum.calendar;
+package kinkin.aeternum.calendar;
 
 /**
  * 单个日历月份的定义（不可变）。

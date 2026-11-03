@@ -951,16 +951,6 @@ crop:
     any_season: "&7Rośnie w każdej porze roku"
     greenhouse_light: "&8Podziemna szklarnia: światło {light}+"
 
-farming:
-  compost:
-    raw_name: "&aSurowy kompost"
-    raw_lore_1: "&7Wilgotna mieszanka ziemi i resztek organicznych."
-    raw_lore_2: "&7Zostaw go przy wodzie na 2 dni."
-    ready_name: "&2Żyzna, nawożona ziemia"
-    ready_lore_1: "&7Uprawy rosną tu &ax2 &7szybciej."
-    ready_lore_2: "&7Deptanie jej nie niszczy ziemi uprawnej."
-    ready_message: "&aTwój kompost zamienił się w żyzną, nawożoną ziemię."
-
 villager:
   lazy_tag: "&7[&6Leniuch&7]"
 

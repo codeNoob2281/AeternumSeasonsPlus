@@ -1,24 +1,10 @@
-package Kinkin.aeternum.crafting;
+package kinkin.aeternum.crafting;
 
-import Kinkin.aeternum.AeternumSeasonsPlugin;
-import Kinkin.aeternum.calendar.Season;
-import Kinkin.aeternum.calendar.SeasonService;
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Set;
-import java.util.concurrent.ThreadLocalRandom;
+import kinkin.aeternum.AeternumSeasonsPlugin;
+import kinkin.aeternum.calendar.Season;
+import kinkin.aeternum.calendar.SeasonService;
 import net.md_5.bungee.api.ChatColor;
-import org.bukkit.Bukkit;
-import org.bukkit.Material;
-import org.bukkit.NamespacedKey;
-import org.bukkit.Particle;
-import org.bukkit.World;
+import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.Ageable;
 import org.bukkit.block.data.BlockData;
@@ -43,6 +29,11 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitTask;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * 太阳火把（Solar Torch）。
@@ -77,7 +68,9 @@ public final class SolarTorch implements Listener, Runnable {
         this.loadData();
     }
 
-    /** 从数据文件读取已放置的太阳火把位置；若只有旧路径的数据文件，则迁移并保存到新路径。 */
+    /**
+     * 从数据文件读取已放置的太阳火把位置；若只有旧路径的数据文件，则迁移并保存到新路径。
+     */
     private void loadData() {
         this.placedTorches.clear();
         if (this.dataFile.exists()) {
@@ -96,7 +89,9 @@ public final class SolarTorch implements Listener, Runnable {
         }
     }
 
-    /** 将已放置的太阳火把位置写入数据文件。 */
+    /**
+     * 将已放置的太阳火把位置写入数据文件。
+     */
     private void saveData() {
         YamlConfiguration cfg = new YamlConfiguration();
         cfg.set("blocks", new ArrayList(this.placedTorches));
@@ -109,27 +104,35 @@ public final class SolarTorch implements Listener, Runnable {
 
     }
 
-    /** 向服务器注册事件监听器与合成配方，并启动周期任务。 */
+    /**
+     * 向服务器注册事件监听器与合成配方，并启动周期任务。
+     */
     public void register() {
         Bukkit.getPluginManager().registerEvents(this, this.plugin);
         this.registerRecipe();
         this.startTask();
     }
 
-    /** 注销事件监听器、停止周期任务并移除已注册的合成配方。 */
+    /**
+     * 注销事件监听器、停止周期任务并移除已注册的合成配方。
+     */
     public void unregister() {
         HandlerList.unregisterAll(this);
         this.stopTask();
         Bukkit.removeRecipe(this.recipeKey);
     }
 
-    /** 启动周期任务（每 40 tick 执行一次）。 */
+    /**
+     * 启动周期任务（每 40 tick 执行一次）。
+     */
     private void startTask() {
         this.stopTask();
         this.task = Bukkit.getScheduler().runTaskTimer(this.plugin, this, 40L, 40L);
     }
 
-    /** 停止周期任务（若正在运行）。 */
+    /**
+     * 停止周期任务（若正在运行）。
+     */
     private void stopTask() {
         if (this.task != null) {
             this.task.cancel();
@@ -138,7 +141,9 @@ public final class SolarTorch implements Listener, Runnable {
 
     }
 
-    /** 注册太阳火把的合成配方：B 烈焰粉、T 火把、F 向日葵。 */
+    /**
+     * 注册太阳火把的合成配方：B 烈焰粉、T 火把、F 向日葵。
+     */
     private void registerRecipe() {
         ItemStack dummy = new ItemStack(Material.TORCH);
         ShapedRecipe recipe = new ShapedRecipe(this.recipeKey, dummy);
@@ -158,14 +163,14 @@ public final class SolarTorch implements Listener, Runnable {
         if (event.getRecipe() != null) {
             Recipe recipe = event.getRecipe();
             if (recipe instanceof ShapedRecipe) {
-                ShapedRecipe shaped = (ShapedRecipe)recipe;
+                ShapedRecipe shaped = (ShapedRecipe) recipe;
                 if (this.recipeKey.equals(shaped.getKey())) {
                     ItemStack[] matrix = event.getInventory().getMatrix();
                     int blaze = 0;
                     int torch = 0;
                     int flower = 0;
 
-                    for(ItemStack stack : matrix) {
+                    for (ItemStack stack : matrix) {
                         if (stack != null && stack.getType() != Material.AIR) {
                             Material type = stack.getType();
                             if (type == Material.BLAZE_POWDER) {
@@ -174,7 +179,7 @@ public final class SolarTorch implements Listener, Runnable {
                                 torch += stack.getAmount();
                             } else {
                                 if (type != Material.SUNFLOWER) {
-                                    event.getInventory().setResult((ItemStack)null);
+                                    event.getInventory().setResult((ItemStack) null);
                                     return;
                                 }
 
@@ -187,7 +192,7 @@ public final class SolarTorch implements Listener, Runnable {
                         Player crafter = null;
                         HumanEntity viewer = event.getView().getPlayer();
                         if (viewer instanceof Player) {
-                            Player player = (Player)viewer;
+                            Player player = (Player) viewer;
                             crafter = player;
                         }
 
@@ -195,7 +200,7 @@ public final class SolarTorch implements Listener, Runnable {
                         ItemMeta meta = result.getItemMeta();
                         if (meta != null) {
                             PersistentDataContainer pdc = meta.getPersistentDataContainer();
-                            pdc.set(this.itemTagKey, PersistentDataType.BYTE, (byte)1);
+                            pdc.set(this.itemTagKey, PersistentDataType.BYTE, (byte) 1);
 
                             try {
                                 String name = this.plugin.lang.tr(crafter, "item.solar_torch.name");
@@ -214,7 +219,7 @@ public final class SolarTorch implements Listener, Runnable {
 
                         event.getInventory().setResult(result);
                     } else {
-                        event.getInventory().setResult((ItemStack)null);
+                        event.getInventory().setResult((ItemStack) null);
                     }
                 }
             }
@@ -232,7 +237,7 @@ public final class SolarTorch implements Listener, Runnable {
                 return false;
             } else {
                 PersistentDataContainer pdc = meta.getPersistentDataContainer();
-                Byte flag = (Byte)pdc.get(this.itemTagKey, PersistentDataType.BYTE);
+                Byte flag = (Byte) pdc.get(this.itemTagKey, PersistentDataType.BYTE);
                 if (flag != null && flag == 1) {
                     return true;
                 } else {
@@ -243,7 +248,7 @@ public final class SolarTorch implements Listener, Runnable {
                     if (lore.stream().anyMatch((line) -> line.contains("AET_CUSTOM_ST"))) {
                         looksLikeSolar = true;
                     } else if (!display.isEmpty() && !lore.isEmpty()) {
-                        String firstLore = ChatColor.stripColor((String)lore.get(0));
+                        String firstLore = ChatColor.stripColor((String) lore.get(0));
                         String firstLoreLower = firstLore.toLowerCase(Locale.ROOT);
                         if (firstLoreLower.contains("solar") || firstLoreLower.contains("sol")) {
                             looksLikeSolar = true;
@@ -251,7 +256,7 @@ public final class SolarTorch implements Listener, Runnable {
                     }
 
                     if (looksLikeSolar) {
-                        pdc.set(this.itemTagKey, PersistentDataType.BYTE, (byte)1);
+                        pdc.set(this.itemTagKey, PersistentDataType.BYTE, (byte) 1);
                         stack.setItemMeta(meta);
                         return true;
                     } else {
@@ -264,9 +269,11 @@ public final class SolarTorch implements Listener, Runnable {
         }
     }
 
-    /** 监听方块放置：放置的是太阳火把时，记录该位置并保存数据。 */
+    /**
+     * 监听方块放置：放置的是太阳火把时，记录该位置并保存数据。
+     */
     @EventHandler(
-        ignoreCancelled = true
+            ignoreCancelled = true
     )
     public void onPlace(BlockPlaceEvent event) {
         ItemStack inHand = event.getItemInHand();
@@ -280,10 +287,12 @@ public final class SolarTorch implements Listener, Runnable {
         }
     }
 
-    /** 监听方块破坏：破坏的是已登记的太阳火把时，取消原掉落并改为掉落对应的自定义物品。 */
+    /**
+     * 监听方块破坏：破坏的是已登记的太阳火把时，取消原掉落并改为掉落对应的自定义物品。
+     */
     @EventHandler(
-        ignoreCancelled = true,
-        priority = EventPriority.HIGHEST
+            ignoreCancelled = true,
+            priority = EventPriority.HIGHEST
     )
     public void onBreak(BlockBreakEvent event) {
         Block block = event.getBlock();
@@ -297,7 +306,7 @@ public final class SolarTorch implements Listener, Runnable {
                 ItemMeta meta = drop.getItemMeta();
                 if (meta != null) {
                     PersistentDataContainer pdc = meta.getPersistentDataContainer();
-                    pdc.set(this.itemTagKey, PersistentDataType.BYTE, (byte)1);
+                    pdc.set(this.itemTagKey, PersistentDataType.BYTE, (byte) 1);
 
                     try {
                         String name = this.plugin.lang.tr(breaker, "item.solar_torch.name");
@@ -314,12 +323,14 @@ public final class SolarTorch implements Listener, Runnable {
                     drop.setItemMeta(meta);
                 }
 
-                block.getWorld().dropItemNaturally(block.getLocation().add((double)0.5F, 0.1, (double)0.5F), drop);
+                block.getWorld().dropItemNaturally(block.getLocation().add((double) 0.5F, 0.1, (double) 0.5F), drop);
             }
         }
     }
 
-    /** 生成方块的位置键：世界名;x;y;z。 */
+    /**
+     * 生成方块的位置键：世界名;x;y;z。
+     */
     private String blockKey(Block block) {
         String worldName = block.getWorld().getName();
         return worldName + ";" + block.getX() + ";" + block.getY() + ";" + block.getZ();
@@ -329,9 +340,10 @@ public final class SolarTorch implements Listener, Runnable {
      * 周期任务：遍历已登记的太阳火把，清理失效记录（格式错误、世界不存在、方块已消失）；
      * 对有效的火把在夏季白天催熟作物，在夜晚驱散怪物。
      */
+    @Override
     public void run() {
         if (!this.placedTorches.isEmpty()) {
-            for(String key : new ArrayList<>(this.placedTorches)) {
+            for (String key : new ArrayList<>(this.placedTorches)) {
                 String[] parts = key.split(";");
                 if (parts.length != 4) {
                     this.placedTorches.remove(key);
@@ -378,12 +390,14 @@ public final class SolarTorch implements Listener, Runnable {
         }
     }
 
-    /** 在火把周围随机尝试催熟作物（夏季白天的效果）。 */
+    /**
+     * 在火把周围随机尝试催熟作物（夏季白天的效果）。
+     */
     private void boostNearbyCrops(Block center) {
         World world = center.getWorld();
         int radius = 4;
 
-        for(int i = 0; i < 10; ++i) {
+        for (int i = 0; i < 10; ++i) {
             int dx = this.rnd.nextInt(-radius, radius + 1);
             int dz = this.rnd.nextInt(-radius, radius + 1);
             Block soil = world.getBlockAt(center.getX() + dx, center.getY() - 1, center.getZ() + dz);
@@ -393,38 +407,42 @@ public final class SolarTorch implements Listener, Runnable {
                 if (ageable.getAge() < ageable.getMaximumAge() && this.rnd.nextDouble() < 0.35) {
                     ageable.setAge(ageable.getAge() + 1);
                     cropBlock.setBlockData(ageable, false);
-                    world.spawnParticle(Particle.HAPPY_VILLAGER, cropBlock.getLocation().add((double)0.5F, 0.4, (double)0.5F), 4, 0.2, 0.2, 0.2);
+                    world.spawnParticle(Particle.HAPPY_VILLAGER, cropBlock.getLocation().add((double) 0.5F, 0.4, (double) 0.5F), 4, 0.2, 0.2, 0.2);
                 }
             }
         }
 
     }
 
-    /** 驱散火把附近的怪物：附加缓慢效果，并有概率造成少量伤害。 */
+    /**
+     * 驱散火把附近的怪物：附加缓慢效果，并有概率造成少量伤害。
+     */
     private void repelMobs(Block center) {
         World world = center.getWorld();
         int radius = 6;
 
-        for(Entity entity : world.getNearbyEntities(center.getLocation().add((double)0.5F, (double)0.5F, (double)0.5F), (double)radius, (double)radius, (double)radius)) {
+        for (Entity entity : world.getNearbyEntities(center.getLocation().add((double) 0.5F, (double) 0.5F, (double) 0.5F), (double) radius, (double) radius, (double) radius)) {
             if (entity instanceof Monster mob) {
                 mob.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 40, 0, true, false, true));
                 if (this.rnd.nextDouble() < 0.1) {
-                    mob.damage((double)0.5F, (Entity)null);
+                    mob.damage((double) 0.5F, (Entity) null);
                 }
 
-                world.spawnParticle(Particle.END_ROD, mob.getLocation().add((double)0.0F, (double)1.0F, (double)0.0F), 4, 0.2, 0.3, 0.2);
+                world.spawnParticle(Particle.END_ROD, mob.getLocation().add((double) 0.0F, (double) 1.0F, (double) 0.0F), 4, 0.2, 0.3, 0.2);
             }
         }
 
     }
 
-    /** 判断方块是否为已登记的太阳火把（火把或墙上的火把）。 */
+    /**
+     * 判断方块是否为已登记的太阳火把（火把或墙上的火把）。
+     */
     private boolean isSolarTorchBlock(Block block) {
         Material type = block.getType();
         return (type == Material.TORCH || type == Material.WALL_TORCH) && this.placedTorches.contains(this.blockKey(block));
     }
 
     static {
-        PERSISTENT_LORE_TAG = String.valueOf(ChatColor.BLACK) + "AET_CUSTOM_ST";
+        PERSISTENT_LORE_TAG = ChatColor.BLACK + "AET_CUSTOM_ST";
     }
 }

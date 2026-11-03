@@ -1,27 +1,7 @@
-package Kinkin.aeternum.fauna;
+package kinkin.aeternum.fauna;
 
-import Kinkin.aeternum.AeternumSeasonsPlugin;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Deque;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ThreadLocalRandom;
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.Chunk;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.NamespacedKey;
-import org.bukkit.Sound;
-import org.bukkit.World;
+import kinkin.aeternum.AeternumSeasonsPlugin;
+import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.CreatureSpawner;
@@ -40,25 +20,23 @@ import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockExpEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.SpawnerSpawnEvent;
-import org.bukkit.event.inventory.InventoryAction;
-import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.event.inventory.InventoryCloseEvent;
-import org.bukkit.event.inventory.InventoryDragEvent;
-import org.bukkit.event.inventory.InventoryType;
-import org.bukkit.event.inventory.PrepareItemCraftEvent;
+import org.bukkit.event.inventory.*;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.world.ChunkLoadEvent;
-import org.bukkit.inventory.CraftingInventory;
-import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.InventoryHolder;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.ShapedRecipe;
+import org.bukkit.inventory.*;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.io.BukkitObjectInputStream;
 import org.bukkit.util.io.BukkitObjectOutputStream;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.IOException;
+import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * 生物生成器（Creature Generator）服务。
@@ -205,7 +183,7 @@ public final class CreatureGeneratorService implements Listener {
         if (raw != null && !raw.isEmpty()) {
             List<EntityType> out = new ArrayList();
 
-            for(String s : raw) {
+            for (String s : raw) {
                 if (s != null) {
                     try {
                         EntityType t = EntityType.valueOf(s.trim().toUpperCase(Locale.ROOT));
@@ -259,17 +237,17 @@ public final class CreatureGeneratorService implements Listener {
             int roll = ThreadLocalRandom.current().nextInt(this.weightedTotal);
             int acc = 0;
 
-            for(WeightedType entry : this.weightedTypes) {
+            for (WeightedType entry : this.weightedTypes) {
                 acc += entry.weight();
                 if (roll < acc) {
                     return entry.type();
                 }
             }
 
-            return ((WeightedType)this.weightedTypes.get(this.weightedTypes.size() - 1)).type();
+            return ((WeightedType) this.weightedTypes.get(this.weightedTypes.size() - 1)).type();
         } else {
             List<EntityType> list = this.allowedTypes();
-            return (EntityType)list.get(ThreadLocalRandom.current().nextInt(list.size()));
+            return (EntityType) list.get(ThreadLocalRandom.current().nextInt(list.size()));
         }
     }
 
@@ -285,7 +263,7 @@ public final class CreatureGeneratorService implements Listener {
             List<WeightedType> entries = new ArrayList();
             int total = 0;
 
-            for(String key : section.getKeys(false)) {
+            for (String key : section.getKeys(false)) {
                 EntityType type;
                 try {
                     type = EntityType.valueOf(key.trim().toUpperCase(Locale.ROOT));
@@ -322,7 +300,7 @@ public final class CreatureGeneratorService implements Listener {
             lore.add(color(this.plugin.lang.trServer("generator.item.lore2").replace("{mob}", "RANDOM")));
             lore.add(color(this.plugin.lang.trServer("generator.item.lore3")));
             meta.setLore(lore);
-            meta.getPersistentDataContainer().set(this.trapKey, PersistentDataType.BYTE, (byte)1);
+            meta.getPersistentDataContainer().set(this.trapKey, PersistentDataType.BYTE, (byte) 1);
             meta.getPersistentDataContainer().set(this.usesKey, PersistentDataType.INTEGER, uses);
             it.setItemMeta(meta);
             return it;
@@ -335,7 +313,7 @@ public final class CreatureGeneratorService implements Listener {
     private boolean isTrapItem(ItemStack it) {
         if (it != null && it.getType() == Material.SPAWNER) {
             ItemMeta meta = it.getItemMeta();
-            return meta == null ? false : meta.getPersistentDataContainer().has(this.trapKey, PersistentDataType.BYTE);
+            return meta != null && meta.getPersistentDataContainer().has(this.trapKey, PersistentDataType.BYTE);
         } else {
             return false;
         }
@@ -345,8 +323,8 @@ public final class CreatureGeneratorService implements Listener {
      * 放置监听：将合法的生成器物品写入刷怪笼方块并登记为已知生成器。
      */
     @EventHandler(
-        priority = EventPriority.HIGHEST,
-        ignoreCancelled = true
+            priority = EventPriority.HIGHEST,
+            ignoreCancelled = true
     )
     public void onPlace(BlockPlaceEvent e) {
         if (this.enabled()) {
@@ -356,7 +334,7 @@ public final class CreatureGeneratorService implements Listener {
                     int uses = this.defaultUses();
                     ItemMeta meta = e.getItemInHand().getItemMeta();
                     if (meta != null) {
-                        Integer u = (Integer)meta.getPersistentDataContainer().get(this.usesKey, PersistentDataType.INTEGER);
+                        Integer u = (Integer) meta.getPersistentDataContainer().get(this.usesKey, PersistentDataType.INTEGER);
                         if (u != null) {
                             uses = Math.max(1, u);
                         }
@@ -364,14 +342,14 @@ public final class CreatureGeneratorService implements Listener {
 
                     BlockState st = b.getState();
                     if (st instanceof TileState) {
-                        TileState ts = (TileState)st;
+                        TileState ts = (TileState) st;
                         PersistentDataContainer pdc = ts.getPersistentDataContainer();
-                        pdc.set(this.trapKey, PersistentDataType.BYTE, (byte)1);
+                        pdc.set(this.trapKey, PersistentDataType.BYTE, (byte) 1);
                         pdc.set(this.usesKey, PersistentDataType.INTEGER, uses);
                         this.saveInv(pdc, new ItemStack[3]);
                         ts.update(true, false);
                         if (st instanceof CreatureSpawner) {
-                            CreatureSpawner sp = (CreatureSpawner)st;
+                            CreatureSpawner sp = (CreatureSpawner) st;
 
                             try {
                                 sp.setSpawnedType(EntityType.AREA_EFFECT_CLOUD);
@@ -401,8 +379,8 @@ public final class CreatureGeneratorService implements Listener {
      * 合成结果监听：把生成器物品结果替换为按玩家语言本地化的物品。
      */
     @EventHandler(
-        priority = EventPriority.HIGHEST,
-        ignoreCancelled = true
+            priority = EventPriority.HIGHEST,
+            ignoreCancelled = true
     )
     public void onPrepareCraft(PrepareItemCraftEvent e) {
         CraftingInventory inventory = e.getInventory();
@@ -413,7 +391,7 @@ public final class CreatureGeneratorService implements Listener {
                 if (!ci.getViewers().isEmpty()) {
                     Object viewer = ci.getViewers().get(0);
                     if (viewer instanceof Player) {
-                        Player player = (Player)viewer;
+                        Player player = (Player) viewer;
                         ci.setResult(this.createTrapItem(this.defaultUses(), player));
                     }
                 }
@@ -436,7 +414,7 @@ public final class CreatureGeneratorService implements Listener {
             lore.add(color(this.plugin.lang.tr(p, "generator.item.lore2").replace("{mob}", "RANDOM")));
             lore.add(color(this.plugin.lang.tr(p, "generator.item.lore3")));
             meta.setLore(lore);
-            meta.getPersistentDataContainer().set(this.trapKey, PersistentDataType.BYTE, (byte)1);
+            meta.getPersistentDataContainer().set(this.trapKey, PersistentDataType.BYTE, (byte) 1);
             meta.getPersistentDataContainer().set(this.usesKey, PersistentDataType.INTEGER, uses);
             it.setItemMeta(meta);
             return it;
@@ -447,8 +425,8 @@ public final class CreatureGeneratorService implements Listener {
      * 方块经验监听：生成器方块被破坏时不掉落经验。
      */
     @EventHandler(
-        priority = EventPriority.HIGHEST,
-        ignoreCancelled = true
+            priority = EventPriority.HIGHEST,
+            ignoreCancelled = true
     )
     public void onBlockExp(BlockExpEvent e) {
         Block b = e.getBlock();
@@ -463,8 +441,8 @@ public final class CreatureGeneratorService implements Listener {
      * 刷怪笼生成监听：生成器方块自身的刷怪被取消。
      */
     @EventHandler(
-        priority = EventPriority.HIGHEST,
-        ignoreCancelled = true
+            priority = EventPriority.HIGHEST,
+            ignoreCancelled = true
     )
     public void onSpawnerSpawn(SpawnerSpawnEvent e) {
         Block b = e.getSpawner().getBlock();
@@ -479,8 +457,8 @@ public final class CreatureGeneratorService implements Listener {
      * 破坏监听：回收生成器物品、掉落存储内容并扣减次数。
      */
     @EventHandler(
-        priority = EventPriority.HIGHEST,
-        ignoreCancelled = true
+            priority = EventPriority.HIGHEST,
+            ignoreCancelled = true
     )
     public void onBreak(BlockBreakEvent e) {
         Block b = e.getBlock();
@@ -489,7 +467,7 @@ public final class CreatureGeneratorService implements Listener {
                 this.knownTraps.remove(CreatureGeneratorService.TrapKey.of(b));
                 e.setDropItems(false);
                 e.setExpToDrop(0);
-                TileState ts = (TileState)b.getState();
+                TileState ts = (TileState) b.getState();
                 PersistentDataContainer pdc = ts.getPersistentDataContainer();
                 ItemStack[] inv = this.loadInv(pdc);
                 this.dropStored(b.getLocation(), inv);
@@ -498,7 +476,7 @@ public final class CreatureGeneratorService implements Listener {
                 if (uses <= 0) {
                     e.getPlayer().sendMessage(color(this.plugin.lang.tr(e.getPlayer(), "generator.msg.broken")));
                 } else {
-                    b.getWorld().dropItemNaturally(b.getLocation().add((double)0.5F, (double)0.5F, (double)0.5F), this.createTrapItem(uses, e.getPlayer()));
+                    b.getWorld().dropItemNaturally(b.getLocation().add((double) 0.5F, (double) 0.5F, (double) 0.5F), this.createTrapItem(uses, e.getPlayer()));
                 }
             }
         }
@@ -508,8 +486,8 @@ public final class CreatureGeneratorService implements Listener {
      * 交互监听：右键生成器打开 GUI；手持刷怪蛋时禁止交互并提示。
      */
     @EventHandler(
-        priority = EventPriority.HIGHEST,
-        ignoreCancelled = true
+            priority = EventPriority.HIGHEST,
+            ignoreCancelled = true
     )
     public void onInteract(PlayerInteractEvent e) {
         if (this.enabled()) {
@@ -537,12 +515,12 @@ public final class CreatureGeneratorService implements Listener {
      * 打开生成器的 GUI，展示 3 个存储格位并填充剩余位置。
      */
     private void openGui(Player p, Block b) {
-        TileState ts = (TileState)b.getState();
+        TileState ts = (TileState) b.getState();
         PersistentDataContainer pdc = ts.getPersistentDataContainer();
         Inventory inv = Bukkit.createInventory(new TrapHolder(b.getLocation()), 9, color(this.plugin.lang.tr(p, "generator.gui.title")));
         ItemStack[] stored = this.loadInv(pdc);
 
-        for(int i = 0; i < 3; ++i) {
+        for (int i = 0; i < 3; ++i) {
             inv.setItem(i, stored[i]);
         }
 
@@ -553,7 +531,7 @@ public final class CreatureGeneratorService implements Listener {
             filler.setItemMeta(fm);
         }
 
-        for(int i = 3; i < 9; ++i) {
+        for (int i = 3; i < 9; ++i) {
             inv.setItem(i, filler);
         }
 
@@ -564,8 +542,8 @@ public final class CreatureGeneratorService implements Listener {
      * 生成器 GUI 点击监听：限制存储区与非法操作。
      */
     @EventHandler(
-        priority = EventPriority.HIGHEST,
-        ignoreCancelled = true
+            priority = EventPriority.HIGHEST,
+            ignoreCancelled = true
     )
     public void onGuiClick(InventoryClickEvent e) {
         if (e.getView().getTopInventory().getHolder() instanceof TrapHolder) {
@@ -597,11 +575,11 @@ public final class CreatureGeneratorService implements Listener {
      * 生成器 GUI 拖拽监听：禁止拖入物品。
      */
     @EventHandler(
-        ignoreCancelled = true
+            ignoreCancelled = true
     )
     public void onGuiDrag(InventoryDragEvent e) {
         if (e.getView().getTopInventory().getHolder() instanceof TrapHolder) {
-            for(int slot : e.getRawSlots()) {
+            for (int slot : e.getRawSlots()) {
                 if (slot >= 0 && slot < 9) {
                     e.setCancelled(true);
                     return;
@@ -621,11 +599,11 @@ public final class CreatureGeneratorService implements Listener {
             Block b = h.loc.getBlock();
             if (b.getType() == Material.SPAWNER) {
                 if (this.isTrapBlock(b)) {
-                    TileState ts = (TileState)b.getState();
+                    TileState ts = (TileState) b.getState();
                     PersistentDataContainer pdc = ts.getPersistentDataContainer();
                     ItemStack[] items = new ItemStack[3];
 
-                    for(int i = 0; i < 3; ++i) {
+                    for (int i = 0; i < 3; ++i) {
                         ItemStack it = e.getInventory().getItem(i);
                         items[i] = it != null && it.getType() != Material.AIR ? it.clone() : null;
                     }
@@ -643,7 +621,7 @@ public final class CreatureGeneratorService implements Listener {
     private void startTask() {
         this.stopTask();
         if (this.enabled()) {
-            long period = (long)this.tickSeconds() * 20L;
+            long period = (long) this.tickSeconds() * 20L;
             this.task = Bukkit.getScheduler().runTaskTimer(this.plugin, this::enqueueGenerationCycle, period, period);
             this.maintenanceTask = Bukkit.getScheduler().runTaskTimer(this.plugin, this::maintenanceTick, 1L, 1L);
         }
@@ -674,7 +652,7 @@ public final class CreatureGeneratorService implements Listener {
      */
     private void enqueueGenerationCycle() {
         if (this.enabled()) {
-            for(TrapKey key : this.knownTraps) {
+            for (TrapKey key : this.knownTraps) {
                 if (this.queuedTraps.add(key)) {
                     this.pendingTraps.addLast(key);
                 }
@@ -690,14 +668,14 @@ public final class CreatureGeneratorService implements Listener {
         if (this.enabled()) {
             long deadline = System.nanoTime() + 1500000L;
 
-            for(int processed = 0; processed < 8 && !this.pendingTraps.isEmpty() && System.nanoTime() < deadline; ++processed) {
-                TrapKey key = (TrapKey)this.pendingTraps.pollFirst();
+            for (int processed = 0; processed < 8 && !this.pendingTraps.isEmpty() && System.nanoTime() < deadline; ++processed) {
+                TrapKey key = (TrapKey) this.pendingTraps.pollFirst();
                 this.queuedTraps.remove(key);
                 this.processTrap(key);
             }
 
             if (!this.discoveryQueue.isEmpty() && System.nanoTime() < deadline) {
-                ChunkKey key = (ChunkKey)this.discoveryQueue.pollFirst();
+                ChunkKey key = (ChunkKey) this.discoveryQueue.pollFirst();
                 this.queuedChunks.remove(key);
                 this.discoverChunk(key);
             }
@@ -709,8 +687,8 @@ public final class CreatureGeneratorService implements Listener {
      * 把当前所有已加载区块加入发现队列。
      */
     private void enqueueLoadedChunks() {
-        for(World world : Bukkit.getWorlds()) {
-            for(Chunk chunk : world.getLoadedChunks()) {
+        for (World world : Bukkit.getWorlds()) {
+            for (Chunk chunk : world.getLoadedChunks()) {
                 this.enqueueChunk(chunk);
             }
         }
@@ -747,9 +725,9 @@ public final class CreatureGeneratorService implements Listener {
         if (world != null && world.isChunkLoaded(key.chunkX(), key.chunkZ())) {
             Chunk chunk = world.getChunkAt(key.chunkX(), key.chunkZ());
 
-            for(BlockState state : chunk.getTileEntities()) {
+            for (BlockState state : chunk.getTileEntities()) {
                 if (state instanceof CreatureSpawner && state instanceof TileState) {
-                    TileState tile = (TileState)state;
+                    TileState tile = (TileState) state;
                     if (tile.getPersistentDataContainer().has(this.trapKey, PersistentDataType.BYTE)) {
                         this.knownTraps.add(CreatureGeneratorService.TrapKey.of(tile.getBlock()));
                     }
@@ -773,7 +751,7 @@ public final class CreatureGeneratorService implements Listener {
             } else {
                 BlockState state = block.getState();
                 if (state instanceof CreatureSpawner && state instanceof TileState) {
-                    TileState tile = (TileState)state;
+                    TileState tile = (TileState) state;
                     PersistentDataContainer pdc = tile.getPersistentDataContainer();
                     if (!pdc.has(this.trapKey, PersistentDataType.BYTE)) {
                         this.knownTraps.remove(key);
@@ -782,16 +760,16 @@ public final class CreatureGeneratorService implements Listener {
                         int rangeSq = range * range;
                         if (this.requirePlayerNearby()) {
                             boolean near = false;
-                            double centerX = (double)key.x() + (double)0.5F;
-                            double centerY = (double)key.y() + (double)0.5F;
-                            double centerZ = (double)key.z() + (double)0.5F;
+                            double centerX = (double) key.x() + (double) 0.5F;
+                            double centerY = (double) key.y() + (double) 0.5F;
+                            double centerZ = (double) key.z() + (double) 0.5F;
 
-                            for(Player player : world.getPlayers()) {
+                            for (Player player : world.getPlayers()) {
                                 Location location = player.getLocation();
                                 double dx = location.getX() - centerX;
                                 double dy = location.getY() - centerY;
                                 double dz = location.getZ() - centerZ;
-                                if (dx * dx + dy * dy + dz * dz <= (double)rangeSq) {
+                                if (dx * dx + dy * dy + dz * dz <= (double) rangeSq) {
                                     near = true;
                                     break;
                                 }
@@ -841,11 +819,11 @@ public final class CreatureGeneratorService implements Listener {
                 int range = this.playerRange();
                 int rangeSq = range * range;
 
-                for(World w : Bukkit.getWorlds()) {
-                    for(Chunk c : w.getLoadedChunks()) {
-                        for(BlockState st : c.getTileEntities()) {
+                for (World w : Bukkit.getWorlds()) {
+                    for (Chunk c : w.getLoadedChunks()) {
+                        for (BlockState st : c.getTileEntities()) {
                             if (st instanceof TileState) {
-                                TileState ts = (TileState)st;
+                                TileState ts = (TileState) st;
                                 if (st instanceof CreatureSpawner) {
                                     PersistentDataContainer pdc = ts.getPersistentDataContainer();
                                     if (pdc.has(this.trapKey, PersistentDataType.BYTE)) {
@@ -853,10 +831,10 @@ public final class CreatureGeneratorService implements Listener {
                                         if (b.getType() == Material.SPAWNER) {
                                             if (this.requirePlayerNearby()) {
                                                 boolean near = false;
-                                                Location at = b.getLocation().add((double)0.5F, (double)0.5F, (double)0.5F);
+                                                Location at = b.getLocation().add((double) 0.5F, (double) 0.5F, (double) 0.5F);
 
-                                                for(Player p : w.getPlayers()) {
-                                                    if (p.getLocation().distanceSquared(at) <= (double)rangeSq) {
+                                                for (Player p : w.getPlayers()) {
+                                                    if (p.getLocation().distanceSquared(at) <= (double) rangeSq) {
                                                         near = true;
                                                         break;
                                                     }
@@ -904,7 +882,7 @@ public final class CreatureGeneratorService implements Listener {
      * 返回 3 个存储格位中的首个空位，无空位返回 -1。
      */
     private int firstEmpty(ItemStack[] inv) {
-        for(int i = 0; i < 3; ++i) {
+        for (int i = 0; i < 3; ++i) {
             ItemStack it = inv[i];
             if (it == null || it.getType() == Material.AIR) {
                 return i;
@@ -941,7 +919,7 @@ public final class CreatureGeneratorService implements Listener {
         if (b.getType() == Material.SPAWNER) {
             if (this.isTrapBlock(b)) {
                 this.knownTraps.remove(CreatureGeneratorService.TrapKey.of(b));
-                TileState ts = (TileState)b.getState();
+                TileState ts = (TileState) b.getState();
                 PersistentDataContainer pdc = ts.getPersistentDataContainer();
                 ItemStack[] inv = this.loadInv(pdc);
                 this.dropStored(b.getLocation(), inv);
@@ -949,10 +927,10 @@ public final class CreatureGeneratorService implements Listener {
                 b.setType(Material.AIR);
                 int range = Math.max(8, this.playerRange());
                 int rangeSq = range * range;
-                Location at = b.getLocation().add((double)0.5F, (double)0.5F, (double)0.5F);
+                Location at = b.getLocation().add((double) 0.5F, (double) 0.5F, (double) 0.5F);
 
-                for(Player p : b.getWorld().getPlayers()) {
-                    if (p.getLocation().distanceSquared(at) <= (double)rangeSq) {
+                for (Player p : b.getWorld().getPlayers()) {
+                    if (p.getLocation().distanceSquared(at) <= (double) rangeSq) {
                         p.sendMessage(color(this.plugin.lang.tr(p, "generator.msg.broken")));
                     }
                 }
@@ -967,9 +945,9 @@ public final class CreatureGeneratorService implements Listener {
     private void dropStored(Location loc, ItemStack[] inv) {
         World w = loc.getWorld();
         if (w != null && inv != null) {
-            Location drop = loc.clone().add((double)0.5F, (double)0.5F, (double)0.5F);
+            Location drop = loc.clone().add((double) 0.5F, (double) 0.5F, (double) 0.5F);
 
-            for(int i = 0; i < 3; ++i) {
+            for (int i = 0; i < 3; ++i) {
                 ItemStack it = inv[i];
                 if (it != null && it.getType() != Material.AIR) {
                     w.dropItemNaturally(drop, it);
@@ -995,7 +973,7 @@ public final class CreatureGeneratorService implements Listener {
      * 读取生成器剩余使用次数（缺省为默认值）。
      */
     private int getUses(PersistentDataContainer pdc) {
-        Integer v = (Integer)pdc.get(this.usesKey, PersistentDataType.INTEGER);
+        Integer v = (Integer) pdc.get(this.usesKey, PersistentDataType.INTEGER);
         return v == null ? this.defaultUses() : Math.max(0, v);
     }
 
@@ -1003,12 +981,13 @@ public final class CreatureGeneratorService implements Listener {
      * 从持久化数据反序列化 3 格存储物品。
      */
     private ItemStack[] loadInv(PersistentDataContainer pdc) {
-        byte[] raw = (byte[])pdc.get(this.invKey, PersistentDataType.BYTE_ARRAY);
+        byte[] raw = (byte[]) pdc.get(this.invKey, PersistentDataType.BYTE_ARRAY);
         if (raw != null && raw.length != 0) {
             try {
                 BukkitObjectInputStream in = new BukkitObjectInputStream(new ByteArrayInputStream(raw));
 
-                readBlock: {
+                readBlock:
+                {
                     ItemStack[] loaded;
                     try {
                         Object o = in.readObject();
@@ -1016,10 +995,10 @@ public final class CreatureGeneratorService implements Listener {
                             break readBlock;
                         }
 
-                        ItemStack[] arr = (ItemStack[])o;
+                        ItemStack[] arr = (ItemStack[]) o;
                         ItemStack[] fixed = new ItemStack[3];
 
-                        for(int i = 0; i < 3; ++i) {
+                        for (int i = 0; i < 3; ++i) {
                             fixed[i] = i < arr.length ? arr[i] : null;
                         }
 
@@ -1054,7 +1033,7 @@ public final class CreatureGeneratorService implements Listener {
     private void saveInv(PersistentDataContainer pdc, ItemStack[] items) {
         ItemStack[] fixed = new ItemStack[3];
 
-        for(int i = 0; i < 3; ++i) {
+        for (int i = 0; i < 3; ++i) {
             fixed[i] = items != null && i < items.length ? items[i] : null;
         }
 
@@ -1111,6 +1090,7 @@ public final class CreatureGeneratorService implements Listener {
             this.loc = loc;
         }
 
+        @Override
         public Inventory getInventory() {
             return null;
         }
@@ -1119,7 +1099,7 @@ public final class CreatureGeneratorService implements Listener {
     /**
      * 生成器的唯一键：世界 UUID 与方块坐标。
      */
-    private static record TrapKey(UUID worldId, int x, int y, int z) {
+    private record TrapKey(UUID worldId, int x, int y, int z) {
         private TrapKey {
         }
 
@@ -1131,7 +1111,7 @@ public final class CreatureGeneratorService implements Listener {
     /**
      * 区块键：世界 UUID 与区块坐标。
      */
-    private static record ChunkKey(UUID worldId, int chunkX, int chunkZ) {
+    private record ChunkKey(UUID worldId, int chunkX, int chunkZ) {
         private ChunkKey {
         }
     }
@@ -1139,7 +1119,7 @@ public final class CreatureGeneratorService implements Listener {
     /**
      * 带权重的生成类型条目。
      */
-    private static record WeightedType(EntityType type, int weight) {
+    private record WeightedType(EntityType type, int weight) {
         private WeightedType {
         }
     }
