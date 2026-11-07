@@ -78,7 +78,7 @@ public final class QuartzRushEvent implements SeasonalEvent {
 
     @Override
     public String getDisplayName() {
-        return "Quartz Rush";
+        return this.plugin.lang.trOr(null, "event.quartz_rush.display_name", "&fQuartz Rush");
     }
 
     @Override

@@ -105,7 +105,7 @@ public final class GhastAlertEvent implements SeasonalEvent {
 
     @Override
     public String getDisplayName() {
-        return "Ghast Alert";
+        return this.plugin.lang.trOr(null, "event.ghast_alert.display_name", "&fGhast Alert");
     }
 
     @Override

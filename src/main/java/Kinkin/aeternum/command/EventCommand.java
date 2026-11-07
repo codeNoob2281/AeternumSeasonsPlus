@@ -4,6 +4,11 @@ import kinkin.aeternum.AeternumSeasonsPlugin;
 import kinkin.aeternum.calendar.CalendarChannel;
 import kinkin.aeternum.events.SeasonalEvent;
 import kinkin.aeternum.events.SeasonalEventService;
+import net.md_5.bungee.api.chat.BaseComponent;
+import net.md_5.bungee.api.chat.ClickEvent;
+import net.md_5.bungee.api.chat.ComponentBuilder;
+import net.md_5.bungee.api.chat.HoverEvent;
+import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -13,6 +18,7 @@ import org.bukkit.entity.Player;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 /**
  * /event 命令执行器。
@@ -56,10 +62,10 @@ public final class EventCommand implements CommandExecutor, TabCompleter {
         } else {
             String sub = args[0].toLowerCase(Locale.ROOT);
             if ("list".equals(sub)) {
-                this.handleList(sender, player);
+                this.handleList(sender, player, label);
                 return true;
             } else if ("info".equals(sub)) {
-                this.handleInfo(sender, player);
+                this.handleInfo(sender, player, args, label);
                 return true;
             } else if ("stop".equals(sub)) {
                 CalendarChannel channel = player == null ? CalendarChannel.OVERWORLD : this.plugin.getSeasons().resolveChannel(player.getWorld());
@@ -148,53 +154,205 @@ public final class EventCommand implements CommandExecutor, TabCompleter {
     /**
      * 列出所有日历频道下已注册的事件及其显示名。
      */
-    private void handleList(CommandSender sender, Player player) {
-        String header = player != null ? this.plugin.lang.tr(player, "cmd.event.list.header") : "Registered events:";
-        sender.sendMessage(header);
+    private void handleList(CommandSender sender, Player player, String label) {
+        if (player != null) {
+            sender.sendMessage(this.plugin.lang.tr(player, "cmd.event.list.header"));
 
-        for (CalendarChannel channel : CalendarChannel.values()) {
-            for (String id : this.events.getRegisteredEventIds(channel)) {
-                SeasonalEvent ev = this.events.getEventById(channel, id);
-                String line;
-                if (player != null) {
-                    line = this.plugin.lang.tr(player, "cmd.event.list.item").replace("{id}", id).replace("{name}", ev.getDisplayName());
-                } else {
-                    line = "- " + id + " (" + ev.getDisplayName() + ")";
+            for (CalendarChannel channel : CalendarChannel.values()) {
+                for (String id : this.events.getRegisteredEventIds(channel)) {
+                    SeasonalEvent ev = this.events.getEventById(channel, id);
+                    if (ev != null) {
+                        String line = "§8[§r" + this.channelWorldName(player, channel) + "§8] "
+                                + this.plugin.lang.tr(player, "cmd.event.list.item")
+                                .replace("{id}", id)
+                                .replace("{name}", ev.getDisplayName());
+                        sender.sendMessage(this.buildClickableEventLine(player, channel, id, line, label));
+                    }
                 }
+            }
+        } else {
+            sender.sendMessage("Registered events:");
 
-                String channelName = channel.name();
-                sender.sendMessage("[" + channelName + "] " + line);
+            for (CalendarChannel channel : CalendarChannel.values()) {
+                for (String id : this.events.getRegisteredEventIds(channel)) {
+                    SeasonalEvent ev = this.events.getEventById(channel, id);
+                    if (ev != null) {
+                        sender.sendMessage("[" + channel.name() + "] - " + id + " (" + ev.getDisplayName() + ")");
+                    }
+                }
             }
         }
 
     }
 
     /**
-     * 输出每个频道当前活跃事件的信息（含剩余天数）。
+     * 返回频道对应的世界显示名（主世界 / 下界），用于在事件列表前标注事件所属世界。
      */
-    private void handleInfo(CommandSender sender, Player player) {
-        for (CalendarChannel channel : CalendarChannel.values()) {
-            SeasonalEvent ev = this.events.getActive(channel);
-            if (ev == null) {
-                if (player != null) {
-                    String channelName = channel.name();
-                    sender.sendMessage("[" + channelName + "] " + this.plugin.lang.tr(player, "cmd.event.no_active"));
-                } else {
-                    sender.sendMessage("[Aeternum/" + channel.name() + "] No active event.");
-                }
+    private String channelWorldName(Player player, CalendarChannel channel) {
+        if (channel == CalendarChannel.OVERWORLD) {
+            return this.plugin.lang.trOr(player, "realm.overworld_title", "Overworld");
+        }
+        return this.plugin.lang.trOr(player, "realm.nether_title", "Nether");
+    }
+
+    /**
+     * 构造一条可点击的事件列表项（悬停提示 + 点击执行 info 子命令查看详情）。
+     */
+    private BaseComponent[] buildClickableEventLine(Player player, CalendarChannel channel, String id, String line, String label) {
+        TextComponent main = new TextComponent(line);
+        String hover = this.plugin.lang.trOr(player, "cmd.event.list.click_hint", "&8(Click for details)");
+        main.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new ComponentBuilder(hover).create()));
+        main.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/" + label + " info " + channel.name() + " " + id));
+        return new BaseComponent[]{main};
+    }
+
+    /**
+     * 输出每个频道当前活跃事件的信息（含剩余天数）；若给定事件 id 则输出该事件详情。
+     */
+    private void handleInfo(CommandSender sender, Player player, String[] args, String label) {
+        CalendarChannel filter = null;
+        String targetId = null;
+        if (args.length >= 3) {
+            CalendarChannel ch = CalendarChannel.fromString(args[1]);
+            if (ch != null) {
+                filter = ch;
+                targetId = args[2].toLowerCase(Locale.ROOT);
             } else {
-                int days = this.events.getDaysRemaining(channel);
-                if (player != null) {
-                    String msg = this.plugin.lang.tr(player, "cmd.event.info").replace("{id}", ev.getId()).replace("{name}", ev.getDisplayName()).replace("{days}", String.valueOf(days));
-                    String channelName = channel.name();
-                    sender.sendMessage("[" + channelName + "] " + msg);
+                targetId = args[1].toLowerCase(Locale.ROOT);
+            }
+        } else if (args.length == 2) {
+            String first = args[1];
+            CalendarChannel ch = CalendarChannel.fromString(first);
+            if (ch != null) {
+                filter = ch;
+            } else {
+                targetId = first.toLowerCase(Locale.ROOT);
+            }
+        }
+
+        if (targetId != null) {
+            this.sendEventDetail(sender, player, filter, targetId, label);
+            return;
+        }
+
+        for (CalendarChannel channel : CalendarChannel.values()) {
+            if (filter == null || filter == channel) {
+                SeasonalEvent ev = this.events.getActive(channel);
+                if (ev == null) {
+                    if (player != null) {
+                        sender.sendMessage("[" + channel.name() + "] " + this.plugin.lang.tr(player, "cmd.event.no_active"));
+                    } else {
+                        sender.sendMessage("[Aeternum/" + channel.name() + "] No active event.");
+                    }
                 } else {
-                    String channelName = channel.name();
-                    sender.sendMessage("[Aeternum/" + channelName + "] Active: " + ev.getId() + " (" + ev.getDisplayName() + "), days remaining=" + days);
+                    int days = this.events.getDaysRemaining(channel);
+                    if (player != null) {
+                        String msg = this.plugin.lang.tr(player, "cmd.event.info").replace("{id}", ev.getId()).replace("{name}", ev.getDisplayName()).replace("{days}", String.valueOf(days));
+                        sender.sendMessage("[" + channel.name() + "] " + msg);
+                    } else {
+                        sender.sendMessage("[Aeternum/" + channel.name() + "] Active: " + ev.getId() + " (" + ev.getDisplayName() + "), days remaining=" + days);
+                    }
                 }
             }
         }
 
+    }
+
+    /**
+     * 输出单个事件的详细信息（支持按频道或事件 id 过滤）。
+     */
+    private void sendEventDetail(CommandSender sender, Player player, CalendarChannel channel, String targetId, String label) {
+        String normalized = targetId;
+        if (targetId.equals("fishing")) {
+            normalized = "fishing_festival";
+        } else if (targetId.equals("mining")) {
+            normalized = "mining_blessing";
+        }
+
+        CalendarChannel foundChannel = null;
+        SeasonalEvent ev = null;
+        CalendarChannel[] channels = channel != null ? new CalendarChannel[]{channel} : CalendarChannel.values();
+
+        for (CalendarChannel ch : channels) {
+            SeasonalEvent candidate = this.events.getEventById(ch, normalized);
+            if (candidate != null) {
+                foundChannel = ch;
+                ev = candidate;
+                break;
+            }
+        }
+
+        if (ev == null) {
+            if (player != null) {
+                sender.sendMessage(this.plugin.lang.tr(player, "cmd.event.no_such_event").replace("{id}", targetId));
+            } else {
+                sender.sendMessage("[Aeternum] Unknown event: " + targetId);
+            }
+            return;
+        }
+
+        String name = ev.getDisplayName();
+        String channelId = foundChannel == null ? "?" : foundChannel.name();
+        SeasonalEvent active = foundChannel == null ? null : this.events.getActive(foundChannel);
+        boolean isActive = active != null && active.getId().equalsIgnoreCase(ev.getId());
+        String daysStr = isActive ? String.valueOf(this.events.getDaysRemaining(foundChannel)) : "-";
+
+        if (player == null) {
+            sender.sendMessage("[Aeternum/" + channelId + "] " + ev.getId() + " (" + name + ")"
+                    + " seasons=" + this.seasonList(ev)
+                    + " duration=" + ev.getMinDurationDays() + "-" + ev.getMaxDurationDays() + "d"
+                    + " active=" + isActive + (isActive ? " daysRemaining=" + daysStr : ""));
+            return;
+        }
+
+        sender.sendMessage(this.plugin.lang.trf(player, "cmd.event.detail.header", Map.of(
+                "name", name,
+                "id", ev.getId(),
+                "channel", channelId
+        )));
+        sender.sendMessage(this.plugin.lang.trf(player, "cmd.event.detail.seasons", Map.of(
+                "seasons", this.seasonListTranslated(player, ev)
+        )));
+        sender.sendMessage(this.plugin.lang.trf(player, "cmd.event.detail.duration", Map.of(
+                "min", String.valueOf(ev.getMinDurationDays()),
+                "max", String.valueOf(ev.getMaxDurationDays())
+        )));
+        sender.sendMessage(this.plugin.lang.trf(player, "cmd.event.detail.desc", Map.of(
+                "desc", this.plugin.lang.tr(player, "guide.events." + ev.getId())
+        )));
+        if (isActive) {
+            sender.sendMessage(this.plugin.lang.trf(player, "cmd.event.detail.active", Map.of("days", daysStr)));
+        } else {
+            sender.sendMessage(this.plugin.lang.tr(player, "cmd.event.detail.inactive"));
+        }
+    }
+
+    /**
+     * 返回事件允许的季节列表（英文名，用于控制台展示）。
+     */
+    private String seasonList(SeasonalEvent ev) {
+        List<String> out = new ArrayList();
+        for (kinkin.aeternum.calendar.Season s : kinkin.aeternum.calendar.Season.values()) {
+            if (ev.isSeasonAllowed(s)) {
+                out.add(s.name());
+            }
+        }
+        return String.join("/", out);
+    }
+
+    /**
+     * 返回事件允许的季节列表（本地化名称，用于玩家展示）。
+     */
+    private String seasonListTranslated(Player player, SeasonalEvent ev) {
+        List<String> out = new ArrayList();
+        for (kinkin.aeternum.calendar.Season s : kinkin.aeternum.calendar.Season.values()) {
+            if (ev.isSeasonAllowed(s)) {
+                out.add(this.plugin.lang.trOr(player, "season." + s.name(), s.name()));
+            }
+        }
+        // 季节名已由 trOr 转成实际颜色码；分隔符也必须用实际颜色码（§），
+        // 否则 trf 只翻译模板、不翻译此处拼接的 & 代码，会原样显示 "&7, &f"。
+        return String.join("§7, §f", out);
     }
 
     /**
@@ -221,6 +379,24 @@ public final class EventCommand implements CommandExecutor, TabCompleter {
                     if (id.startsWith(prefix)) {
                         out.add(id);
                     }
+                }
+            }
+
+            return out;
+        } else if (args.length == 2 && "info".equalsIgnoreCase(args[0])) {
+            String prefix = args[1].toLowerCase(Locale.ROOT);
+
+            for (CalendarChannel channel : CalendarChannel.values()) {
+                for (String id : this.events.getRegisteredEventIds(channel)) {
+                    if (id.startsWith(prefix)) {
+                        out.add(id);
+                    }
+                }
+            }
+
+            for (CalendarChannel channel : CalendarChannel.values()) {
+                if (channel.name().toLowerCase(Locale.ROOT).startsWith(prefix) && !out.contains(channel.name())) {
+                    out.add(channel.name());
                 }
             }
 

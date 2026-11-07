@@ -18,6 +18,7 @@ realm:
   heat_subtitle: "&7Yanan topraklarda hayatta kal"
 
   overworld_title: "&aAna Dünya"
+  nether_title: "&cNether"
   returned_from: "&7Şuradan ayrıldınız: &f{name}"
 
 log:
@@ -37,12 +38,20 @@ cmd:
     list:
       header: "&6Kayıtlı etkinlikler:"
       item: "&7- &e{id}&7 (&f{name}&7)"
+      click_hint: "&8Detaylar için tıkla"
     started: "&aEtkinlik &e{id}&a başlamaya zorlandı."
     stopped: "&cAktif etkinlik durduruldu."
     no_such_event: "&e{id}&c kimliğine sahip hiçbir etkinlik bulunamadı."
     no_active: "&7Şu anda aktif bir etkinlik yok."
     info: "&6Aktif etkinlik: &e{id}&7 (&f{name}&7), kalan &e{days}&7 gün."
 
+    detail:
+      header: "&6=== &f{name} &6(&e{id}&6) &7[{channel}]&6 ==="
+      seasons: "&7Mevsimler: &f{seasons}"
+      duration: "&7Süre: &f{min}&7-&f{max} &7gün"
+      desc: "&7Description: &f{desc}"
+      active: "&aDurum: &fAktif&7, &e{days}&7 gün kaldı."
+      inactive: "&7Durum: &fEtkin değil"
   season:
     no_permission: "&cBu komutu kullanma izniniz yok."
 
@@ -88,6 +97,7 @@ cmd:
 
 event:
   blood_moon:
+    display_name: "&4Kan Ayı"
     title: "§4☾ Kanlı Ay ☾"
     subtitle: "§cYaratıklar güçleniyor ve uyuyamıyorsunuz..."
     end: "&6Kanlı Ay soldu..."
@@ -95,11 +105,13 @@ event:
     mob_name: "Gecenin Tohumu"
 
   heat_wave:
+    display_name: "&6Sıcak Dalgası"
     title: "§6☀ Sıcak Hava Dalgası ☀"
     subtitle: "&eGüneş daha sert yakıyor, gölge veya koruma arayın."
     end: "&aSıcak hava dalgası sona erdi, hava daha yumuşak hissediliyor."
 
   winter_freeze:
+    display_name: "&bKış Ayazı"
     title: "§b❄ Kış Soğuk Algınlığı ❄"
     subtitle: "§fKorunmazsanız kış ölümcül hale gelir."
     end: "&bSoğuk hava dalgası geçti, hava daha az keskin hissediliyor."
@@ -107,12 +119,14 @@ event:
     cold_but_safe: "&7Soğuğu hissediyorsunuz, ancak korumanız sizi güvende tutuyor."
 
   magic_storm:
+    display_name: "&5Büyü Fırtınası"
     title: "§5⚡ Büyü Fırtınası ⚡"
     subtitle: "&dGök yarılıyor ve yağmurla birlikte büyü düşüyor."
     end: "&5Büyü fırtınası soluyor, ürkütücü bir sessizlik bırakıyor."
     mob_name: "&bFırtınaya Dokunmuş Yaratık"
 
   festival:
+    display_name: "&6Mevsim Festivali"
     end: "&6Festival sona erdi, ancak anıları kaldı."
     actionbar: "&6Festival Pazarı&7 • &e{season}&8 • &7Stoklar her gün değişir"
     trader_name: "&eFestival Tüccarı"
@@ -136,21 +150,25 @@ event:
       subtitle: "&fIşıklar, kar ve evin sıcaklığı. Bir köy bulun"
 
   fishing:
+    display_name: "&bBalık Festivali"
     title: "§b🎣 Balıkçılık Festivali 🎣"
     subtitle: "&fNehirler ve denizler bugün fazladan hazineler saklıyor."
     end: "&bBalıkçılık festivali sona erdi."
 
   mining:
+    display_name: "&6Maden Bereketi"
     title: "§6⛏ Madencilik Kutsaması ⛏"
     subtitle: "&fCevher damarları daha cömert hissediyor..."
     end: "&6Madencilik kutsaması kayboluyor."
 
   tornado:
+    display_name: "&7Tornado"
     title: "§7🌪 Kasırga 🌪"
     subtitle: "&fRüzgar uluyor, sığınak arayın."
     end: "&7Kasırga yavaşça dağılıyor."
 
   restful_sleep:
+    display_name: "&dDinlendirici Uyku"
     title: "§d😴 Dinlendirici Uyku 😴"
     subtitle: "&fİyi uyku size ekstra güç verecektir."
     end: "&dUykunuz normale dönüyor."
@@ -171,9 +189,11 @@ event:
     gift_bundle_lore_2: "&7Onu bir hatıra olarak sakla... ya da aç ve ganimetten keyif al."
 
   holiday:
+    display_name: "&6Bayramlar"
     end: "&7Tatil kutlamaları sona erdi."
 
   new_year:
+    display_name: "&eYılbaşı"
     name: "§eYeni Yıl"
     title: "§e✨ Aeternum'da Yeni Yıl ✨"
     subtitle: "&7Takvim yeni bir başlangıcı işaret ediyor."
@@ -181,6 +201,7 @@ event:
     end: "&7Yeni Yıl sona eriyor, ama macera devam ediyor."
 
   nether_fishing_derby:
+    display_name: "&cNether Balık Turnuvası"
     title: "§cNether Balıkçılık Derbisi"
     subtitle: "§7Özel ganimet için §clava§7'da balık tut."
     end: "§7§cNether Balıkçılık Derbisi§7 sona erdi."
@@ -188,31 +209,38 @@ event:
     no_bite_actionbar: "§7Hiçbir şey ısırmadı… §8tekrar dene."
     no_loot_actionbar: "§7Hiçbir şey yakalayamadın… §8(ne kötü şans)"
   piglin_market:
+    display_name: "&6Piglin Pazarı"
     title: "§6Piglin Pazarı"
     subtitle: "§7Bir süreliğine geliştirilmiş takaslar."
     end: "§7§6Piglin Pazarı§7 kapandı."
   quartz_rush:
+    display_name: "&fKuvars Hücumu"
     title: "§fKuvars Hücumu"
     subtitle: "§7Madencilikte daha fazla §fkuvars§7."
     end: "§7§fKuvars Hücumu§7 sona erdi."
   fungus_bloom:
+    display_name: "&dMantar Çiçeklenmesi"
     title: "§dMantar Çiçeklenmesi"
     subtitle: "§7Kızıl/Çarpıklar daha fazla eşya düşürür."
     end: "§7§dÇiçeklenme§7 sona erdi."
   blaze_surge:
+    display_name: "&6Blaze Dalgası"
     title: "§6Blaze Dalgası"
     subtitle: "§7Daha çok çubuk ve daha aktif blaze'ler."
     end: "§7§6Blaze Dalgası§7 sona erdi."
   magma_tides:
+    display_name: "&cMagma Gelgitleri"
     title: "§cMagma Gelgitleri"
     subtitle: "§7Daha fazla magma kremi… dikkatli ol."
     end: "§7§cMagma Gelgitleri§7 çekildi."
   ghast_alert:
+    display_name: "&fGhast Alarmı"
     title: "§fGhast Alarmı"
     subtitle: "§7Daha çok ghast ve ekstra ödül."
     end: "§7§fGhast Alarmı§7 sona erdi."
     ghast_name: "§fGizlenen Ghast"
   wither_loose:
+    display_name: "&4Wither Kaçtı"
     title: "§4MAKSİMUM ALARM!"
     subtitle: "§7§lWITHER SERBEST§7 Nether'da."
     survive: "§cHAYATTA KAL!!"
@@ -224,6 +252,7 @@ event:
     countdown_generic: "§f{seconds}§c saniye kaldı…"
     idle_killed: "§7§4Wither§7 hareketsizlikten dolayı kayboldu…"
   wither_skeleton_swarm:
+    display_name: "&8Wither İskelet Sürüsü"
     title: "§8Toplanma"
     subtitle: "§7Daha güçlü Wither İskeletleri ve daha iyi ganimet."
     end: "§7§8Toplanma§7 sona erdi."
@@ -418,10 +447,21 @@ guide:
     winter_freeze: "§9Kış Donması§7: uygun kıyafet olmadan hızla donarsınız."
     magic_storm: "§9Büyülü Fırtına§7: garip hava ve büyülü ganimet."
     festival: "§6Festivaller§7: köylüler, takaslar ve dekorasyon."
-    fishing: "§9Balıkçılık Festivali§7: balık tutarken ekstra ganimet."
-    mining: "§6Madencilik Kutsaması§7: daha fazla mineral ve daha iyi drop."
+    fishing_festival: "§9Balıkçılık Festivali§7: balık tutarken ekstra ganimet."
+    mining_blessing: "§6Madencilik Kutsaması§7: daha fazla mineral ve daha iyi drop."
     tornado: "§7Tornado§7: ekinleri sürükleyen ve zarar veren rüzgar."
     restful_sleep: "§9Dinlendirici Uyku§7: uyumak geçici ekstra can verir."
+    holiday: "§6Holidays§7: Festive decorations and celebrations."
+    new_year: "§eNew Year§7: A new year begins — fireworks and gifts."
+    nether_fishing_derby: "§cNether Fishing Derby§7: Fish in lava for special loot."
+    piglin_market: "§6Piglin Market§7: Better barters for a while."
+    quartz_rush: "§fQuartz Rush§7: More quartz while mining."
+    fungus_bloom: "§dFungus Bloom§7: Crimson/Warped drop more."
+    blaze_surge: "§6Blaze Surge§7: More blaze rods and tougher blazes."
+    magma_tides: "§cMagma Tides§7: More magma cream… be careful."
+    ghast_alert: "§fGhast Alert§7: More ghasts and extra rewards."
+    wither_loose: "§4Wither Loose§7: A Wither is loose in the Nether — survive!"
+    wither_skeleton_swarm: "§8Wither Skeleton Swarm§7: Stronger Wither Skeletons, better loot."
 
   crops:
     SPRING: "Buğday, havuç, patates, kırmızı pancar ve balkabağı gelişir; genel olarak çok iyi bir ekim mevsimi."

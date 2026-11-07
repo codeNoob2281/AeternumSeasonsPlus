@@ -68,7 +68,7 @@ public final class RestfulSleepEvent implements SeasonalEvent {
 
     @Override
     public String getDisplayName() {
-        return "Restful Sleep";
+        return this.plugin.lang.trOr(null, "event.restful_sleep.display_name", "&dRestful Sleep");
     }
 
     @Override

@@ -75,7 +75,7 @@ public final class FungusBloomEvent implements SeasonalEvent {
 
     @Override
     public String getDisplayName() {
-        return "Fungus Bloom";
+        return this.plugin.lang.trOr(null, "event.fungus_bloom.display_name", "&dFungus Bloom");
     }
 
     @Override

@@ -99,7 +99,7 @@ public final class HeatWaveEvent implements SeasonalEvent {
 
     @Override
     public String getDisplayName() {
-        return "Heat Wave";
+        return this.plugin.lang.trOr(null, "event.heat_wave.display_name", "&6Heat Wave");
     }
 
     @Override

@@ -78,7 +78,7 @@ public final class PiglinMarketEvent implements SeasonalEvent {
 
     @Override
     public String getDisplayName() {
-        return "Piglin Market";
+        return this.plugin.lang.trOr(null, "event.piglin_market.display_name", "&6Piglin Market");
     }
 
     @Override

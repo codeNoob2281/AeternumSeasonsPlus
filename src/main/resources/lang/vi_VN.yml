@@ -18,6 +18,7 @@ realm:
   heat_subtitle: "&7Sống sót trên những vùng đất đang cháy"
 
   overworld_title: "&aThế Giới Chính"
+  nether_title: "&cNether"
   returned_from: "&7Bạn đã rời &f{name}"
 
 log:
@@ -37,12 +38,20 @@ cmd:
     list:
       header: "&6Sự kiện Đã Đăng ký:"
       item: "&7- &e{id}&7 (&f{name}&7)"
+      click_hint: "&8Bấm để xem chi tiết"
     started: "&aSự kiện &e{id}&a bị buộc bắt đầu."
     stopped: "&cSự kiện đang hoạt động đã dừng."
     no_such_event: "&cKhông tìm thấy sự kiện nào có id &e{id}&c."
     no_active: "&7Hiện tại không có sự kiện nào đang hoạt động."
     info: "&6Sự kiện đang hoạt động: &e{id}&7 (&f{name}&7), còn &e{days}&7 ngày."
 
+    detail:
+      header: "&6=== &f{name} &6(&e{id}&6) &7[{channel}]&6 ==="
+      seasons: "&7Mùa: &f{seasons}"
+      duration: "&7Thời lượng: &f{min}&7-&f{max} &7ngày"
+      desc: "&7Description: &f{desc}"
+      active: "&aTrạng thái: &fĐang diễn ra&7, còn &e{days}&7 ngày."
+      inactive: "&7Trạng thái: &fKhông hoạt động"
   season:
     no_permission: "&cBạn không có quyền sử dụng lệnh này."
 
@@ -88,6 +97,7 @@ cmd:
 
 event:
   blood_moon:
+    display_name: "&4Trăng Máu"
     title: "§4☾ Trăng Máu ☾"
     subtitle: "§cQuái vật mạnh hơn và bạn không thể ngủ..."
     end: "&6Trăng Máu đã tan..."
@@ -95,11 +105,13 @@ event:
     mob_name: "Hậu duệ của Đêm"
 
   heat_wave:
+    display_name: "&6Sóng Nắng"
     title: "§6☀ Sóng Nhiệt ☀"
     subtitle: "&eMặt trời cháy dữ dội hơn, hãy tìm bóng râm hoặc bảo vệ."
     end: "&aSóng nhiệt đã kết thúc, thời tiết trở nên dịu hơn."
 
   winter_freeze:
+    display_name: "&bBăng Giá"
     title: "§b❄ Giá Lạnh Mùa Đông ❄"
     subtitle: "§fMùa đông trở nên chết chóc nếu bạn không được bảo vệ."
     end: "&bCơn lạnh đã qua, không khí bớt buốt giá."
@@ -107,12 +119,14 @@ event:
     cold_but_safe: "&7Bạn cảm thấy lạnh, nhưng sự bảo vệ của bạn giữ bạn an toàn."
 
   magic_storm:
+    display_name: "&5Bão Ma Thuật"
     title: "§5⚡ Bão Ma Thuật ⚡"
     subtitle: "&dBầu trời nứt ra và ma thuật rơi xuống cùng cơn mưa."
     end: "&5Bão ma thuật tan dần, để lại một sự im lặng kỳ lạ."
     mob_name: "Sinh vật bị bão Ma Thuật chạm vào"
 
   festival:
+    display_name: "&6Lễ Hội Mùa"
     end: "&6Lễ hội kết thúc, nhưng những ký ức còn đọng lại."
     actionbar: "&6Chợ Lễ Hội&7 • &e{season}&8 • &7Vật phẩm thay đổi hàng ngày"
     trader_name: "&eThương nhân Lễ hội"
@@ -136,21 +150,25 @@ event:
       subtitle: "&fÁnh đèn, tuyết và sự ấm áp của mái nhà. Tìm một ngôi làng"
 
   fishing:
+    display_name: "&bLễ Hội Câu Cá"
     title: "§b🎣 Lễ hội Câu cá 🎣"
     subtitle: "&fSông và biển ẩn chứa nhiều kho báu hơn hôm nay."
     end: "&bLễ hội câu cá đã kết thúc."
 
   mining:
+    display_name: "&6Phúc Lộc Khai Mỏ"
     title: "§6⛏ Phước lành Khai thác ⛏"
     subtitle: "&fCác tĩnh mạch quặng cảm thấy hào phóng hơn..."
     end: "&6Phước lành khai thác tan dần."
 
   tornado:
+    display_name: "&7Lốc Xoáy"
     title: "§7🌪 Lốc xoáy 🌪"
     subtitle: "&fGió rít gào, tìm nơi trú ẩn."
     end: "&7Lốc xoáy tan dần."
 
   restful_sleep:
+    display_name: "&dGiấc Ngủ Thư Giãn"
     title: "§d😴 Giấc ngủ Thư thái 😴"
     subtitle: "&fNgủ ngon sẽ mang lại cho bạn thêm sức mạnh."
     end: "&dGiấc ngủ của bạn trở lại bình thường."
@@ -171,9 +189,11 @@ event:
     gift_bundle_lore_2: "&7Hãy giữ nó làm kỷ niệm... hoặc mở ra và tận hưởng chiến lợi phẩm."
 
   holiday:
+    display_name: "&6Ngày Lễ"
     end: "&7Lễ kỷ niệm ngày lễ đã kết thúc."
 
   new_year:
+    display_name: "&eNăm Mới"
     name: "§eTết Dương Lịch"
     title: "§e✨ Tết Dương Lịch tại Aeternum ✨"
     subtitle: "&7Lịch đánh dấu một khởi đầu mới."
@@ -181,6 +201,7 @@ event:
     end: "&7Tết Dương Lịch kết thúc, nhưng cuộc phiêu lưu vẫn tiếp diễn."
 
   nether_fishing_derby:
+    display_name: "&cGiải Câu Cá Nether"
     title: "§cGiải Đua Câu Cá Nether"
     subtitle: "§7Câu cá trong §clava§7 để nhận loot đặc biệt."
     end: "§7§cGiải Đua Câu Cá Nether§7 đã kết thúc."
@@ -188,31 +209,38 @@ event:
     no_bite_actionbar: "§7Không có gì cắn… §8thử lại."
     no_loot_actionbar: "§7Bạn không câu được gì… §8(quá đen đủi)"
   piglin_market:
+    display_name: "&6Chợ Piglin"
     title: "§6Chợ Piglin"
     subtitle: "§7Giao dịch được cải thiện trong chốc lát."
     end: "§7§6Chợ Piglin§7 đã đóng cửa."
   quartz_rush:
+    display_name: "&fCơn Sốt Thạch Anh"
     title: "§fCơn Sốt Thạch Anh"
     subtitle: "§7Nhận được nhiều §fthạch anh§7 hơn khi khai thác."
     end: "§7§fCơn Sốt Thạch Anh§7 đã kết thúc."
   fungus_bloom:
+    display_name: "&dNấm Nở Hoa"
     title: "§dNấm Nở Rộ"
     subtitle: "§7Crimson/Warped cho nhiều drop hơn."
     end: "§7§dNấm Nở Rộ§7 đã kết thúc."
   blaze_surge:
+    display_name: "&6Sóng Blaze"
     title: "§6Sóng Blaze"
     subtitle: "§7Nhiều rod hơn và blaze hoạt động mạnh hơn."
     end: "§7§6Sóng Blaze§7 đã kết thúc."
   magma_tides:
+    display_name: "&cThủy Triều Magma"
     title: "§cLàn Sóng Magma"
     subtitle: "§7Nhiều kem magma hơn… hãy cẩn thận."
     end: "§7§cLàn Sóng Magma§7 đã rút."
   ghast_alert:
+    display_name: "&fCảnh Báo Ghast"
     title: "§fCảnh Báo Ghast"
     subtitle: "§7Nhiều ghast hơn và phần thưởng thêm."
     end: "§7§fCảnh Báo Ghast§7 đã kết thúc."
     ghast_name: "§fGhast Rình Rập"
   wither_loose:
+    display_name: "&4Wither Xuất Hiện"
     title: "§4CẢNH BÁO TỐI ĐA!"
     subtitle: "§7§lWITHER TRỐN THOÁT§7 ở Nether."
     survive: "§cSỐNG SÓT!!"
@@ -224,6 +252,7 @@ event:
     countdown_generic: "§cCòn lại §f{seconds}§c giây…"
     idle_killed: "§7§4Wither§7 biến mất do không hoạt động…"
   wither_skeleton_swarm:
+    display_name: "&8Đàn Wither Skeleton"
     title: "§8Bầy Xương Wither"
     subtitle: "§7Wither Skeletons mạnh hơn và loot tốt hơn."
     end: "§7§8Bầy Xương Wither§7 đã kết thúc."
@@ -418,10 +447,21 @@ guide:
     winter_freeze: "§9Lạnh Giá Mùa Đông§7: không có quần áo phù hợp bạn sẽ đóng băng nhanh chóng."
     magic_storm: "§9Bão Ma Thuật§7: thời tiết kỳ lạ và vật phẩm ma thuật."
     festival: "§6Lễ Hội§7: dân làng, giao dịch và trang trí."
-    fishing: "§9Lễ Hội Câu Cá§7: thêm vật phẩm khi câu cá."
-    mining: "§6Phước Lành Khai Thác§7: nhiều khoáng sản và *drop* tốt hơn."
+    fishing_festival: "§9Lễ Hội Câu Cá§7: thêm vật phẩm khi câu cá."
+    mining_blessing: "§6Phước Lành Khai Thác§7: nhiều khoáng sản và *drop* tốt hơn."
     tornado: "§7Lốc Xoáy§7: gió cuốn trôi và làm hỏng cây trồng."
     restful_sleep: "§9Giấc Ngủ Phục Hồi§7: ngủ mang lại thêm máu tạm thời."
+    holiday: "§6Holidays§7: Festive decorations and celebrations."
+    new_year: "§eNew Year§7: A new year begins — fireworks and gifts."
+    nether_fishing_derby: "§cNether Fishing Derby§7: Fish in lava for special loot."
+    piglin_market: "§6Piglin Market§7: Better barters for a while."
+    quartz_rush: "§fQuartz Rush§7: More quartz while mining."
+    fungus_bloom: "§dFungus Bloom§7: Crimson/Warped drop more."
+    blaze_surge: "§6Blaze Surge§7: More blaze rods and tougher blazes."
+    magma_tides: "§cMagma Tides§7: More magma cream… be careful."
+    ghast_alert: "§fGhast Alert§7: More ghasts and extra rewards."
+    wither_loose: "§4Wither Loose§7: A Wither is loose in the Nether — survive!"
+    wither_skeleton_swarm: "§8Wither Skeleton Swarm§7: Stronger Wither Skeletons, better loot."
 
   crops:
     SPRING: "Lúa mì, cà rốt, khoai tây, củ cải đường và bí ngô phát triển mạnh; một mùa trồng trọt chung rất tốt."

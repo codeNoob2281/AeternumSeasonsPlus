@@ -144,7 +144,7 @@ public final class MagicStormEvent implements SeasonalEvent {
 
     @Override
     public String getDisplayName() {
-        return "Magic Storm";
+        return this.plugin.lang.trOr(null, "event.magic_storm.display_name", "&5Magic Storm");
     }
 
     @Override

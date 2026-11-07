@@ -19,6 +19,17 @@ import java.util.Map;
  * <p>本类为纯静态工具类，不可实例化。</p>
  */
 public final class SeasonGuide {
+    /**
+     * 指南事件章节按序展示的事件 id（与各事件 {@code getId()} 及 {@code guide.events.*} 键一致）。
+     */
+    public static final String[] EVENT_IDS = new String[]{
+            "blood_moon", "heat_wave", "winter_freeze", "magic_storm", "festival",
+            "fishing_festival", "mining_blessing", "tornado", "restful_sleep",
+            "holiday", "new_year", "nether_fishing_derby", "piglin_market",
+            "quartz_rush", "fungus_bloom", "blaze_surge", "magma_tides",
+            "ghast_alert", "wither_loose", "wither_skeleton_swarm"
+    };
+
     private SeasonGuide() {
         super();
     }
@@ -44,24 +55,10 @@ public final class SeasonGuide {
         player.sendMessage("");
         text = lang.tr(player, "guide.section.events");
         player.sendMessage("§d" + text);
-        text = lang.tr(player, "guide.events.blood_moon");
-        player.sendMessage("§7- " + text);
-        text = lang.tr(player, "guide.events.heat_wave");
-        player.sendMessage("§7- " + text);
-        text = lang.tr(player, "guide.events.winter_freeze");
-        player.sendMessage("§7- " + text);
-        text = lang.tr(player, "guide.events.magic_storm");
-        player.sendMessage("§7- " + text);
-        text = lang.tr(player, "guide.events.festival");
-        player.sendMessage("§7- " + text);
-        text = lang.tr(player, "guide.events.fishing");
-        player.sendMessage("§7- " + text);
-        text = lang.tr(player, "guide.events.mining");
-        player.sendMessage("§7- " + text);
-        text = lang.tr(player, "guide.events.tornado");
-        player.sendMessage("§7- " + text);
-        text = lang.tr(player, "guide.events.restful_sleep");
-        player.sendMessage("§7- " + text);
+
+        for (String eventId : EVENT_IDS) {
+            player.sendMessage("§7- " + lang.tr(player, "guide.events." + eventId));
+        }
         player.sendMessage("");
         text = lang.tr(player, "guide.section.crops");
         player.sendMessage("§a" + text);

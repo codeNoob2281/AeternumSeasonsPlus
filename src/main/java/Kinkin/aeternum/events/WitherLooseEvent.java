@@ -177,7 +177,7 @@ public final class WitherLooseEvent implements SeasonalEvent {
 
     @Override
     public String getDisplayName() {
-        return "Wither Loose";
+        return this.plugin.lang.trOr(null, "event.wither_loose.display_name", "&4Wither Loose");
     }
 
     @Override

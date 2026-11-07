@@ -114,7 +114,7 @@ public final class BloodMoonEvent implements SeasonalEvent, Listener {
 
     @Override
     public String getDisplayName() {
-        return "Blood Moon";
+        return this.plugin.lang.trOr(null, "event.blood_moon.display_name", "&4Blood Moon");
     }
 
     @Override

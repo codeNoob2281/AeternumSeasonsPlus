@@ -99,7 +99,7 @@ public final class FishingFestivalEvent implements SeasonalEvent {
 
     @Override
     public String getDisplayName() {
-        return "Fishing Festival";
+        return this.plugin.lang.trOr(null, "event.fishing.display_name", "&bFishing Festival");
     }
 
     @Override

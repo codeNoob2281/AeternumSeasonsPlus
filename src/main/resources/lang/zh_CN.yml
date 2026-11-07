@@ -18,6 +18,7 @@ realm:
   heat_subtitle: "&7在燃烧之地求生"
 
   overworld_title: "&a主世界"
+  nether_title: "&c下界"
   returned_from: "&7你已离开 &f{name}"
 
 log:
@@ -37,11 +38,19 @@ cmd:
     list:
       header: "&6已注册的事件:"
       item: "&7- &e{id}&7 (&f{name}&7)"
+      click_hint: "&8点击查看事件详情"
     started: "&a事件 &e{id}&a 已强制启动。"
     stopped: "&c当前事件已停止。"
     no_such_event: "&c未找到 ID 为 &e{id}&c 的事件。"
     no_active: "&7当前没有正在进行的事件。"
     info: "&6当前事件: &e{id}&7 (&f{name}&7)，还剩 &e{days}&7 天。"
+    detail:
+      header: "&6=== &f{name} &6(&e{id}&6) &7[{channel}]&6 ==="
+      seasons: "&7出现季节: &f{seasons}"
+      duration: "&7持续天数: &f{min}&7 ~ &f{max} &7天"
+      desc: "&7描述：&f{desc}"
+      active: "&a状态: &f进行中&7，还剩 &e{days}&7 天。"
+      inactive: "&7状态: &f未激活"
 
   season:
     no_permission: "&c你没有权限使用此命令。"
@@ -88,6 +97,7 @@ cmd:
 
 event:
   blood_moon:
+    display_name: "&4血月"
     title: "§4☾ 血月 ☾"
     subtitle: "§c怪物变得更强，你无法入睡..."
     end: "&6血月已经消退..."
@@ -95,11 +105,13 @@ event:
     mob_name: "黑夜之子"
 
   heat_wave:
+    display_name: "&6热浪"
     title: "§6☀ 热浪 ☀"
     subtitle: "&e烈日灼烧，寻找遮阴或防护。"
     end: "&a热浪已结束，天气变得温和。"
 
   winter_freeze:
+    display_name: "&b寒流"
     title: "§b❄ 寒流 ❄"
     subtitle: "§f若无防护，寒冬将致命。"
     end: "&b寒流已过，空气不再刺骨。"
@@ -107,12 +119,14 @@ event:
     cold_but_safe: "&7你感到寒冷，但防护让你安然无恙。"
 
   magic_storm:
+    display_name: "&5魔法风暴"
     title: "§5⚡ 魔法风暴 ⚡"
     subtitle: "&d天空裂开，魔法随雨而降。"
     end: "&5魔法风暴消散，留下诡异的寂静。"
     mob_name: "&b风暴之触生物"
 
   festival:
+    display_name: "&6季节庆典"
     end: "&6节日结束，但记忆长存。"
     actionbar: "&6节日市场&7 • &e{season}&8 • &7库存每日更新"
     trader_name: "&e节日商人"
@@ -136,21 +150,25 @@ event:
       subtitle: "&f灯火、雪景与家的温暖。寻找村庄"
 
   fishing:
+    display_name: "&b钓鱼节"
     title: "§b🎣 钓鱼节 🎣"
     subtitle: "&f江河湖海今日藏着额外宝藏。"
     end: "&b钓鱼节已结束。"
 
   mining:
+    display_name: "&6采矿祝福"
     title: "§6⛏ 采矿祝福 ⛏"
     subtitle: "&f矿脉似乎更加慷慨..."
     end: "&6采矿祝福消散。"
 
   tornado:
+    display_name: "&7龙卷风"
     title: "§7🌪 龙卷风 🌪"
     subtitle: "&f狂风呼啸，寻找庇护。"
     end: "&7龙卷风缓缓消散。"
 
   restful_sleep:
+    display_name: "&d安眠"
     title: "§d😴 安眠 😴"
     subtitle: "&f良好睡眠将赋予你额外力量。"
     end: "&d你的睡眠恢复正常。"
@@ -171,9 +189,11 @@ event:
     gift_bundle_lore_2: "&7留作纪念品... 或打开享受战利品。"
 
   holiday:
+    display_name: "&6节日"
     end: "&7节日庆典已结束。"
 
   new_year:
+    display_name: "&e新年"
     name: "§e新年"
     title: "§e✨ Aeternum的新年 ✨"
     subtitle: "&7日历标志着一个新的开始。"
@@ -181,6 +201,7 @@ event:
     end: "&7新年结束，但冒险继续。"
 
   nether_fishing_derby:
+    display_name: "&c地狱钓鱼大赛"
     title: "§c地狱钓鱼大赛"
     subtitle: "§7在 §c岩浆§7 中钓鱼获取特殊战利品。"
     end: "§7§c地狱钓鱼大赛§7 已结束。"
@@ -188,31 +209,38 @@ event:
     no_bite_actionbar: "§7什么都没咬钩… §8再试一次。"
     no_loot_actionbar: "§7你什么都没钓到… §8(运气太差了)"
   piglin_market:
+    display_name: "&6猪灵市场"
     title: "§6猪灵市场"
     subtitle: "§7以物易物临时得到增强。"
     end: "§7§6猪灵市场§7 关闭了。"
   quartz_rush:
+    display_name: "&f石英热潮"
     title: "§f石英热潮"
     subtitle: "§7开采时获得更多 §f石英§7。"
     end: "§7§f石英热潮§7 结束了。"
   fungus_bloom:
+    display_name: "&d真菌盛开"
     title: "§d真菌盛开"
     subtitle: "§7绯红/诡异菌类掉落更多。"
     end: "§7§d真菌盛开§7 结束了。"
   blaze_surge:
+    display_name: "&6烈焰人潮"
     title: "§6烈焰人潮"
     subtitle: "§7更多烈焰棒和更活跃的烈焰人。"
     end: "§7§6烈焰人潮§7 结束了。"
   magma_tides:
+    display_name: "&c岩浆潮汐"
     title: "§c岩浆潮汐"
     subtitle: "§7更多岩浆膏… 小心。"
     end: "§7§c岩浆潮汐§7 消退了。"
   ghast_alert:
+    display_name: "&f恶魂警报"
     title: "§f恶魂警报"
     subtitle: "§7更多恶魂和额外奖励。"
     end: "§7§f恶魂警报§7 结束了。"
     ghast_name: "§f潜伏恶魂"
   wither_loose:
+    display_name: "&4凋灵脱逃"
     title: "§4最高警戒!"
     subtitle: "§7§l凋灵逃脱§7 在地狱。"
     survive: "§c活下来!!"
@@ -224,6 +252,7 @@ event:
     countdown_generic: "§c还剩 §f{seconds}§c 秒…"
     idle_killed: "§7§4凋灵§7 因不活跃而消失了…"
   wither_skeleton_swarm:
+    display_name: "&8凋灵骷髅聚群"
     title: "§8聚集"
     subtitle: "§7更强的凋灵骷髅和更好的战利品。"
     end: "§7§8聚集§7 结束了。"
@@ -419,10 +448,21 @@ guide:
     winter_freeze: "§9寒潮§7: 没有合适的衣物，您会迅速冻僵。"
     magic_storm: "§9魔法风暴§7: 奇怪的天气和魔法战利品。"
     festival: "§6节日§7: 村民、交易和装饰。"
-    fishing: "§9钓鱼节§7: 钓鱼时有额外战利品。"
-    mining: "§6采矿祝福§7: 更多矿物和更好的掉落。"
+    fishing_festival: "§9钓鱼节§7: 钓鱼时有额外战利品。"
+    mining_blessing: "§6采矿祝福§7: 更多矿物和更好的掉落。"
     tornado: "§7龙卷风§7: 风会拖曳并损坏庄稼。"
     restful_sleep: "§9安稳睡眠§7: 睡觉会暂时获得额外的生命值。"
+    holiday: "§6节日§7: 节日的装饰与庆祝活动。"
+    new_year: "§e新年§7: 新的一年开始——燃放烟花并赠送礼包。"
+    nether_fishing_derby: "§c地狱钓鱼大赛§7: 在岩浆中钓鱼可获取特殊战利品。"
+    piglin_market: "§6猪灵市场§7: 以物易物临时得到增强。"
+    quartz_rush: "§f石英热潮§7: 开采时获得更多石英。"
+    fungus_bloom: "§d真菌盛开§7: 绯红/诡异菌类掉落更多。"
+    blaze_surge: "§6烈焰人潮§7: 更多烈焰棒与更顽强的烈焰人。"
+    magma_tides: "§c岩浆潮汐§7: 更多岩浆膏，但要小心。"
+    ghast_alert: "§f恶魂警报§7: 更多恶魂与额外奖励。"
+    wither_loose: "§4凋灵脱逃§7: 凋灵在地狱中脱逃，设法活下来！"
+    wither_skeleton_swarm: "§8凋灵骷髅聚群§7: 更强的凋灵骷髅与更好的战利品。"
 
   crops:
     SPRING: "小麦、胡萝卜、土豆、甜菜根和南瓜繁茂生长; 是一个非常好的普遍种植季节。"

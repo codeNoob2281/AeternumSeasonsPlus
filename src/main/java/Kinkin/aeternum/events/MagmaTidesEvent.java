@@ -77,7 +77,7 @@ public final class MagmaTidesEvent implements SeasonalEvent {
 
     @Override
     public String getDisplayName() {
-        return "Magma Tides";
+        return this.plugin.lang.trOr(null, "event.magma_tides.display_name", "&cMagma Tides");
     }
 
     @Override

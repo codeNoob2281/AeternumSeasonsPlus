@@ -92,7 +92,7 @@ public final class BlazeSurgeEvent implements SeasonalEvent {
 
     @Override
     public String getDisplayName() {
-        return "Blaze Surge";
+        return this.plugin.lang.trOr(null, "event.blaze_surge.display_name", "&6Blaze Surge");
     }
 
     @Override

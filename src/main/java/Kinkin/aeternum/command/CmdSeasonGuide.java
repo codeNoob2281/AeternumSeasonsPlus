@@ -128,24 +128,23 @@ public final class CmdSeasonGuide implements CommandExecutor, TabCompleter, List
             sb.append(this.lang.trf(player, "guide.current", Map.of("season", coloredSeason))).append("\n\n");
             sb.append("§7").append(this.lang.tr(player, "guide.intro"));
             pages.add(sb.toString());
-            sb = new StringBuilder();
-            sb.append("§0").append(this.lang.tr(player, "guide.section.events")).append(" §7(1/3)").append("\n\n");
-            sb.append("§7• ").append(this.lang.tr(player, "guide.events.blood_moon")).append("\n\n");
-            sb.append("§7• ").append(this.lang.tr(player, "guide.events.heat_wave")).append("\n\n");
-            sb.append("§7• ").append(this.lang.tr(player, "guide.events.winter_freeze")).append("\n");
-            pages.add(sb.toString());
-            sb = new StringBuilder();
-            sb.append("§0").append(this.lang.tr(player, "guide.section.events")).append(" §7(2/3)").append("\n\n");
-            sb.append("§7• ").append(this.lang.tr(player, "guide.events.magic_storm")).append("\n\n");
-            sb.append("§7• ").append(this.lang.tr(player, "guide.events.festival")).append("\n\n");
-            sb.append("§7• ").append(this.lang.tr(player, "guide.events.fishing")).append("\n");
-            pages.add(sb.toString());
-            sb = new StringBuilder();
-            sb.append("§0").append(this.lang.tr(player, "guide.section.events")).append(" §7(3/3)").append("\n\n");
-            sb.append("§7• ").append(this.lang.tr(player, "guide.events.mining")).append("\n\n");
-            sb.append("§7• ").append(this.lang.tr(player, "guide.events.tornado")).append("\n\n");
-            sb.append("§7• ").append(this.lang.tr(player, "guide.events.restful_sleep")).append("\n");
-            pages.add(sb.toString());
+            String[] eventIds = kinkin.aeternum.SeasonGuide.EVENT_IDS;
+            int eventsPerPage = 3;
+            int eventPages = (eventIds.length + eventsPerPage - 1) / eventsPerPage;
+            for (int p = 0; p < eventPages; p++) {
+                sb = new StringBuilder();
+                sb.append("§0").append(this.lang.tr(player, "guide.section.events")).append(" §7(").append(p + 1).append("/").append(eventPages).append(")\n\n");
+                for (int k = 0; k < eventsPerPage; k++) {
+                    int idx = p * eventsPerPage + k;
+                    if (idx >= eventIds.length) {
+                        break;
+                    }
+                    sb.append("§7• ").append(this.lang.tr(player, "guide.events." + eventIds[idx]));
+                    boolean moreOnPage = k < eventsPerPage - 1 && idx < eventIds.length - 1;
+                    sb.append(moreOnPage ? "\n\n" : "\n");
+                }
+                pages.add(sb.toString());
+            }
             sb = new StringBuilder();
             sb.append("§0").append(this.lang.tr(player, "guide.section.crops")).append(" §7(1/2)").append("\n\n");
             sb.append(this.seasonColor(Season.SPRING)).append("• ").append(this.lang.tr(player, "season.SPRING")).append("§7: ").append(this.lang.tr(player, "guide.crops.SPRING")).append("\n\n");

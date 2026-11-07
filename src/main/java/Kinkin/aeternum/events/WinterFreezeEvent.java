@@ -111,7 +111,7 @@ public final class WinterFreezeEvent implements SeasonalEvent {
 
     @Override
     public String getDisplayName() {
-        return "Winter Freeze";
+        return this.plugin.lang.trOr(null, "event.winter_freeze.display_name", "&bWinter Freeze");
     }
 
     @Override

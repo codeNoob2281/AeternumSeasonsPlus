@@ -113,7 +113,7 @@ public final class HolidayEvent implements SeasonalEvent {
 
     @Override
     public String getDisplayName() {
-        return "Festividades";
+        return this.plugin.lang.trOr(null, "event.holiday.display_name", "&6Holidays");
     }
 
     @Override

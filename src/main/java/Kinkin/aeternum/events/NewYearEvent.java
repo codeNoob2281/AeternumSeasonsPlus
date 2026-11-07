@@ -85,7 +85,7 @@ public final class NewYearEvent implements SeasonalEvent {
 
     @Override
     public String getDisplayName() {
-        return "Año Nuevo";
+        return this.plugin.lang.trOr(null, "event.new_year.display_name", "&eNew Year");
     }
 
     @Override

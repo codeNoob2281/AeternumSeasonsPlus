@@ -101,7 +101,7 @@ public final class MiningBlessingEvent implements SeasonalEvent {
 
     @Override
     public String getDisplayName() {
-        return "Mining Blessing";
+        return this.plugin.lang.trOr(null, "event.mining.display_name", "&6Mining Blessing");
     }
 
     @Override

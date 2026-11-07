@@ -258,7 +258,7 @@ public final class TornadoEvent implements SeasonalEvent {
 
     @Override
     public String getDisplayName() {
-        return "Tornado";
+        return this.plugin.lang.trOr(null, "event.tornado.display_name", "&7Tornado");
     }
 
     @Override

@@ -18,6 +18,7 @@ realm:
   heat_subtitle: "&7Sobreviva às terras em chamas"
 
   overworld_title: "&aMundo Principal"
+  nether_title: "&cNether"
   returned_from: "&7Você deixou &f{name}"
 
 log:
@@ -37,12 +38,20 @@ cmd:
     list:
       header: "&6Eventos Registrados:"
       item: "&7- &e{id}&7 (&f{name}&7)"
+      click_hint: "&8Clique para ver detalhes"
     started: "&aO evento &e{id}&a foi forçado a iniciar."
     stopped: "&cEvento ativo interrompido."
     no_such_event: "&cNenhum evento encontrado com o id &e{id}&c."
     no_active: "&7Não há evento ativo no momento."
     info: "&6Evento ativo: &e{id}&7 (&f{name}&7), &e{days}&7 dia(s) restante(s)."
 
+    detail:
+      header: "&6=== &f{name} &6(&e{id}&6) &7[{channel}]&6 ==="
+      seasons: "&7Estações: &f{seasons}"
+      duration: "&7Duração: &f{min}&7-&f{max} &7dia(s)"
+      desc: "&7Description: &f{desc}"
+      active: "&aStatus: &fAtivo&7, &e{days}&7 dia(s) restante(s)."
+      inactive: "&7Status: &fInativo"
   season:
     no_permission: "&cVocê não tem permissão para usar este comando."
 
@@ -88,6 +97,7 @@ cmd:
 
 event:
   blood_moon:
+    display_name: "&4Lua de Sangue"
     title: "§4☾ Lua de Sangue ☾"
     subtitle: "§cCriaturas ficam mais fortes e você não pode dormir..."
     end: "&6A Lua de Sangue se desvaneceu..."
@@ -95,11 +105,13 @@ event:
     mob_name: "Cria da Noite"
 
   heat_wave:
+    display_name: "&6Onda de Calor"
     title: "§6☀ Onda de Calor ☀"
     subtitle: "&eO sol queima mais forte, procure sombra ou proteção."
     end: "&aA onda de calor terminou, o tempo está mais ameno."
 
   winter_freeze:
+    display_name: "&bCongelamento"
     title: "§b❄ Congelamento de Inverno ❄"
     subtitle: "§fO inverno se torna mortal se você não estiver protegido."
     end: "&bO frio intenso passou, o ar está menos cortante."
@@ -107,12 +119,14 @@ event:
     cold_but_safe: "&7Você sente o frio, mas sua proteção o mantém seguro."
 
   magic_storm:
+    display_name: "&5Tempestade Mágica"
     title: "§5⚡ Tempestade Mágica ⚡"
     subtitle: "&dO céu se quebra e a magia cai com a chuva."
     end: "&5A tempestade mágica se desvanece, deixando um silêncio estranho."
     mob_name: "&bCriatura Tocada pela Tempestade"
 
   festival:
+    display_name: "&6Festival Sazonal"
     end: "&6O festival termina, mas as memórias permanecem."
     actionbar: "&6Mercado do Festival&7 • &e{season}&8 • &7O estoque muda diariamente"
     trader_name: "&eComerciante do Festival"
@@ -136,21 +150,25 @@ event:
       subtitle: "&fLuzes, neve e o calor do lar. Encontre uma vila"
 
   fishing:
+    display_name: "&bFestival de Pesca"
     title: "§b🎣 Festival de Pesca 🎣"
     subtitle: "&fRios e mares escondem tesouros extras hoje."
     end: "&bO festival de pesca terminou."
 
   mining:
+    display_name: "&6Bênção da Mineração"
     title: "§6⛏ Bênção da Mineração ⛏"
     subtitle: "&fVeios de minério parecem mais generosos..."
     end: "&6A bênção da mineração se desvanece."
 
   tornado:
+    display_name: "&7Tornado"
     title: "§7🌪 Tornado 🌪"
     subtitle: "&fO vento uiva, procure abrigo."
     end: "&7O tornado se dissipa lentamente."
 
   restful_sleep:
+    display_name: "&dSono Reparador"
     title: "§d😴 Sono Restaurador 😴"
     subtitle: "§fUm bom sono lhe dará força extra."
     end: "&dSeu sono volta ao normal."
@@ -171,9 +189,11 @@ event:
     gift_bundle_lore_2: "&7Guarde como lembrança... ou abra e aproveite o saque."
 
   holiday:
+    display_name: "&6Festividades"
     end: "&7As celebrações de feriado chegaram ao fim."
 
   new_year:
+    display_name: "&eAno Novo"
     name: "§eAno Novo"
     title: "§e✨ Ano Novo em Aeternum ✨"
     subtitle: "&7O calendário marca um novo começo."
@@ -181,6 +201,7 @@ event:
     end: "&7O Ano Novo termina, mas a aventura continua."
 
   nether_fishing_derby:
+    display_name: "&cDerby de Pesca do Nether"
     title: "§cDerby de Pesca Infernal"
     subtitle: "§7Pesca na §clava§7 por loot especial."
     end: "§7O §cDerby de Pesca Infernal§7 terminou."
@@ -188,31 +209,38 @@ event:
     no_bite_actionbar: "§7Nada mordeu… §8tente de novo."
     no_loot_actionbar: "§7Você não pescou nada… §8(que azar)"
   piglin_market:
+    display_name: "&6Mercado Piglin"
     title: "§6Mercado Piglin"
     subtitle: "§7Trocas melhoradas por um tempo."
     end: "§7O §6Mercado Piglin§7 fechou."
   quartz_rush:
+    display_name: "&fCorrida do Quartzo"
     title: "§fCorrida do Quartzo"
     subtitle: "§7Mais §fquartzo§7 ao minerar."
     end: "§7A §fCorrida do Quartzo§7 terminou."
   fungus_bloom:
+    display_name: "&dFlorescência de Fungos"
     title: "§dFlorescência de Fungos"
     subtitle: "§7Crimson/Warped dão mais drops."
     end: "§7A §dFlorescência§7 terminou."
   blaze_surge:
+    display_name: "&6Onda de Blazes"
     title: "§6Onda de Blazes"
     subtitle: "§7Mais rods e blazes mais ativos."
     end: "§7A §6Onda de Blazes§7 terminou."
   magma_tides:
+    display_name: "&cMarés de Magma"
     title: "§cMarés de Magma"
     subtitle: "§7Mais magma cream… cuidado."
     end: "§7As §cMarés de Magma§7 baixaram."
   ghast_alert:
+    display_name: "&fAlerta de Ghast"
     title: "§fAlerta de Ghasts"
     subtitle: "§7Mais ghasts e recompensa extra."
     end: "§7O §fAlerta de Ghasts§7 terminou."
     ghast_name: "§fGhast Espreitador"
   wither_loose:
+    display_name: "&4Wither à Solta"
     title: "§4ALERTA MÁXIMO!"
     subtitle: "§7§lWITHER SOLTO§7 no Nether."
     survive: "§cSOBREVIVA!!"
@@ -224,6 +252,7 @@ event:
     countdown_generic: "§cFaltam §f{seconds}§c segundos…"
     idle_killed: "§7O §4Wither§7 desapareceu por inatividade…"
   wither_skeleton_swarm:
+    display_name: "&8Enxame de Wither Skeletons"
     title: "§8Agrupamento"
     subtitle: "§7Wither Skeletons mais fortes e melhor loot."
     end: "§7O §8Agrupamento§7 terminou."
@@ -419,10 +448,21 @@ guide:
     winter_freeze: "§9Congelamento de Inverno§7: sem roupas adequadas você congela rapidamente."
     magic_storm: "§9Tempestade Mágica§7: clima estranho e saque mágico."
     festival: "§6Festivais§7: aldeões, trocas e decoração."
-    fishing: "§9Festival de Pesca§7: saque extra ao pescar."
-    mining: "§6Bênção de Mineração§7: mais minérios e melhores drops."
+    fishing_festival: "§9Festival de Pesca§7: saque extra ao pescar."
+    mining_blessing: "§6Bênção de Mineração§7: mais minérios e melhores drops."
     tornado: "§7Tornado§7: vento que arrasta e danifica colheitas."
     restful_sleep: "§9Sono Reparador§7: dormir dá saúde extra temporária."
+    holiday: "§6Holidays§7: Festive decorations and celebrations."
+    new_year: "§eNew Year§7: A new year begins — fireworks and gifts."
+    nether_fishing_derby: "§cNether Fishing Derby§7: Fish in lava for special loot."
+    piglin_market: "§6Piglin Market§7: Better barters for a while."
+    quartz_rush: "§fQuartz Rush§7: More quartz while mining."
+    fungus_bloom: "§dFungus Bloom§7: Crimson/Warped drop more."
+    blaze_surge: "§6Blaze Surge§7: More blaze rods and tougher blazes."
+    magma_tides: "§cMagma Tides§7: More magma cream… be careful."
+    ghast_alert: "§fGhast Alert§7: More ghasts and extra rewards."
+    wither_loose: "§4Wither Loose§7: A Wither is loose in the Nether — survive!"
+    wither_skeleton_swarm: "§8Wither Skeleton Swarm§7: Stronger Wither Skeletons, better loot."
 
   crops:
     SPRING: "Trigo, cenouras, batatas, beterrabas e abóboras prosperam; uma estação de crescimento geral muito boa."

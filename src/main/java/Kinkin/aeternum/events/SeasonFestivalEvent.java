@@ -146,7 +146,7 @@ public final class SeasonFestivalEvent implements SeasonalEvent, Listener {
 
     @Override
     public String getDisplayName() {
-        return "Seasonal Festival";
+        return this.plugin.lang.trOr(null, "event.festival.display_name", "&6Seasonal Festival");
     }
 
     @Override

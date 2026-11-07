@@ -109,7 +109,7 @@ public final class WitherSkeletonSwarmEvent implements SeasonalEvent {
 
     @Override
     public String getDisplayName() {
-        return "Wither Skeleton Swarm";
+        return this.plugin.lang.trOr(null, "event.wither_skeleton_swarm.display_name", "&8Wither Skeleton Swarm");
     }
 
     @Override

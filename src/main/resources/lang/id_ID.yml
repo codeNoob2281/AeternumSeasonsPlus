@@ -18,6 +18,7 @@ realm:
   heat_subtitle: "&7Bertahan hidup di tanah yang membakar"
 
   overworld_title: "&aDunia Utama"
+  nether_title: "&cNether"
   returned_from: "&7Anda telah meninggalkan &f{name}"
 
 log:
@@ -37,12 +38,20 @@ cmd:
     list:
       header: "&6Acara Terdaftar:"
       item: "&7- &e{id}&7 (&f{name}&7)"
+      click_hint: "&8Klik untuk detail"
     started: "&aAcara &e{id}&a dipaksa untuk dimulai."
     stopped: "&cAcara aktif dihentikan."
     no_such_event: "&cTidak ada acara ditemukan dengan id &e{id}&c."
     no_active: "&7Saat ini tidak ada acara aktif."
     info: "&6Acara aktif: &e{id}&7 (&f{name}&7), &e{days}&7 hari tersisa."
 
+    detail:
+      header: "&6=== &f{name} &6(&e{id}&6) &7[{channel}]&6 ==="
+      seasons: "&7Musim: &f{seasons}"
+      duration: "&7Durasi: &f{min}&7-&f{max} &7hari"
+      desc: "&7Description: &f{desc}"
+      active: "&aStatus: &fAktif&7, tersisa &e{days}&7 hari."
+      inactive: "&7Status: &fTidak aktif"
   season:
     no_permission: "&cAnda tidak memiliki izin untuk menggunakan perintah ini."
 
@@ -88,6 +97,7 @@ cmd:
 
 event:
   blood_moon:
+    display_name: "&4Bulan Darah"
     title: "§4☾ Bulan Darah ☾"
     subtitle: "§cMakhluk menjadi lebih kuat dan Anda tidak bisa tidur..."
     end: "&6Bulan Darah telah memudar..."
@@ -95,11 +105,13 @@ event:
     mob_name: "Keturunan Malam"
 
   heat_wave:
+    display_name: "&6Gelombang Panas"
     title: "§6☀ Gelombang Panas ☀"
     subtitle: "&eMatahari membakar lebih keras, cari tempat teduh atau perlindungan."
     end: "&aGelombang panas telah berakhir, cuaca terasa lebih lembut."
 
   winter_freeze:
+    display_name: "&bBeku Musim Dingin"
     title: "§b❄ Pembekuan Musim Dingin ❄"
     subtitle: "§fMusim dingin menjadi mematikan jika Anda tidak terlindungi."
     end: "&bPembekuan telah berlalu, udara terasa kurang menusuk."
@@ -107,12 +119,14 @@ event:
     cold_but_safe: "&7Anda merasakan dingin, tetapi perlindungan Anda membuat Anda aman."
 
   magic_storm:
+    display_name: "&5Badai Sihir"
     title: "§5⚡ Badai Sihir ⚡"
     subtitle: "&dLangi retak dan sihir jatuh bersama hujan."
     end: "&5Badai sihir memudar, meninggalkan keheningan yang menyeramkan."
     mob_name: "&bMakhluk Tersentuh Badai"
 
   festival:
+    display_name: "&6Festival Musiman"
     end: "&6Festival berakhir, tetapi kenangan tetap ada."
     actionbar: "&6Pasar Festival&7 • &e{season}&8 • &7Stok berubah setiap hari"
     trader_name: "&ePedagang Festival"
@@ -136,21 +150,25 @@ event:
       subtitle: "&fCahaya, salju, dan kehangatan rumah. Cari desa"
 
   fishing:
+    display_name: "&bFestival Memancing"
     title: "§b🎣 Festival Memancing 🎣"
     subtitle: "&fSungai dan lautan menyembunyikan harta tambahan hari ini."
     end: "&bFestival memancing telah berakhir."
 
   mining:
+    display_name: "&6Berkat Tambang"
     title: "§6⛏ Berkat Penambangan ⛏"
     subtitle: "&fUrat bijih terasa lebih dermawan..."
     end: "&6Berkat penambangan memudar."
 
   tornado:
+    display_name: "&7Tornado"
     title: "§7🌪 Tornado 🌪"
     subtitle: "&fAngin menderu, cari tempat berlindung."
     end: "&7Tornado perlahan menghilang."
 
   restful_sleep:
+    display_name: "&dTidur Nyenyak"
     title: "§d😴 Tidur Nyenyak 😴"
     subtitle: "&fTidur nyenyak akan memberi Anda kekuatan ekstra."
     end: "&dTidur Anda kembali normal."
@@ -172,9 +190,11 @@ event:
     gift_bundle_lore_2: "&7Simpan sebagai kenang-kenangan... atau buka dan nikmati hadiahnya."
 
   holiday:
+    display_name: "&6Hari Libur"
     end: "&7Perayaan liburan telah berakhir."
 
   new_year:
+    display_name: "&eTahun Baru"
     name: "§eTahun Baru"
     title: "§e✨ Tahun Baru di Aeternum ✨"
     subtitle: "&7Kalender menandai awal yang baru."
@@ -182,6 +202,7 @@ event:
     end: "&7Tahun Baru berakhir, namun petualangan berlanjut."
 
   nether_fishing_derby:
+    display_name: "&cDerby Memancing Nether"
     title: "§cDerbi Memancing Nether"
     subtitle: "§7Memancing di §clava§7 untuk jarahan spesial."
     end: "§7§cDerbi Memancing Nether§7 telah berakhir."
@@ -189,31 +210,38 @@ event:
     no_bite_actionbar: "§7Tidak ada yang menggigit… §8coba lagi."
     no_loot_actionbar: "§7Kamu tidak memancing apa pun… §8(nasib buruk)"
   piglin_market:
+    display_name: "&6Pasar Piglin"
     title: "§6Pasar Piglin"
     subtitle: "§7Tukaran ditingkatkan untuk sementara."
     end: "§7§6Pasar Piglin§7 telah ditutup."
   quartz_rush:
+    display_name: "&fDemam Kuarsa"
     title: "§fDemam Kuarsa"
     subtitle: "§7Lebih banyak §fkuarsa§7 saat menambang."
     end: "§7§fDemam Kuarsa§7 telah berakhir."
   fungus_bloom:
+    display_name: "&dBunga Jamur"
     title: "§dMekarnya Jamur"
     subtitle: "§7Crimson/Warped memberikan drop lebih banyak."
     end: "§7§dMekarnya Jamur§7 telah berakhir."
   blaze_surge:
+    display_name: "&6Gelombang Blaze"
     title: "§6Gelombang Blaze"
     subtitle: "§7Lebih banyak rod dan blaze lebih aktif."
     end: "§7§6Gelombang Blaze§7 telah berakhir."
   magma_tides:
+    display_name: "&cPasang Magma"
     title: "§cPasang Magma"
     subtitle: "§7Lebih banyak magma cream… hati-hati."
     end: "§7§cPasang Magma§7 telah surut."
   ghast_alert:
+    display_name: "&fWaspada Ghast"
     title: "§fPeringatan Ghast"
     subtitle: "§7Lebih banyak ghast dan hadiah ekstra."
     end: "§7§fPeringatan Ghast§7 telah berakhir."
     ghast_name: "§fGhast Pengintai"
   wither_loose:
+    display_name: "&4Wither Bebas"
     title: "§4PERINGATAN TINGGI!"
     subtitle: "§7§lWITHER BEBAS§7 di Nether."
     survive: "§cBERTAHAN HIDUP!!"
@@ -225,6 +253,7 @@ event:
     countdown_generic: "§cSisa §f{seconds}§c detik…"
     idle_killed: "§7§4Wither§7 menghilang karena tidak aktif…"
   wither_skeleton_swarm:
+    display_name: "&8Gerombolan Wither Skeleton"
     title: "§8Gerombolan"
     subtitle: "§7Wither Skeleton lebih kuat dan jarahan lebih baik."
     end: "§7§8Gerombolan§7 telah berakhir."
@@ -419,10 +448,21 @@ guide:
     winter_freeze: "§9Pembekuan Musim Dingin§7: tanpa pakaian yang tepat kamu cepat membeku."
     magic_storm: "§9Badai Sihir§7: cuaca aneh dan *loot* magis."
     festival: "§6Festival§7: penduduk desa, perdagangan, dan dekorasi."
-    fishing: "§9Festival Memancing§7: *loot* ekstra saat memancing."
-    mining: "§6Berkat Penambangan§7: lebih banyak mineral dan *drop* yang lebih baik."
+    fishing_festival: "§9Festival Memancing§7: *loot* ekstra saat memancing."
+    mining_blessing: "§6Berkat Penambangan§7: lebih banyak mineral dan *drop* yang lebih baik."
     tornado: "§7Tornado§7: angin yang menyeret dan merusak tanaman."
     restful_sleep: "§9Tidur Nyenyak§7: tidur memberikan tambahan kesehatan sementara."
+    holiday: "§6Holidays§7: Festive decorations and celebrations."
+    new_year: "§eNew Year§7: A new year begins — fireworks and gifts."
+    nether_fishing_derby: "§cNether Fishing Derby§7: Fish in lava for special loot."
+    piglin_market: "§6Piglin Market§7: Better barters for a while."
+    quartz_rush: "§fQuartz Rush§7: More quartz while mining."
+    fungus_bloom: "§dFungus Bloom§7: Crimson/Warped drop more."
+    blaze_surge: "§6Blaze Surge§7: More blaze rods and tougher blazes."
+    magma_tides: "§cMagma Tides§7: More magma cream… be careful."
+    ghast_alert: "§fGhast Alert§7: More ghasts and extra rewards."
+    wither_loose: "§4Wither Loose§7: A Wither is loose in the Nether — survive!"
+    wither_skeleton_swarm: "§8Wither Skeleton Swarm§7: Stronger Wither Skeletons, better loot."
 
   crops:
     SPRING: "Gandum, wortel, kentang, bit, dan labu berkembang; musim tanam umum yang sangat baik."

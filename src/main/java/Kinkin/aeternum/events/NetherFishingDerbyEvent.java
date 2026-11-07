@@ -135,7 +135,7 @@ public final class NetherFishingDerbyEvent implements SeasonalEvent {
 
     @Override
     public String getDisplayName() {
-        return "Nether Fishing Derby";
+        return this.plugin.lang.trOr(null, "event.nether_fishing_derby.display_name", "&cNether Fishing Derby");
     }
 
     @Override

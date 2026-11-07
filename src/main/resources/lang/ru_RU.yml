@@ -18,6 +18,7 @@ realm:
   heat_subtitle: "&7Выжить на горящих землях"
 
   overworld_title: "&aОсновной мир"
+  nether_title: "&cNether"
   returned_from: "&7Вы покинули &f{name}"
 
 log:
@@ -37,12 +38,20 @@ cmd:
     list:
       header: "&6Зарегистрированные события:"
       item: "&7- &e{id}&7 (&f{name}&7)"
+      click_hint: "&8Нажмите для подробностей"
     started: "&aСобытие &e{id}&a принудительно запущено."
     stopped: "&cАктивное событие остановлено."
     no_such_event: "&cСобытие с id &e{id}&c не найдено."
     no_active: "&7Сейчас нет активных событий."
     info: "&6Активное событие: &e{id}&7 (&f{name}&7), осталось &e{days}&7 д. (дней)."
 
+    detail:
+      header: "&6=== &f{name} &6(&e{id}&6) &7[{channel}]&6 ==="
+      seasons: "&7Времена года: &f{seasons}"
+      duration: "&7Длительность: &f{min}&7-&f{max} &7дн."
+      desc: "&7Description: &f{desc}"
+      active: "&aСтатус: &fАктивно&7, осталось &e{days}&7 дн."
+      inactive: "&7Статус: &fНеактивно"
   season:
     no_permission: "&cУ вас нет разрешения использовать эту команду."
 
@@ -88,6 +97,7 @@ cmd:
 
 event:
   blood_moon:
+    display_name: "&4Кровавая Луна"
     title: "§4☾ Кровавая Луна ☾"
     subtitle: "§cСущества становятся сильнее, и вы не можете спать..."
     end: "&6Кровавая Луна исчезла..."
@@ -95,11 +105,13 @@ event:
     mob_name: "Порождение Ночи"
 
   heat_wave:
+    display_name: "&6Зной"
     title: "§6☀ Волна Жара ☀"
     subtitle: "&eСолнце жжет сильнее, ищите тень или защиту."
     end: "&aВолна жара закончилась, погода стала мягче."
 
   winter_freeze:
+    display_name: "&bЛедяной Мороз"
     title: "§b❄ Зимний Мороз ❄"
     subtitle: "§fЗима становится смертельной, если вы не защищены."
     end: "&bМороз прошел, воздух стал менее пронзительным."
@@ -107,12 +119,14 @@ event:
     cold_but_safe: "&7Вы чувствуете холод, но ваша защита держит вас в безопасности."
 
   magic_storm:
+    display_name: "&5Магическая Буря"
     title: "§5⚡ Магический Шторм ⚡"
     subtitle: "&dНебо трескается, и магия падает с дождем."
     end: "&5Магический шторм затихает, оставляя жуткую тишину."
     mob_name: "&bСущество, Тронутое Штормом"
 
   festival:
+    display_name: "&6Сезонный Фестиваль"
     end: "&6Фестиваль заканчивается, но воспоминания остаются."
     actionbar: "&6Фестивальный рынок&7 • &e{season}&8 • &7Ассортимент обновляется ежедневно"
     trader_name: "&eФестивальный Торговец"
@@ -136,21 +150,25 @@ event:
       subtitle: "&fОгни, снег и тепло дома. Найдите деревню"
 
   fishing:
+    display_name: "&bПраздник Рыбалки"
     title: "§b🎣 Рыболовный Фестиваль 🎣"
     subtitle: "&fРеки и моря сегодня скрывают дополнительные сокровища."
     end: "&bРыболовный фестиваль закончился."
 
   mining:
+    display_name: "&6Благословение Шахтёра"
     title: "§6⛏ Благословение Шахтера ⛏"
     subtitle: "&fЖилы руды кажутся более щедрыми..."
     end: "&6Благословение шахтера исчезает."
 
   tornado:
+    display_name: "&7Торнадо"
     title: "§7🌪 Торнадо 🌪"
     subtitle: "&fВетер воет, ищите убежище."
     end: "&7Торнадо медленно рассеивается."
 
   restful_sleep:
+    display_name: "&dКрепкий Сон"
     title: "§d😴 Спокойный Сон 😴"
     subtitle: "§fХороший сон даст вам дополнительную силу."
     end: "&dВаш сон возвращается к норме."
@@ -171,9 +189,11 @@ event:
     gift_bundle_lore_2: "&7Оставь его как сувенир... или открой и забери добычу."
 
   holiday:
+    display_name: "&6Праздники"
     end: "&7Праздничные торжества подошли к концу."
 
   new_year:
+    display_name: "&eНовый Год"
     name: "§eНовый Год"
     title: "§e✨ Новый Год в Aeternum ✨"
     subtitle: "&7Календарь отмечает новое начало."
@@ -181,6 +201,7 @@ event:
     end: "&7Новый Год заканчивается, но приключение продолжается."
 
   nether_fishing_derby:
+    display_name: "&cАдская Рыбалка"
     title: "§cАдское Рыболовное Дерби"
     subtitle: "§7Ловите рыбу в §cлаве§7, чтобы получить особый лут."
     end: "§7§cАдское Рыболовное Дерби§7 завершено."
@@ -188,31 +209,38 @@ event:
     no_bite_actionbar: "§7Ничего не клюнуло… §8попробуйте снова."
     no_loot_actionbar: "§7Вы ничего не поймали… §8(не повезло)"
   piglin_market:
+    display_name: "&6Рынок Пиглинов"
     title: "§6Рынок Пиглинов"
     subtitle: "§7Улучшенный обмен на время."
     end: "§7§6Рынок Пиглинов§7 закрылся."
   quartz_rush:
+    display_name: "&fКварцевая Лихорадка"
     title: "§fКварцевая Лихорадка"
     subtitle: "§7Больше §fкварца§7 при добыче."
     end: "§7§fКварцевая Лихорадка§7 закончилась."
   fungus_bloom:
+    display_name: "&dЦветение Грибов"
     title: "§dЦветение Грибов"
     subtitle: "§7Багровые/Искажённые дают больше дропов."
     end: "§7§dЦветение§7 закончилось."
   blaze_surge:
+    display_name: "&6Волна Всполохов"
     title: "§6Наплыв Блэйзов"
     subtitle: "§7Больше стержней и более активные Блэйзы."
     end: "§7§6Наплыв Блэйзов§7 закончился."
   magma_tides:
+    display_name: "&cМагмовые Приливы"
     title: "§cМагмовые Приливы"
     subtitle: "§7Больше магма-крема… осторожно."
     end: "§7§cМагмовые Приливы§7 отступили."
   ghast_alert:
+    display_name: "&fТревога: Гасты"
     title: "§fТревога Гастов"
     subtitle: "§7Больше гастов и дополнительная награда."
     end: "§7§fТревога Гастов§7 закончилась."
     ghast_name: "§fВыслеживающий Гаст"
   wither_loose:
+    display_name: "&4Визер на Свободе"
     title: "§4МАКСИМАЛЬНАЯ ТРЕВОГА!"
     subtitle: "§7§lВИТЕР НА СВОБОДЕ§7 в Незере."
     survive: "§cВЫЖИВАЙ!!"
@@ -224,6 +252,7 @@ event:
     countdown_generic: "§cОсталось §f{seconds}§c секунд…"
     idle_killed: "§7§4Витер§7 исчез из-за бездействия…"
   wither_skeleton_swarm:
+    display_name: "&8Рой Визер-Скелетов"
     title: "§8Скопление"
     subtitle: "§7Более сильные Витер-Скелеты и лучший лут."
     end: "§7§8Скопление§7 закончилось."
@@ -418,10 +447,21 @@ guide:
     winter_freeze: "§9Зимняя Заморозка§7: без надлежащей одежды вы быстро замерзнете."
     magic_storm: "§9Магический Шторм§7: странная погода и магический лут."
     festival: "§6Фестивали§7: жители, сделки и декорации."
-    fishing: "§9Фестиваль Рыбалки§7: дополнительный лут при рыбалке."
-    mining: "§6Благословение Шахтера§7: больше минералов и лучшие дропы."
+    fishing_festival: "§9Фестиваль Рыбалки§7: дополнительный лут при рыбалке."
+    mining_blessing: "§6Благословение Шахтера§7: больше минералов и лучшие дропы."
     tornado: "§7Торнадо§7: ветер, который тащит и повреждает урожай."
     restful_sleep: "§9Освежающий Сон§7: сон дает временное дополнительное здоровье."
+    holiday: "§6Holidays§7: Festive decorations and celebrations."
+    new_year: "§eNew Year§7: A new year begins — fireworks and gifts."
+    nether_fishing_derby: "§cNether Fishing Derby§7: Fish in lava for special loot."
+    piglin_market: "§6Piglin Market§7: Better barters for a while."
+    quartz_rush: "§fQuartz Rush§7: More quartz while mining."
+    fungus_bloom: "§dFungus Bloom§7: Crimson/Warped drop more."
+    blaze_surge: "§6Blaze Surge§7: More blaze rods and tougher blazes."
+    magma_tides: "§cMagma Tides§7: More magma cream… be careful."
+    ghast_alert: "§fGhast Alert§7: More ghasts and extra rewards."
+    wither_loose: "§4Wither Loose§7: A Wither is loose in the Nether — survive!"
+    wither_skeleton_swarm: "§8Wither Skeleton Swarm§7: Stronger Wither Skeletons, better loot."
 
   crops:
     SPRING: "Пшеница, морковь, картофель, свекла и тыквы процветают; очень хороший общий сезон для выращивания."
